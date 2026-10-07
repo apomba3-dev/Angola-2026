@@ -27,7 +27,6 @@
         .whatsapp-btn { background: #25d366 !important; }
         .call-btn { background: #0288d1 !important; }
         .danger-btn { background: #d9534f !important; }
-        
         .chat-box { background: #eef2f3; border-radius: 8px; height: 180px; overflow-y: auto; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #ddd; }
         .msg-user { background: #00796b; color: white; align-self: flex-end; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 0.9rem; word-break: break-word; }
         .msg-dev { background: #ffffff; color: #333; align-self: flex-start; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 0.9rem; border: 1px solid #ddd; word-break: break-word; }
@@ -51,56 +50,29 @@
         <div class="modal-content" id="modalConteudo"></div>
     </div>
 
+    <!-- Puxa as frases de forma limpa do ficheiro separado -->
+    <script src="dados.js"></script>
+
     <script>
         const MEU_TITULAR = "Artur Jamba Pomba";
         const MEU_BANCO = "Banco (BFA/BAI/Outro)";
         const MEU_IBAN = "000600009715277030196";
         const MEU_TELEFONE = "+244 944 048 287";
 
-        const dados = [
-            { 
-                titulo: "Angola 2026 - Introdução Institucional", 
-                categoria: "Institucional", 
-                conteudo: "Bem-vindo ao portal oficial da aplicação Angola 2026. Esta plataforma digital foi desenvolvida para centralizar dados históricos, diretrizes da administração pública e ferramentas de apoio clínico essenciais para a comunidade e profissionais no terreno." 
-            },
-            { 
-                titulo: "História de Angola: Da Independência à Atualidade", 
-                categoria: "História", 
-                conteudo: "Angola conquistou a sua independência a 11 de novembro de 1975, após séculos de colonização portuguesa e uma longa luta armada de Libertação Nacional. Após décadas de conflito subsequente, o país alcançou a paz definitiva em 2002, iniciando um período de reconstrução nacional, diversificação económica e modernização das infraestruturas." 
-            },
-            { 
-                titulo: "O Crescente Patriotismo e Identidade Nacional", 
-                categoria: "Sociedade", 
-                conteudo: "O patriotismo em Angola vive uma fase de forte afirmação, impulsionada pelas gerações mais jovens que valorizam as raízes culturais, as línguas nacionais, as artes, a música e o engenho local. Este sentimento traduz-se num compromisso cívico ativo com o desenvolvimento sustentável, a inovação tecnológica nacional e a preservação da soberania e dos valores histórico-cultural do país." 
-            },
-            { 
-                titulo: "Administração Pública e Organização do Estado", 
-                categoria: "Governo", 
-                conteudo: "A Administração Pública em Angola rege-se pelos princípios da descentralização e desconcentração administrativa. O Estado organiza-se em órgãos centrais (poderes Executivo, Legislativo e Judicial) e órgãos locais (governos provinciais e administrações municipais/comunais)." 
-            },
-            { 
-                titulo: "Geografia e Organização Territorial", 
-                categoria: "Geografia", 
-                conteudo: "Com uma área de 1.246.700 km², Angola está dividida administrativamente em 18 províncias, subdivididas em municípios e comunas. Possui uma vasta diversidade de ecossistemas, desde a costa atlântica até às florestas tropicais e planaltos centrais." 
-            },
-            { 
-                titulo: "As 18 Províncias de Angola", 
-                categoria: "Geografia", 
-                conteudo: "Angola é composta por 18 províncias: Bengo, Benguela, Bié, Cabinda, Cuando Cubango, Cuanza Norte, Cuanza Sul, Cunene, Huambo, Huíla, Luanda, Lunda Norte, Lunda Sul, Malanje, Moxico, Namibe, Uíge e Zaire. Cada província possui características culturais, económicas e geográficas únicas." 
-            },
-            { 
-                titulo: "Tecnologias e Comunicação", 
-                categoria: "Tecnologia", 
-                conteudo: "O panorama tecnológico em Angola tem evoluído rapidamente com a expansão das redes móveis de nova geração, o incremento de soluções digitais locais e o interesse crescente em redes de comunicação alternativas e sistemas de rádio." 
-            }
-        ];
+        let listaFiltrada = [];
 
-        let listaFiltrada = [...dados];
+        // Garante que carrega os dados assim que a página arranca
+        window.addEventListener('DOMContentLoaded', () => {
+            if (typeof dados !== 'undefined') {
+                listaFiltrada = [...dados];
+                carregarLista(listaFiltrada);
+            }
+        });
 
         function carregarLista(itens) {
             const ul = document.getElementById("listaArtigos");
             ul.innerHTML = "";
-            if (itens.length === 0) {
+            if (!itens || itens.length === 0) {
                 ul.innerHTML = "<li style='text-align:center; color:gray;'>Nenhum resultado encontrado localmente. Pressione Enter para pesquisar na Web.</li>";
                 return;
             }
@@ -112,9 +84,8 @@
             });
         }
 
-        carregarLista(listaFiltrada);
-
         function filtrar() {
+            if (typeof dados === 'undefined') return;
             const termo = document.getElementById("inputPesquisa").value.toLowerCase().trim();
             if (termo === "") {
                 listaFiltrada = [...dados];
@@ -148,22 +119,16 @@
             `);
         }
 
-        // --- SISTEMA DE REGISTO DE ACESSOS ---
         function registarAcessoApp() {
             let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
             let agora = new Date().toLocaleString("pt-PT");
-            
-            // Adiciona o novo acesso
             acessos.push({ dataHora: agora, dispositivo: navigator.userAgent });
-            
-            // Guarda na BD local
             localStorage.setItem("angola_acessos_log", JSON.stringify(acessos));
         }
 
         function abrirEstatisticasAcessos() {
             let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
             let htmlLogs = `<h2>📊 Registos de Acessos</h2><p style="font-size:0.85rem; color:#555;">Histórico de vezes que a aplicação foi aberta neste dispositivo:</p><hr>`;
-            
             if (acessos.length === 0) {
                 htmlLogs += `<p>Sem registos disponíveis.</p>`;
             } else {
@@ -181,7 +146,6 @@
                 abrirEstatisticasAcessos();
             }
         }
-        // -------------------------------------
 
         function abrirMenu() {
             abrirJanela(`
