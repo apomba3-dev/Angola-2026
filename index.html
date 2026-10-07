@@ -12,10 +12,11 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background-color: #f5f5f7; color: #333; }
         
-        /* Cabeçalho com o menu à esquerda e o título */
+        /* Cabeçalho com menu à esquerda, título ao centro e submenu à direita */
         header { background: #004d40; color: white; padding: 12px 15px; display: flex; align-items: center; justify-content: space-between; }
-        .header-left { display: flex; align-items: center; gap: 10px; width: 100%; }
-        h1 { margin: 0; font-size: 1.1rem; flex-grow: 1; text-align: right; }
+        .header-left { display: flex; align-items: center; gap: 8px; }
+        .header-right { display: flex; align-items: center; }
+        h1 { margin: 0; font-size: 1rem; text-align: center; flex-grow: 1; }
         .container { padding: 15px; max-width: 600px; margin: auto; }
         
         input[type="text"], input[type="password"], input[type="number"], button { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
@@ -24,35 +25,38 @@
         ul { list-style: none; padding: 0; }
         li { background: white; padding: 15px; margin-bottom: 8px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
         
-        /* Botão de Menu Visível no Canto Superior Esquerdo */
-        .menu-btn { background: #00796b; border: 1px solid rgba(255,255,255,0.4); color: white; font-size: 1rem; font-weight: bold; padding: 8px 12px; border-radius: 6px; width: auto; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        /* Botões de Menu nos Cantos */
+        .menu-btn { background: #00796b; border: 1px solid rgba(255,255,255,0.4); color: white; font-size: 0.9rem; font-weight: bold; padding: 8px 10px; border-radius: 6px; width: auto; cursor: pointer; display: flex; align-items: center; gap: 4px; }
         .menu-btn:active { background: #00332c; }
+        .submenu-right-btn { background: #00695c; border: 1px solid rgba(255,255,255,0.4); color: white; font-size: 0.9rem; font-weight: bold; padding: 8px 10px; border-radius: 6px; width: auto; cursor: pointer; display: flex; align-items: center; gap: 4px; }
         
         /* Ecrã Total Azul Ocupando Todos os Cantos Sem Espaços Vázios */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0d47a1; z-index: 9999; justify-content: center; align-items: center; margin: 0; padding: 15px; box-sizing: border-box; }
-        .modal-content { background: white; padding: 30px 20px; border-radius: 12px; width: 100%; max-width: 420px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); text-align: left; box-sizing: border-box; }
+        .modal-content { background: white; padding: 30px 20px; border-radius: 12px; width: 100%; max-width: 420px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); text-align: left; box-sizing: border-box; max-height: 90vh; overflow-y: auto; }
         
         .badge { background: #e0f2f1; color: #00796b; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
         .iban-box { background: #f9f9f9; padding: 10px; border: 1px dashed #00796b; border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 0.95rem; margin: 10px 0; }
         .whatsapp-btn { background: #25d366 !important; }
         .call-btn { background: #0288d1 !important; }
         .danger-btn { background: #d9534f !important; }
+        .secondary-btn { background: #546e7a !important; }
         .chat-box { background: #eef2f3; border-radius: 8px; height: 180px; overflow-y: auto; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #ddd; }
         .msg-user { background: #00796b; color: white; align-self: flex-end; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 0.9rem; word-break: break-word; }
         .msg-dev { background: #ffffff; color: #333; align-self: flex-start; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 0.9rem; border: 1px solid #ddd; word-break: break-word; }
         .log-box { background: #f9f9f9; border: 1px solid #ddd; padding: 8px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 5px; font-family: monospace; }
-        
-        /* Secções de Opções no Menu */
-        .menu-section-title { font-size: 0.85rem; font-weight: bold; color: #00796b; margin: 12px 0 5px 2px; text-transform: uppercase; letter-spacing: 0.5px; }
     </style>
 </head>
 <body>
 
     <header>
         <div class="header-left">
-            <!-- Botão de Menu com texto visível e ícone -->
+            <!-- Menu Principal no Canto Superior Esquerdo -->
             <button class="menu-btn" onclick="abrirMenu()">☰ Menu</button>
-            <h1>🇦🇴 Angola 2026</h1>
+        </div>
+        <h1>🇦🇴 Angola 2026</h1>
+        <div class="header-right">
+            <!-- Submenu no Canto Superior Direito -->
+            <button class="submenu-right-btn" onclick="abrirSubmenuDireito()">⚙️ Opções</button>
         </div>
     </header>
 
@@ -247,7 +251,7 @@
                     htmlLogs += `<div class="log-box"><b>#${acessos.length - index}</b> - ${log.perfil || 'Acesso geral'} <br><small>${log.dataHora}</small></div>`;
                 });
             }
-            htmlLogs += `<br><button onclick="limparLogs()" class="danger-btn">Apagar Registos</button><button onclick="abrirMenu()">Voltar ao Menu</button>`;
+            htmlLogs += `<br><button onclick="limparLogs()" class="danger-btn">Apagar Registos</button><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>`;
             abrirJanelaModal(htmlLogs);
         }
 
@@ -258,22 +262,43 @@
             }
         }
 
+        /* Menu Principal (Esquerda) */
         function abrirMenu() {
             abrirJanelaModal(`
                 <h2>☰ Menu Principal</h2>
                 <hr>
-                <div class="menu-section-title">🩺 Opções de Saúde</div>
-                <button onclick="calcMed()">💊 Módulo: Dosagens</button>
-                <button onclick="infoSaude('🦟 Paludismo (Malária)', 'O paludismo é prevalente em Angola. Sintomas incluem febre alta e calafrios. Use redes mosqueteiras.')">🦟 Guia: Paludismo</button>
-                <button onclick="infoSaude('🎗 SIDA / HIV', 'A prevenção inclui preservativos, testagem regular e uso de antirretrovirais (ARV).')">🎗 Informação: HIV/SIDA</button>
-                
-                <div class="menu-section-title">⚙️ Geral & Ferramentas</div>
-                <button onclick="abrirEstatisticasAcessos()">📊 Ver Utilizadores Registados</button>
-                <button onclick="abrirChat()">💬 Chat & Mensagens</button>
+                <button onclick="abrirSubmenuSaude()">🩺 Opções de Saúde</button>
                 <button onclick="infoDev()">ℹ Sobre o Desenvolvedor</button>
                 <button onclick="infoIban()">💳 Consultar IBAN (Apoio)</button>
                 <br>
                 <button onclick="fecharJanelaModal()" class="danger-btn">Fechar Menu</button>
+            `);
+        }
+
+        /* Submenu Direito (Direita - Canto Superior) */
+        function abrirSubmenuDireito() {
+            abrirJanelaModal(`
+                <h2>⚙️ Submenu & Ferramentas</h2>
+                <hr>
+                <button onclick="abrirEstatisticasAcessos()">📊 Ver Utilizadores Registados</button>
+                <button onclick="abrirChat()">💬 Chat com o Desenvolvedor</button>
+                <button onclick="abrirSubmenuSaude()">🩺 Opções de Saúde</button>
+                <br>
+                <button onclick="fecharJanelaModal()" class="danger-btn">Fechar Submenu</button>
+            `);
+        }
+
+        /* Opções de Saúde */
+        function abrirSubmenuSaude() {
+            abrirJanelaModal(`
+                <h2>🩺 Opções de Saúde</h2>
+                <p style="font-size: 0.9rem; color: #555;">Escolha uma das opções abaixo:</p>
+                <hr>
+                <button onclick="calcMed()">💊 Módulo: Dosagens</button>
+                <button onclick="infoSaude('🦟 Paludismo (Malária)', 'O paludismo é prevalente em Angola. Sintomas incluem febre alta e calafrios. Use redes mosqueteiras.')">🦟 Guia: Paludismo</button>
+                <button onclick="infoSaude('🎗 SIDA / HIV', 'A prevenção inclui preservativos, testagem regular e uso de antirretrovirais (ARV).')">🎗 Informação: HIV/SIDA</button>
+                <br>
+                <button onclick="abrirSubmenuDireito()" class="secondary-btn">⬅ Voltar ao Submenu</button>
             `);
         }
 
@@ -283,7 +308,7 @@
                 <div class="chat-box" id="chatHistorico"></div>
                 <input type="text" id="mensagemInput" placeholder="Escreve a tua mensagem...">
                 <button onclick="enviarMensagemChat()">Enviar</button>
-                <button onclick="abrirMenu()" class="danger-btn">Voltar ao Menu</button>
+                <button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>
             `);
             carregarConversasBD();
         }
@@ -327,7 +352,7 @@
                 <input type="number" id="dose" placeholder="Dose (mg/kg)">
                 <input type="number" id="conc" placeholder="Concentração (mg/ml) [Opcional]">
                 <button onclick="executarCalculo()">Calcular</button>
-                <button onclick="abrirMenu()" class="danger-btn">Voltar ao Menu</button>
+                <button onclick="abrirSubmenuSaude()" class="secondary-btn">Voltar às Opções</button>
             `);
         }
 
@@ -339,7 +364,7 @@
                 let total = peso * dose;
                 let res = `<h2>📊 Resultado</h2><hr><p><b>Dose Total:</b> ${total.toFixed(2)} mg</p>`;
                 if (!isNaN(conc) && conc > 0) res += `<p><b>Volume:</b> ${(total/conc).toFixed(2)} ml</p>`;
-                res += `<br><button onclick="calcMed()">Novo</button><button onclick="abrirMenu()" class="danger-btn">Voltar ao Menu</button>`;
+                res += `<br><button onclick="calcMed()">Novo</button><button onclick="abrirSubmenuSaude()" class="secondary-btn">Voltar às Opções</button>`;
                 abrirJanelaModal(res);
             } else {
                 alert("Preencha valores válidos.");
@@ -347,7 +372,7 @@
         }
 
         function infoSaude(titulo, msg) {
-            abrirJanelaModal(`<h2>${titulo}</h2><hr><p>${msg}</p><br><button onclick="abrirMenu()">Voltar ao Menu</button>`);
+            abrirJanelaModal(`<h2>${titulo}</h2><hr><p>${msg}</p><br><button onclick="abrirSubmenuSaude()" class="secondary-btn">Voltar às Opções</button>`);
         }
 
         function infoDev() {
@@ -357,12 +382,12 @@
                 <hr><p><b>Desenvolvedor:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
                 <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, sou o/a ${meuNomeCadastrado} e contacto através da app Angola 2026.`) + `', '_blank')">💬 Conversar via WhatsApp</button>
                 <button class="call-btn" onclick="window.location.href='tel:${MEU_TELEFONE}'">📞 Ligar</button>
-                <br><br><button onclick="abrirMenu()">Voltar ao Menu</button>
+                <br><br><button onclick="abrirMenu()" class="secondary-btn">Voltar ao Menu</button>
             `);
         }
 
         function infoIban() {
-            abrirJanelaModal(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="abrirMenu()">Voltar ao Menu</button>`);
+            abrirJanelaModal(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="abrirMenu()" class="secondary-btn">Voltar ao Menu</button>`);
         }
 
         function abrirJanelaModal(html) {
