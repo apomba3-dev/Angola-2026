@@ -1,38 +1,27 @@
-// Ficheiro separado com todas as frases, artigos e conteúdos da aplicação
 const dados = [
-    { 
-        titulo: "Angola 2026 - Introdução Institucional", 
-        categoria: "Institucional", 
-        conteudo: "Bem-vindo ao portal oficial da aplicação Angola 2026. Esta plataforma digital foi desenvolvida para centralizar dados históricos, diretrizes da administração pública e ferramentas de apoio clínico essenciais para a comunidade e profissionais no terreno." 
+    {
+        titulo: "História de Angola",
+        categoria: "História",
+        conteudo: "A história de Angola abrange desde as sociedades tradicionais e os reinos antigos (como o Reino do Congo, Ndongo e Matamba) até à resistência colonial, a Luta Armada de Libertação Nacional liderada pelos movimentos patrióticos, a proclamação da Independência Nacional a 11 de novembro de 1975 por Agostinho Neto, e o posterior caminho para a paz e reconciliação nacional alcançada em 2002."
     },
-    { 
-        titulo: "História de Angola: Da Independência à Atualidade", 
-        categoria: "História", 
-        conteudo: "Angola conquistou a sua independência a 11 de novembro de 1975, após séculos de colonização portuguesa e uma longa luta armada de Libertação Nacional. Após décadas de conflito subsequente, o país alcançou a paz definitiva em 2002, iniciando um período de reconstrução nacional, diversificação económica e modernização das infraestruturas." 
+    {
+        titulo: "Noções sobre Patriotismo",
+        categoria: "Cidadania",
+        conteudo: "O patriotismo em Angola consubstancia-se no amor à pátria, na defesa da soberania nacional, na unidade nacional, no respeito pelos símbolos nacionais (Bandeira, Hino e Armas da República), na preservação da paz, da ordem pública e no contributo ativo para o desenvolvimento socioeconómico e cultural do país."
     },
-    { 
-        titulo: "O Crescente Patriotismo e Identidade Nacional", 
-        categoria: "Sociedade", 
-        conteudo: "O patriotismo em Angola vive uma fase de forte afirmação, impulsionada pelas gerações mais jovens que valorizam as raízes culturais, as línguas nacionais, as artes, a música e o engenho local. Este sentimento traduz-se num compromisso cívico ativo com o desenvolvimento sustentável, a inovação tecnológica nacional e a preservação da soberania e dos valores histórico-cultural do país." 
+    {
+        titulo: "Organização Política e Administrativa da República de Angola",
+        categoria: "Organização do Estado",
+        conteudo: "Angola é uma República unitária e presidencialista. A organização político-administrativa baseia-se na separação de poderes entre o Presidente da República (Chefe de Estado e do Executivo), a Assembleia Nacional (Poder Legislativo) e os Tribunais (Poder Judicial). O território está dividido político-administrativamente em Províncias, Municípios, Comunas e Bairros/Aldeias."
     },
-    { 
-        titulo: "Administração Pública e Organização do Estado", 
-        categoria: "Governo", 
-        conteudo: "A Administração Pública em Angola rege-se pelos princípios da descentralização e desconcentração administrativa. O Estado organiza-se em órgãos centrais (poderes Executivo, Legislativo e Judicial) e órgãos locais (governos provinciais e administrações municipais/comunais)." 
+    {
+        titulo: "Noções Gerais de Administração Pública",
+        categoria: "Administração",
+        conteudo: "A Administração Pública em Angola engloba o conjunto de órgãos, serviços e agentes do Estado que prosseguem o interesse público. Rege-se por princípios fundamentais consagrados na Constituição e na lei, destacando-se os princípios da legalidade, justiça, proporcionalidade, imparcialidade, desburocratização, moralidade e transparência."
     },
-    { 
-        titulo: "Geografia e Organização Territorial", 
-        categoria: "Geografia", 
-        conteudo: "Com uma área de 1.246.700 km², Angola está dividida administrativamente em 18 províncias, subdivididas em municípios e comunas. Possui uma vasta diversidade de ecossistemas, desde a costa atlântica até às florestas tropicais e planaltos centrais." 
-    },
-    { 
-        titulo: "As 18 Províncias de Angola", 
-        categoria: "Geografia", 
-        conteudo: "Angola é composta por 18 províncias: Bengo, Benguela, Bié, Cabinda, Cuando Cubango, Cuanza Norte, Cuanza Sul, Cunene, Huambo, Huíla, Luanda, Lunda Norte, Lunda Sul, Malanje, Moxico, Namibe, Uíge e Zaire. Cada província possui características culturais, económicas e geográficas únicas." 
-    },
-    { 
-        titulo: "Tecnologias e Comunicação", 
-        categoria: "Tecnologia", 
-        conteudo: "O panorama tecnológico em Angola tem evoluído rapidamente com a expansão das redes móveis de nova geração, o incremento de soluções digitais locais e o interesse crescente em redes de comunicação alternativas e sistemas de rádio." 
+    {
+        titulo: "Organização e Funcionamento do Ministério do Interior",
+        categoria: "Ministério do Interior",
+        conteudo: "O Ministério do Interior (MININT) é o departamento ministerial auxiliar do Presidente da República responsável por formular, coordenar e executar a política nacional de segurança pública, manutenção da ordem pública, protecção civil e bombeiros, migração e controlo de fronteiras, e o sistema prisional. Compreende órgãos executivos centrais e serviços integrados como a Polícia Nacional de Angola (PNA), o Serv. de Investigação Criminal (SIC), o S.M.I.E.F., e o S.P.C.B."
     }
 ];
