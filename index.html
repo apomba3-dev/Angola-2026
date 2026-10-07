@@ -72,15 +72,6 @@
             verificarSessaoUtilizador();
         });
 
-        // Função criptográfica para gerar o Hash SHA-256 da senha
-        async function gerarHashSenha(senha) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(senha);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-
         function verificarSessaoUtilizador() {
             let sessaoAtiva = localStorage.getItem("sessao_ativa");
             if (sessaoAtiva !== "true") {
@@ -97,15 +88,15 @@
             abrirJanelaFixa(`
                 <h2 style="color: #0d47a1; margin-top:0;">🇦🇴 Angola 2026</h2>
                 <hr style="border:0; border-top:1px solid #eee; margin-bottom:15px;">
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 15px;">Efetue o seu registo seguro para aceder à aplicação:</p>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 15px;">Efetue o seu registo para aceder à aplicação:</p>
                 <input type="text" id="nomeRegisto" placeholder="O seu Nome Completo">
                 <input type="text" id="contactoRegisto" placeholder="O seu Número / WhatsApp">
                 <input type="password" id="senhaRegisto" placeholder="Crie uma Senha (Mínimo 6 caracteres)">
-                <button onclick="concluirCadastro()" style="background: #0d47a1; margin-top: 5px;">Criar Conta Segura</button>
+                <button onclick="concluirCadastro()" style="background: #0d47a1; margin-top: 5px;">Criar Conta</button>
             `);
         }
 
-        async function concluirCadastro() {
+        function concluirCadastro() {
             const nome = document.getElementById("nomeRegisto").value.trim();
             const contacto = document.getElementById("contactoRegisto").value.trim();
             const senha = document.getElementById("senhaRegisto").value.trim();
@@ -120,13 +111,10 @@
                 return;
             }
 
-            // Converter a senha num Hash seguro antes de guardar
-            const senhaHash = await gerarHashSenha(senha);
-
             localStorage.setItem("utilizador_cadastrado", "true");
             localStorage.setItem("utilizador_nome", nome);
             localStorage.setItem("utilizador_contacto", contacto);
-            localStorage.setItem("utilizador_senha_hash", senhaHash);
+            localStorage.setItem("utilizador_senha", senha);
             localStorage.setItem("sessao_ativa", "true");
 
             let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
@@ -153,24 +141,25 @@
             `);
         }
 
-        async function validarLogin() {
+        function validarLogin() {
             const senhaDigitada = document.getElementById("senhaLogin").value.trim();
-            const hashSalvo = localStorage.getItem("utilizador_senha_hash");
+            const senhaSalva = localStorage.getItem("utilizador_senha");
 
             if (!senhaDigitada) {
                 alert("Por favor, digite a senha.");
                 return;
             }
 
-            // Transforma a senha digitada em hash para comparar com o cofre local
-            const hashDigitado = await gerarHashSenha(senhaDigitada);
-
-            if (hashDigitado === hashSalvo) {
+            if (senhaDigitada === senhaSalva) {
                 localStorage.setItem("sessao_ativa", "true");
                 fecharJanela();
             } else {
                 alert("Senha incorreta! Tente novamente.");
             }
+        }
+
+        function fecharJanela() {
+            document.getElementById("modal").style.display = "none";
         }
 
         function esqueciMinhaSenha() {
