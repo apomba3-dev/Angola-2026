@@ -23,6 +23,8 @@
         .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 450px; max-height: 85vh; overflow-y: auto; }
         .badge { background: #e0f2f1; color: #00796b; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
         .iban-box { background: #f9f9f9; padding: 10px; border: 1px dashed #00796b; border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 0.95rem; margin: 10px 0; }
+        .whatsapp-btn { background: #25d366 !important; }
+        .call-btn { background: #0288d1 !important; }
     </style>
 </head>
 <body>
@@ -55,6 +57,11 @@
                 conteudo: "Angola conquistou a sua independência a 11 de novembro de 1975, após séculos de colonização portuguesa e uma longa luta armada de Libertação Nacional. Após décadas de conflito subsequente, o país alcançou a paz definitiva em 2002, iniciando um período de reconstrução nacional, diversificação económica e modernização das infraestruturas." 
             },
             { 
+                titulo: "O Crescente Patriotismo e Identidade Nacional", 
+                categoria: "Sociedade", 
+                conteudo: "O patriotismo em Angola vive uma fase de forte afirmação, impulsionada pelas gerações mais jovens que valorizam as raízes culturais, as línguas nacionais, as artes, a música e o engenho local. Este sentimento traduz-se num compromisso cívico ativo com o desenvolvimento sustentável, a inovação tecnológica nacional e a preservação da soberania e dos valores histórico-cultural do país." 
+            },
+            { 
                 titulo: "Administração Pública e Organização do Estado", 
                 categoria: "Governo", 
                 conteudo: "A Administração Pública em Angola rege-se pelos princípios da descentralização e desconcentração administrativa. O Estado organiza-se em órgãos centrais (poderes Executivo, Legislativo e Judicial) e órgãos locais (governos provinciais e administrações municipais/comunais)." 
@@ -63,6 +70,16 @@
                 titulo: "Geografia e Organização Territorial", 
                 categoria: "Geografia", 
                 conteudo: "Com uma área de 1.246.700 km², Angola está dividida administrativamente em 18 províncias, subdivididas em municípios e comunas. Possui uma vasta diversidade de ecossistemas, desde a costa atlântica até às florestas tropicais e planaltos centrais." 
+            },
+            { 
+                titulo: "As 18 Províncias de Angola", 
+                categoria: "Geografia", 
+                conteudo: "Angola é composta por 18 províncias: Bengo, Benguela, Bié, Cabinda, Cuando Cubango, Cuanza Norte, Cuanza Sul, Cunene, Huambo, Huíla, Luanda, Lunda Norte, Lunda Sul, Malanje, Moxico, Namibe, Uíge e Zaire. Cada província possui características culturais, económicas e geográficas únicas." 
+            },
+            { 
+                titulo: "Tecnologias e Comunicação", 
+                categoria: "Tecnologia", 
+                conteudo: "O panorama tecnológico em Angola tem evoluído rapidamente com a expansão das redes móveis de nova geração, o incremento de soluções digitais locais e o interesse crescente em redes de comunicação alternativas e sistemas de rádio." 
             }
         ];
 
@@ -109,7 +126,7 @@
                 <button onclick="calcMed()">💊 Cálculo Detalhado de Dosagens</button>
                 <button onclick="infoSaude('🦟 Guia: Paludismo (Malária)', 'O paludismo é uma das doenças de maior prevalência em Angola. Sintomas comuns: febre alta, calafrios intensos, dores musculares e cefaleias. <b>Prevenção e Tratamento:</b> Uso rigoroso de redes mosquiteiras tratadas com inseticida, eliminação de águas estagnadas e consulta imediata ao posto médico mais próximo para confirmação por teste rápido e terapêutica adequada.')">🦟 Guia: Paludismo</button>
                 <button onclick="infoSaude('🎗 Informação: HIV / SIDA', 'O HIV transmite-se através de fluidos corporais específicos. <b>Prevenção:</b> Uso correto de preservativos, testagem regular e adesão rigorosa aos medicamentos antirretrovirais (ARV) disponibilizados na rede pública.')">🎗 Informação: HIV/SIDA</button>
-                <button onclick="infoDev()">ℹ Sobre o Desenvolvedor</button>
+                <button onclick="infoDev()">ℹ Sobre o Desenvolvedor & Contactos</button>
                 <button onclick="infoIban()">💳 Consultar IBAN (Apoio)</button>
                 <br>
                 <button onclick="fecharJanela()" style="background:#d9534f">Fechar Menu</button>
@@ -156,7 +173,18 @@
         }
 
         function infoDev() {
-            abrirJanela(`<h2>👨‍💻 Sobre o Desenvolvedor</h2><hr><p><b>Aplicação:</b> Angola 2026<br><b>Desenvolvedor:</b> Artur Jamba Pomba<br><b>Contacto:</b> +244 944 048 287<br><br>Focado na digitalização de conteúdos históricos, administrativos e de saúde para a comunidade.</p><br><button onclick="fecharJanela()">Fechar</button>`);
+            abrirJanela(`
+                <h2>👨‍💻 Sobre o Desenvolvedor</h2>
+                <hr>
+                <p><b>Aplicação:</b> Angola 2026<br><b>Desenvolvedor:</b> Artur Jamba Pomba<br><b>Contacto:</b> +244 944 048 287</p>
+                <p>Focado na digitalização de conteúdos históricos, administrativos e de saúde para a comunidade.</p>
+                <hr>
+                <p><b>Fale diretamente comigo:</b></p>
+                <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=Olá%20Artur,%20estou%20a%20contactar-te%20através%20da%20aplicação%20Angola%202026.', '_blank')">💬 Conversar via WhatsApp</button>
+                <button class="call-btn" onclick="window.location.href='tel:+244944048287'">📞 Ligar Diretamente</button>
+                <br>
+                <button onclick="fecharJanela()">Fechar</button>
+            `);
         }
 
         function infoIban() {
