@@ -14,8 +14,8 @@
         
         /* Cabeçalho com o menu à esquerda e o título */
         header { background: #004d40; color: white; padding: 12px 15px; display: flex; align-items: center; justify-content: space-between; }
-        .header-left { display: flex; align-items: center; gap: 12px; }
-        h1 { margin: 0; font-size: 1.15rem; }
+        .header-left { display: flex; align-items: center; gap: 10px; width: 100%; }
+        h1 { margin: 0; font-size: 1.1rem; flex-grow: 1; text-align: right; }
         .container { padding: 15px; max-width: 600px; margin: auto; }
         
         input[type="text"], input[type="password"], input[type="number"], button { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
@@ -24,8 +24,9 @@
         ul { list-style: none; padding: 0; }
         li { background: white; padding: 15px; margin-bottom: 8px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
         
-        /* Botão de Menu (Três Barras) no canto superior esquerdo */
-        .menu-btn { background: none; border: none; color: white; font-size: 1.6rem; width: auto; padding: 0; cursor: pointer; line-height: 1; }
+        /* Botão de Menu Visível no Canto Superior Esquerdo */
+        .menu-btn { background: #00796b; border: 1px solid rgba(255,255,255,0.4); color: white; font-size: 1rem; font-weight: bold; padding: 8px 12px; border-radius: 6px; width: auto; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .menu-btn:active { background: #00332c; }
         
         /* Ecrã Total Azul Ocupando Todos os Cantos Sem Espaços Vázios */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0d47a1; z-index: 9999; justify-content: center; align-items: center; margin: 0; padding: 15px; box-sizing: border-box; }
@@ -49,8 +50,8 @@
 
     <header>
         <div class="header-left">
-            <!-- Ícone de Três Barras no Canto Superior Esquerdo -->
-            <button class="menu-btn" onclick="abrirMenu()">☰</button>
+            <!-- Botão de Menu com texto visível e ícone -->
+            <button class="menu-btn" onclick="abrirMenu()">☰ Menu</button>
             <h1>🇦🇴 Angola 2026</h1>
         </div>
     </header>
