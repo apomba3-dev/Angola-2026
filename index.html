@@ -72,6 +72,15 @@
             verificarSessaoUtilizador();
         });
 
+        // Função criptográfica para gerar o Hash SHA-256 da senha
+        async function gerarHashSenha(senha) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(senha);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
         function verificarSessaoUtilizador() {
             let sessaoAtiva = localStorage.getItem("sessao_ativa");
             if (sessaoAtiva !== "true") {
@@ -88,28 +97,36 @@
             abrirJanelaFixa(`
                 <h2 style="color: #0d47a1; margin-top:0;">🇦🇴 Angola 2026</h2>
                 <hr style="border:0; border-top:1px solid #eee; margin-bottom:15px;">
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 15px;">Efetue o seu registo para aceder à aplicação:</p>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 15px;">Efetue o seu registo seguro para aceder à aplicação:</p>
                 <input type="text" id="nomeRegisto" placeholder="O seu Nome Completo">
                 <input type="text" id="contactoRegisto" placeholder="O seu Número / WhatsApp">
-                <input type="password" id="senhaRegisto" placeholder="Crie uma Senha de Acesso">
-                <button onclick="concluirCadastro()" style="background: #0d47a1; margin-top: 5px;">Criar Conta e Entrar</button>
+                <input type="password" id="senhaRegisto" placeholder="Crie uma Senha (Mínimo 6 caracteres)">
+                <button onclick="concluirCadastro()" style="background: #0d47a1; margin-top: 5px;">Criar Conta Segura</button>
             `);
         }
 
-        function concluirCadastro() {
+        async function concluirCadastro() {
             const nome = document.getElementById("nomeRegisto").value.trim();
             const contacto = document.getElementById("contactoRegisto").value.trim();
             const senha = document.getElementById("senhaRegisto").value.trim();
 
             if (nome === "" || contacto === "" || senha === "") {
-                alert("Por favor, preencha todos os campos (Nome, Número e Senha).");
+                alert("Por favor, preencha todos os campos.");
                 return;
             }
+
+            if (senha.length < 6) {
+                alert("Por segurança, a senha deve ter pelo menos 6 caracteres.");
+                return;
+            }
+
+            // Converter a senha num Hash seguro antes de guardar
+            const senhaHash = await gerarHashSenha(senha);
 
             localStorage.setItem("utilizador_cadastrado", "true");
             localStorage.setItem("utilizador_nome", nome);
             localStorage.setItem("utilizador_contacto", contacto);
-            localStorage.setItem("utilizador_senha", senha);
+            localStorage.setItem("utilizador_senha_hash", senhaHash);
             localStorage.setItem("sessao_ativa", "true");
 
             let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
@@ -129,18 +146,26 @@
             abrirJanelaFixa(`
                 <h2 style="color: #0d47a1; margin-top:0;">🔐 Bem-vindo de volta, ${nomeSalvo}</h2>
                 <hr style="border:0; border-top:1px solid #eee; margin-bottom:15px;">
-                <p style="font-size: 0.95rem; color: #444; margin-bottom: 15px;">Insira a sua senha para entrar na aplicação:</p>
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 15px;">Insira a sua senha de acesso:</p>
                 <input type="password" id="senhaLogin" placeholder="Digite a sua senha">
                 <button onclick="validarLogin()" style="background: #0d47a1; margin-top: 5px;">Entrar</button>
                 <button onclick="esqueciMinhaSenha()" class="whatsapp-btn" style="margin-top: 5px;">💬 Esqueci-me da Senha</button>
             `);
         }
 
-        function validarLogin() {
+        async function validarLogin() {
             const senhaDigitada = document.getElementById("senhaLogin").value.trim();
-            const senhaSalva = localStorage.getItem("utilizador_senha");
+            const hashSalvo = localStorage.getItem("utilizador_senha_hash");
 
-            if (senhaDigitada === senhaSalva) {
+            if (!senhaDigitada) {
+                alert("Por favor, digite a senha.");
+                return;
+            }
+
+            // Transforma a senha digitada em hash para comparar com o cofre local
+            const hashDigitado = await gerarHashSenha(senhaDigitada);
+
+            if (hashDigitado === hashSalvo) {
                 localStorage.setItem("sessao_ativa", "true");
                 fecharJanela();
             } else {
@@ -238,7 +263,7 @@
                 <button onclick="abrirEstatisticasAcessos()">📊 Ver Utilizadores Registados</button>
                 <button onclick="abrirChat()">💬 Chat & Mensagens</button>
                 <button onclick="calcMed()">💊 Módulo: Dosagens</button>
-                <button onclick="infoSaude('🦟 Paludismo (Malária)', 'O paludismo é prevalente em Angola. Sintomas incluem febre alta e calafrios. Use redes mosquiteiras.')">🦟 Guia: Paludismo</button>
+                <button onclick="infoSaude('🦟 Paludismo (Malária)', 'O paludismo é prevalente em Angola. Sintomas incluem febre alta e calafrios. Use redes mosqueteiras.')">🦟 Guia: Paludismo</button>
                 <button onclick="infoSaude('🎗 SIDA / HIV', 'A prevenção inclui preservativos, testagem regular e uso de antirretrovirais (ARV).')">🎗 Informação: HIV/SIDA</button>
                 <button onclick="infoDev()">ℹ Sobre o Desenvolvedor</button>
                 <button onclick="infoIban()">💳 Consultar IBAN (Apoio)</button>
