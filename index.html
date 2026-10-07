@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Angola 2026</title>
-    <!-- Configuração essencial para parecer uma App no iPhone -->
+    <!-- Configuração PWA para iPhone e Android -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Angola 2026">
+    <link rel="manifest" href="manifest.json">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background-color: #f5f5f7; color: #333; }
         header { background: #004d40; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
@@ -26,10 +27,7 @@
         .whatsapp-btn { background: #25d366 !important; }
         .call-btn { background: #0288d1 !important; }
     </style>
-    <link rel="manifest" href="manifest.json">
-
-</head> 
-    
+</head>
 <body>
 
     <header>
@@ -38,16 +36,22 @@
     </header>
 
     <div class="container">
-        <input type="text" id="pesquisa" placeholder="Pesquisar artigos ou pressiona Enter para ir ao Google..." oninput="filtrar()" onkeypress="pesquisarWeb(event)">
+        <input type="text" id="inputPesquisa" placeholder="Pesquisar artigos ou pressiona Enter para o Google..." oninput="filtrar()" onkeypress="pesquisarWeb(event)">
         <ul id="listaArtigos"></ul>
     </div>
 
-    <!-- Modal para visualização -->
+    <!-- Modal para visualização idêntica aos diálogos nativos -->
     <div id="modal" class="modal" onclick="fecharModal(event)">
         <div class="modal-content" id="modalConteudo"></div>
     </div>
 
     <script>
+        const MEU_TITULAR = "Artur Jamba Pomba";
+        const MEU_BANCO = "Banco (BFA/BAI/Outro)";
+        const MEU_IBAN = "000600009715277030196";
+        const MEU_TELEFONE = "+244 944 048 287";
+
+        // Dados exatamente idênticos aos do repositório / entidade
         const dados = [
             { 
                 titulo: "Angola 2026 - Introdução Institucional", 
@@ -86,11 +90,13 @@
             }
         ];
 
+        let listaFiltrada = [...dados];
+
         function carregarLista(itens) {
             const ul = document.getElementById("listaArtigos");
             ul.innerHTML = "";
             if (itens.length === 0) {
-                ul.innerHTML = "<li style='text-align:center; color:gray;'>Nenhum resultado encontrado localmente. Pressione Enter na barra acima para pesquisar na Web.</li>";
+                ul.innerHTML = "<li style='text-align:center; color:gray;'>Nenhum resultado encontrado localmente. Pressione Enter para pesquisar na Web.</li>";
                 return;
             }
             itens.forEach((item) => {
@@ -101,35 +107,52 @@
             });
         }
 
-        carregarLista(dados);
+        carregarLista(listaFiltrada);
 
         function filtrar() {
-            const termo = document.getElementById("pesquisa").value.toLowerCase();
-            const filtrados = dados.filter(d => d.titulo.toLowerCase().includes(termo) || d.conteudo.toLowerCase().includes(termo) || d.categoria.toLowerCase().includes(termo));
-            carregarLista(filtrados);
+            const termo = document.getElementById("inputPesquisa").value.toLowerCase().trim();
+            if (termo === "") {
+                listaFiltrada = [...dados];
+            } else {
+                listaFiltrada = dados.filter(d => 
+                    d.titulo.toLowerCase().includes(termo) || 
+                    d.conteudo.toLowerCase().includes(termo) || 
+                    d.categoria.toLowerCase().includes(termo)
+                );
+            }
+            carregarLista(listaFiltrada);
         }
 
         function pesquisarWeb(e) {
             if (e.key === 'Enter') {
-                const termo = document.getElementById("pesquisa").value.trim();
+                const termo = document.getElementById("inputPesquisa").value.trim();
                 if (termo) {
                     window.location.href = `https://www.google.com/search?q=${encodeURIComponent(termo)}`;
+                } else {
+                    alert("Escreva algo para pesquisar na web.");
                 }
             }
         }
 
         function mostrarDetalhes(item) {
-            abrirJanela(`<h2>${item.titulo}</h2><p><span class="badge">${item.categoria}</span></p><hr><p style="line-height: 1.6;">${item.conteudo}</p><br><button onclick="fecharJanela()">Fechar</button>`);
+            abrirJanela(`
+                <h2>${item.titulo}</h2>
+                <p><span class="badge">${item.categoria}</span></p>
+                <hr>
+                <p style="line-height: 1.6;">${item.conteudo}</p>
+                <br>
+                <button onclick="fecharJanela()">Fechar</button>
+            `);
         }
 
         function abrirMenu() {
             abrirJanela(`
                 <h2>Menu de Opções</h2>
                 <hr>
-                <button onclick="calcMed()">💊 Cálculo Detalhado de Dosagens</button>
-                <button onclick="infoSaude('🦟 Guia: Paludismo (Malária)', 'O paludismo é uma das doenças de maior prevalência em Angola. Sintomas comuns: febre alta, calafrios intensos, dores musculares e cefaleias. <b>Prevenção e Tratamento:</b> Uso rigoroso de redes mosquiteiras tratadas com inseticida, eliminação de águas estagnadas e consulta imediata ao posto médico mais próximo para confirmação por teste rápido e terapêutica adequada.')">🦟 Guia: Paludismo</button>
-                <button onclick="infoSaude('🎗 Informação: HIV / SIDA', 'O HIV transmite-se através de fluidos corporais específicos. <b>Prevenção:</b> Uso correto de preservativos, testagem regular e adesão rigorosa aos medicamentos antirretrovirais (ARV) disponibilizados na rede pública.')">🎗 Informação: HIV/SIDA</button>
-                <button onclick="infoDev()">ℹ Sobre o Desenvolvedor & Contactos</button>
+                <button onclick="calcMed()">💊 Módulo: Cálculo Detalhado de Dosagens</button>
+                <button onclick="infoSaude('🦟 Paludismo (Malária)', 'O paludismo é prevalente em Angola. Sintomas comuns incluem febre alta, calafrios e dores musculares. Use redes mosquiteiras e procure o posto médico mais próximo.')">🦟 Guia: Paludismo (Malária)</button>
+                <button onclick="infoSaude('🎗 SIDA / HIV', 'O HIV transmite-se através de fluidos específicos. A prevenção inclui preservativos, testagem regular e adesão aos antirretrovirais (ARV) nos serviços públicos.')">🎗 Informação: HIV/SIDA</button>
+                <button onclick="infoDev()">ℹ Sobre o Desenvolvedor</button>
                 <button onclick="infoIban()">💳 Consultar IBAN (Apoio)</button>
                 <br>
                 <button onclick="fecharJanela()" style="background:#d9534f">Fechar Menu</button>
@@ -138,11 +161,11 @@
 
         function calcMed() {
             abrirJanela(`
-                <h2>💊 Calculador de Dosagens</h2>
+                <h2>💊 Calculador Detalhado de Dosagens</h2>
                 <p style="font-size: 0.9rem; color: #555;">Insira os dados para calcular o passo a passo clínico:</p>
-                <input type="number" id="peso" placeholder="Peso do paciente (kg) [ex: 15]">
-                <input type="number" id="dose" placeholder="Dose por kg (mg) [ex: 15]">
-                <input type="number" id="conc" placeholder="Concentração (mg/ml) [Opcional]">
+                <input type="number" id="peso" placeholder="Peso do paciente em kg (ex: 15)">
+                <input type="number" id="dose" placeholder="Dose p/ kg em mg (ex: 15 p/ Paracetamol)">
+                <input type="number" id="conc" placeholder="Concentração do xarope mg/ml (ex: 50)">
                 <button onclick="executarCalculo()">Calcular Passo a Passo</button>
                 <button onclick="fecharJanela()" style="background:#d9534f">Voltar</button>
             `);
@@ -154,50 +177,50 @@
             const conc = parseFloat(document.getElementById("conc").value);
 
             if (!isNaN(peso) && !isNaN(dose)) {
-                let total = peso * dose;
-                let res = `<h2>📊 Resultado Passo a Passo</h2><hr>`;
-                res += `<p><b>1️⃣ Dados Iniciais:</b><br>• Peso: ${peso} kg<br>• Dose recomendada: ${dose} mg/kg</p>`;
-                res += `<p><b>2️⃣ Cálculo da Dose Total (mg):</b><br>• Fórmula: ${peso} × ${dose}<br>• <b>Total: ${total.toFixed(2)} mg</b></p>`;
+                let doseTotalMg = peso * dose;
+                let res = `<h2>📊 Resultado Detalhado</h2><hr>`;
+                res += `<p><b>1️⃣ Dados de Entrada:</b><br>• Peso do paciente: ${peso} kg<br>• Dose padrão recomendada: ${dose} mg/kg</p>`;
+                res += `<p><b>2️⃣ Cálculo da Dose Total (mg):</b><br>• Fórmula: Peso × Dose por kg<br>• Operação: ${peso} × ${dose} = <b>${doseTotalMg.toFixed(2)} mg</b></p>`;
                 
                 if (!isNaN(conc) && conc > 0) {
-                    let ml = total / conc;
-                    res += `<p><b>3️⃣ Conversão para Volume Líquido (ml):</b><br>• Concentração: ${conc} mg/ml<br>• Fórmula: ${total.toFixed(2)} ÷ ${conc}<br>• <b>Volume por toma: ${ml.toFixed(2)} ml</b></p>`;
+                    let volumeMl = doseTotalMg / conc;
+                    res += `<p><b>3️⃣ Conversão para Volume Líquido (ml):</b><br>• Concentração do medicamento: ${conc} mg por cada ml<br>• Fórmula: Dose Total ÷ Concentração<br>• Operação: ${doseTotalMg.toFixed(2)} ÷ ${conc} = <b>${volumeMl.toFixed(2)} ml</b> por toma.</p>`;
                 }
-                res += `<p style='font-size:0.85rem; color:#d9534f;'>⚠️ Confirme sempre com um profissional de saúde antes de administrar.</p>`;
-                res += `<button onclick="calcMed()">Novo Cálculo</button><button onclick="fecharJanela()" style="background:#d9534f">Fechar</button>`;
+                res += `<p style='font-size:0.85rem; color:#d9534f;'>⚠️ <b>Nota Clínica Importante:</b> Confirme sempre os valores com o médico ou enfermeiro e verifique a bula do medicamento antes de administrar em centros de saúde em Angola.</p>`;
+                res += `<br><button onclick="calcMed()">Novo Cálculo</button><button onclick="fecharJanela()" style="background:#d9534f">Fechar</button>`;
                 abrirJanela(res);
             } else {
                 alert("Por favor, preencha pelo menos o peso e a dose por kg com valores válidos.");
             }
         }
 
-        function infoSaude(titulo, desc) {
-            abrirJanela(`<h2>${titulo}</h2><hr><p style="line-height: 1.6;">${desc}</p><br><button onclick="fecharJanela()">Fechar</button>`);
+        function infoSaude(titulo, mensagem) {
+            abrirJanela(`<h2>${titulo}</h2><hr><p style="line-height: 1.6;">${mensagem}</p><br><button onclick="fecharJanela()">Fechar</button>`);
         }
 
         function infoDev() {
             abrirJanela(`
                 <h2>👨‍💻 Sobre o Desenvolvedor</h2>
                 <hr>
-                <p><b>Aplicação:</b> Angola 2026<br><b>Desenvolvedor:</b> Artur Jamba Pomba<br><b>Contacto:</b> +244 944 048 287</p>
+                <p><b>Aplicação:</b> Angola 2026<br><b>Desenvolvedor:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
                 <p>Focado na digitalização de conteúdos históricos, administrativos e de saúde para a comunidade.</p>
                 <hr>
                 <p><b>Fale diretamente comigo:</b></p>
-                <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=Olá%20Artur,%20estou%20a%20contactar-te%20através%20da%20aplicação%20Angola%202026.', '_blank')">💬 Conversar via WhatsApp</button>
-                <button class="call-btn" onclick="window.location.href='tel:+244944048287'">📞 Ligar Diretamente</button>
-                <br>
+                <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=' + encodeURIComponent('Olá Artur, estou a contactar-te através da aplicação Angola 2026.'), '_blank')">💬 Conversar via WhatsApp</button>
+                <button class="call-btn" onclick="window.location.href='tel:${MEU_TELEFONE}'">📞 Ligar Diretamente</button>
+                <br><br>
                 <button onclick="fecharJanela()">Fechar</button>
             `);
         }
 
         function infoIban() {
             abrirJanela(`
-                <h2>💳 Apoie o Projeto</h2>
+                <h2>💳 Apoie o Projeto (IBAN)</h2>
                 <hr>
-                <p><b>Titular:</b> Artur Jamba Pomba</p>
-                <p><b>Banco:</b> BFA / BAI / Outro</p>
+                <p><b>Titular:</b> ${MEU_TITULAR}</p>
+                <p><b>Banco:</b> ${MEU_BANCO}</p>
                 <p><b>IBAN:</b></p>
-                <div class="iban-box">000600009715277030196</div>
+                <div class="iban-box">${MEU_IBAN}</div>
                 <p style="font-size: 0.9rem; color: #555;">Muito obrigado pelo apoio ao desenvolvimento contínuo da aplicação!</p>
                 <br>
                 <button onclick="fecharJanela()">Fechar</button>
