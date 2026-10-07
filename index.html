@@ -20,7 +20,7 @@
         ul { list-style: none; padding: 0; }
         li { background: white; padding: 15px; margin-bottom: 8px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
         .menu-btn { background: none; border: none; color: white; font-size: 1.5rem; width: auto; padding: 0 10px; cursor: pointer; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 450px; max-height: 85vh; overflow-y: auto; }
         .badge { background: #e0f2f1; color: #00796b; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
         .iban-box { background: #f9f9f9; padding: 10px; border: 1px dashed #00796b; border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 0.95rem; margin: 10px 0; }
@@ -33,7 +33,7 @@
         .log-box { background: #f9f9f9; border: 1px solid #ddd; padding: 8px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 5px; font-family: monospace; }
     </style>
 </head>
-<body onload="registarAcessoApp()">
+<body>
 
     <header>
         <h1>🇦🇴 Angola 2026</h1>
@@ -46,11 +46,11 @@
     </div>
 
     <!-- Modal geral -->
-    <div id="modal" class="modal" onclick="fecharModal(event)">
+    <div id="modal" class="modal">
         <div class="modal-content" id="modalConteudo"></div>
     </div>
 
-    <!-- Puxa as frases de forma limpa do ficheiro separado -->
+    <!-- Puxa os artigos do ficheiro separado dados.js -->
     <script src="dados.js"></script>
 
     <script>
@@ -61,13 +61,67 @@
 
         let listaFiltrada = [];
 
-        // Garante que carrega os dados assim que a página arranca
+        // Assim que abre, verifica se o utilizador já está cadastrado
         window.addEventListener('DOMContentLoaded', () => {
             if (typeof dados !== 'undefined') {
                 listaFiltrada = [...dados];
                 carregarLista(listaFiltrada);
             }
+            verificarCadastroObrigatorio();
         });
+
+        // --- SISTEMA DE CADASTRO OBRIGATÓRIO ---
+        function verificarCadastroObrigatorio() {
+            let cadastrado = localStorage.getItem("utilizador_cadastrado");
+            if (cadastrado !== "true") {
+                mostrarEcraCadastro();
+            }
+        }
+
+        function mostrarEcraCadastro() {
+            abrirJanelaFixa(`
+                <h2>📝 Cadastro Obrigatório</h2>
+                <p style="font-size: 0.9rem; color: #555;">Para aceder à aplicação <b>Angola 2026</b>, por favor efetue o seu registo:</p>
+                <input type="text" id="nomeRegisto" placeholder="O seu Nome Completo">
+                <input type="text" id="contactoRegisto" placeholder="O seu Telefone ou WhatsApp">
+                <button onclick="concluirCadastro()">Entrar na Aplicação</button>
+            `);
+        }
+
+        function concluirCadastro() {
+            const nome = document.getElementById("nomeRegisto").value.trim();
+            const contacto = document.getElementById("contactoRegisto").value.trim();
+
+            if (nome === "" || contacto === "") {
+                alert("Por favor, preencha o seu nome e contacto para continuar.");
+                return;
+            }
+
+            // Guarda os dados do utilizador localmente
+            localStorage.setItem("utilizador_cadastrado", "true");
+            localStorage.setItem("utilizador_nome", nome);
+            localStorage.setItem("utilizador_contacto", contacto);
+
+            // Regista também no histórico de acessos
+            let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
+            acessos.push({ dataHora: new Date().toLocaleString("pt-PT"), perfil: `${nome} (${contacto})` });
+            localStorage.setItem("angola_acessos_log", JSON.stringify(acessos));
+
+            alert("Cadastro efetuado com sucesso! Bem-vindo.");
+            fecharJanela();
+
+            // Opcional: Pergunta se quer enviar o cadastro para o teu WhatsApp
+            if (confirm("Pretende notificar o criador (Artur) sobre o seu acesso via WhatsApp?")) {
+                let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, acabei de me cadastrar na app Angola 2026.\nNome: ${nome}\nContacto: ${contacto}`);
+                window.open(urlZap, '_blank');
+            }
+        }
+
+        function abrirJanelaFixa(html) {
+            document.getElementById("modalConteudo").innerHTML = html;
+            document.getElementById("modal").style.display = "flex";
+        }
+        // ----------------------------------------
 
         function carregarLista(itens) {
             const ul = document.getElementById("listaArtigos");
@@ -119,21 +173,14 @@
             `);
         }
 
-        function registarAcessoApp() {
-            let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
-            let agora = new Date().toLocaleString("pt-PT");
-            acessos.push({ dataHora: agora, dispositivo: navigator.userAgent });
-            localStorage.setItem("angola_acessos_log", JSON.stringify(acessos));
-        }
-
         function abrirEstatisticasAcessos() {
             let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
-            let htmlLogs = `<h2>📊 Registos de Acessos</h2><p style="font-size:0.85rem; color:#555;">Histórico de vezes que a aplicação foi aberta neste dispositivo:</p><hr>`;
+            let htmlLogs = `<h2>📊 Utilizadores Registados</h2><p style="font-size:0.85rem; color:#555;">Pessoas que fizeram o cadastro neste dispositivo:</p><hr>`;
             if (acessos.length === 0) {
                 htmlLogs += `<p>Sem registos disponíveis.</p>`;
             } else {
                 acessos.reverse().forEach((log, index) => {
-                    htmlLogs += `<div class="log-box"><b>#${acessos.length - index}</b> - ${log.dataHora}</div>`;
+                    htmlLogs += `<div class="log-box"><b>#${acessos.length - index}</b> - ${log.perfil || 'Acesso geral'} <br><small>${log.dataHora}</small></div>`;
                 });
             }
             htmlLogs += `<br><button onclick="limparLogs()" class="danger-btn">Apagar Registos</button><button onclick="fecharJanela()">Fechar</button>`;
@@ -141,7 +188,7 @@
         }
 
         function limparLogs() {
-            if (confirm("Pretende limpar os registos de acessos?")) {
+            if (confirm("Pretende limpar os registos?")) {
                 localStorage.removeItem("angola_acessos_log");
                 abrirEstatisticasAcessos();
             }
@@ -151,7 +198,7 @@
             abrirJanela(`
                 <h2>Menu de Opções</h2>
                 <hr>
-                <button onclick="abrirEstatisticasAcessos()">📊 Ver Registos de Acessos</button>
+                <button onclick="abrirEstatisticasAcessos()">📊 Ver Utilizadores Registados</button>
                 <button onclick="abrirChat()">💬 Chat & Mensagens</button>
                 <button onclick="calcMed()">💊 Módulo: Dosagens</button>
                 <button onclick="infoSaude('🦟 Paludismo (Malária)', 'O paludismo é prevalente em Angola. Sintomas incluem febre alta e calafrios. Use redes mosquiteiras.')">🦟 Guia: Paludismo</button>
@@ -199,7 +246,8 @@
             localStorage.setItem("angola_chat_db", JSON.stringify(conversas));
             input.value = "";
             carregarConversasBD();
-            let zapUrl = `https://wa.me/244944048287?text=` + encodeURIComponent("Mensagem da App: " + texto);
+            let nomeUtilizador = localStorage.getItem("utilizador_nome") || "Desconhecido";
+            let zapUrl = `https://wa.me/244944048287?text=` + encodeURIComponent(`Mensagem de ${nomeUtilizador}: ${texto}`);
             const historicoDiv = document.getElementById("chatHistorico");
             historicoDiv.innerHTML += `<button class="whatsapp-btn" onclick="window.open('${zapUrl}', '_blank')">💬 Enviar para o WhatsApp</button>`;
             historicoDiv.scrollTop = historicoDiv.scrollHeight;
@@ -236,10 +284,11 @@
         }
 
         function infoDev() {
+            let meuNomeCadastrado = localStorage.getItem("utilizador_nome") || "Utilizador";
             abrirJanela(`
                 <h2>👨‍💻 Sobre o Desenvolvedor</h2>
                 <hr><p><b>Desenvolvedor:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
-                <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=' + encodeURIComponent('Olá Artur, contacto através da app Angola 2026.'), '_blank')">💬 Conversar via WhatsApp</button>
+                <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=' + encodeURIComponent('Olá Artur, sou o/a ${meuNomeCadastrado} e contacto através da app Angola 2026.'), '_blank')">💬 Conversar via WhatsApp</button>
                 <button class="call-btn" onclick="window.location.href='tel:${MEU_TELEFONE}'">📞 Ligar</button>
                 <br><br><button onclick="fecharJanela()">Fechar</button>
             `);
@@ -255,11 +304,12 @@
         }
 
         function fecharJanela() {
-            document.getElementById("modal").style.display = "none";
-        }
-
-        function fecharModal(e) {
-            if (e.target.id === 'modal') fecharJanela();
+            // Só permite fechar se o utilizador já estiver cadastrado
+            if (localStorage.getItem("utilizador_cadastrado") === "true") {
+                document.getElementById("modal").style.display = "none";
+            } else {
+                alert("Por favor, preencha o seu cadastro primeiro para entrar.");
+            }
         }
     </script>
 </body>
