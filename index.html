@@ -14,14 +14,17 @@
         header { background: #004d40; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
         h1 { margin: 0; font-size: 1.2rem; }
         .container { padding: 15px; max-width: 600px; margin: auto; }
-        input[type="text"], input[type="number"], button { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        input[type="text"], input[type="password"], input[type="number"], button { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
         button { background: #00796b; color: white; border: none; font-weight: bold; cursor: pointer; }
         button:active { background: #004d40; }
         ul { list-style: none; padding: 0; }
         li { background: white; padding: 15px; margin-bottom: 8px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
         .menu-btn { background: none; border: none; color: white; font-size: 1.5rem; width: auto; padding: 0 10px; cursor: pointer; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 450px; max-height: 85vh; overflow-y: auto; }
+        
+        /* Ecrã Total Azul Ocupando Todos os Cantos Sem Espaços Vázios */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0d47a1; z-index: 9999; justify-content: center; align-items: center; margin: 0; padding: 15px; box-sizing: border-box; }
+        .modal-content { background: white; padding: 30px 20px; border-radius: 12px; width: 100%; max-width: 420px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); text-align: left; box-sizing: border-box; }
+        
         .badge { background: #e0f2f1; color: #00796b; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
         .iban-box { background: #f9f9f9; padding: 10px; border: 1px dashed #00796b; border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 0.95rem; margin: 10px 0; }
         .whatsapp-btn { background: #25d366 !important; }
@@ -45,7 +48,7 @@
         <ul id="listaArtigos"></ul>
     </div>
 
-    <!-- Modal geral -->
+    <!-- Modal / Ecrã Total Azul Sem Espaços -->
     <div id="modal" class="modal">
         <div class="modal-content" id="modalConteudo"></div>
     </div>
@@ -61,59 +64,86 @@
 
         let listaFiltrada = [];
 
-        // Assim que abre, verifica se o utilizador já está cadastrado
         window.addEventListener('DOMContentLoaded', () => {
             if (typeof dados !== 'undefined') {
                 listaFiltrada = [...dados];
                 carregarLista(listaFiltrada);
             }
-            verificarCadastroObrigatorio();
+            verificarSessaoUtilizador();
         });
 
-        // --- SISTEMA DE CADASTRO OBRIGATÓRIO ---
-        function verificarCadastroObrigatorio() {
-            let cadastrado = localStorage.getItem("utilizador_cadastrado");
-            if (cadastrado !== "true") {
-                mostrarEcraCadastro();
+        function verificarSessaoUtilizador() {
+            let sessaoAtiva = localStorage.getItem("sessao_ativa");
+            if (sessaoAtiva !== "true") {
+                let jaCadastrado = localStorage.getItem("utilizador_cadastrado");
+                if (jaCadastrado === "true") {
+                    mostrarEcraLogin();
+                } else {
+                    mostrarEcraCadastro();
+                }
             }
         }
 
         function mostrarEcraCadastro() {
             abrirJanelaFixa(`
-                <h2>📝 Cadastro Obrigatório</h2>
-                <p style="font-size: 0.9rem; color: #555;">Para aceder à aplicação <b>Angola 2026</b>, por favor efetue o seu registo:</p>
+                <h2 style="color: #0d47a1; margin-top:0;">🇦🇴 Angola 2026</h2>
+                <hr style="border:0; border-top:1px solid #eee; margin-bottom:15px;">
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 15px;">Efetue o seu registo para aceder à aplicação:</p>
                 <input type="text" id="nomeRegisto" placeholder="O seu Nome Completo">
-                <input type="text" id="contactoRegisto" placeholder="O seu Telefone ou WhatsApp">
-                <button onclick="concluirCadastro()">Entrar na Aplicação</button>
+                <input type="text" id="contactoRegisto" placeholder="O seu Número / WhatsApp">
+                <input type="password" id="senhaRegisto" placeholder="Crie uma Senha de Acesso">
+                <button onclick="concluirCadastro()" style="background: #0d47a1; margin-top: 5px;">Criar Conta e Entrar</button>
             `);
         }
 
         function concluirCadastro() {
             const nome = document.getElementById("nomeRegisto").value.trim();
             const contacto = document.getElementById("contactoRegisto").value.trim();
+            const senha = document.getElementById("senhaRegisto").value.trim();
 
-            if (nome === "" || contacto === "") {
-                alert("Por favor, preencha o seu nome e contacto para continuar.");
+            if (nome === "" || contacto === "" || senha === "") {
+                alert("Por favor, preencha todos os campos (Nome, Número e Senha).");
                 return;
             }
 
-            // Guarda os dados do utilizador localmente
             localStorage.setItem("utilizador_cadastrado", "true");
             localStorage.setItem("utilizador_nome", nome);
             localStorage.setItem("utilizador_contacto", contacto);
+            localStorage.setItem("utilizador_senha", senha);
+            localStorage.setItem("sessao_ativa", "true");
 
-            // Regista também no histórico de acessos
             let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
             acessos.push({ dataHora: new Date().toLocaleString("pt-PT"), perfil: `${nome} (${contacto})` });
             localStorage.setItem("angola_acessos_log", JSON.stringify(acessos));
 
-            alert("Cadastro efetuado com sucesso! Bem-vindo.");
             fecharJanela();
 
-            // Opcional: Pergunta se quer enviar o cadastro para o teu WhatsApp
-            if (confirm("Pretende notificar o criador (Artur) sobre o seu acesso via WhatsApp?")) {
-                let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, acabei de me cadastrar na app Angola 2026.\nNome: ${nome}\nContacto: ${contacto}`);
+            if (confirm("Pretende notificar o criador (Artur) sobre o seu registo via WhatsApp?")) {
+                let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, registei-me na app Angola 2026.\nNome: ${nome}\nContacto: ${contacto}`);
                 window.open(urlZap, '_blank');
+            }
+        }
+
+        function mostrarEcraLogin() {
+            let nomeSalvo = localStorage.getItem("utilizador_nome") || "Utilizador";
+            abrirJanelaFixa(`
+                <h2 style="color: #0d47a1; margin-top:0;">🔐 Bem-vindo de volta, ${nomeSalvo}</h2>
+                <hr style="border:0; border-top:1px solid #eee; margin-bottom:15px;">
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 15px;">Insira a sua senha para entrar na aplicação:</p>
+                <input type="password" id="senhaLogin" placeholder="Digite a sua senha">
+                <button onclick="validarLogin()" style="background: #0d47a1; margin-top: 5px;">Entrar</button>
+            `);
+        }
+
+        function validarLogin() {
+            const senhaDigitada = document.getElementById("senhaLogin").value.trim();
+            const senhaSalva = localStorage.getItem("utilizador_senha");
+
+            if (senhaDigitada === senhaSalva) {
+                localStorage.setItem("sessao_ativa", "true");
+                fecharJanela();
+            } else {
+                alert("Senha incorreta! Tente novamente.");
             }
         }
 
@@ -121,7 +151,6 @@
             document.getElementById("modalConteudo").innerHTML = html;
             document.getElementById("modal").style.display = "flex";
         }
-        // ----------------------------------------
 
         function carregarLista(itens) {
             const ul = document.getElementById("listaArtigos");
@@ -163,13 +192,13 @@
         }
 
         function mostrarDetalhes(item) {
-            abrirJanela(`
+            abrirJanelaModal(`
                 <h2>${item.titulo}</h2>
                 <p><span class="badge">${item.categoria}</span></p>
                 <hr>
                 <p style="line-height: 1.6;">${item.conteudo}</p>
                 <br>
-                <button onclick="fecharJanela()">Fechar</button>
+                <button onclick="fecharJanelaModal()">Fechar</button>
             `);
         }
 
@@ -183,8 +212,8 @@
                     htmlLogs += `<div class="log-box"><b>#${acessos.length - index}</b> - ${log.perfil || 'Acesso geral'} <br><small>${log.dataHora}</small></div>`;
                 });
             }
-            htmlLogs += `<br><button onclick="limparLogs()" class="danger-btn">Apagar Registos</button><button onclick="fecharJanela()">Fechar</button>`;
-            abrirJanela(htmlLogs);
+            htmlLogs += `<br><button onclick="limparLogs()" class="danger-btn">Apagar Registos</button><button onclick="fecharJanelaModal()">Fechar</button>`;
+            abrirJanelaModal(htmlLogs);
         }
 
         function limparLogs() {
@@ -195,7 +224,7 @@
         }
 
         function abrirMenu() {
-            abrirJanela(`
+            abrirJanelaModal(`
                 <h2>Menu de Opções</h2>
                 <hr>
                 <button onclick="abrirEstatisticasAcessos()">📊 Ver Utilizadores Registados</button>
@@ -206,17 +235,17 @@
                 <button onclick="infoDev()">ℹ Sobre o Desenvolvedor</button>
                 <button onclick="infoIban()">💳 Consultar IBAN (Apoio)</button>
                 <br>
-                <button onclick="fecharJanela()" class="danger-btn">Fechar Menu</button>
+                <button onclick="fecharJanelaModal()" class="danger-btn">Fechar Menu</button>
             `);
         }
 
         function abrirChat() {
-            abrirJanela(`
+            abrirJanelaModal(`
                 <h2>💬 Chat com o Desenvolvedor</h2>
                 <div class="chat-box" id="chatHistorico"></div>
                 <input type="text" id="mensagemInput" placeholder="Escreve a tua mensagem...">
                 <button onclick="enviarMensagemChat()">Enviar</button>
-                <button onclick="fecharJanela()" class="danger-btn">Voltar</button>
+                <button onclick="fecharJanelaModal()" class="danger-btn">Voltar</button>
             `);
             carregarConversasBD();
         }
@@ -254,13 +283,13 @@
         }
 
         function calcMed() {
-            abrirJanela(`
+            abrirJanelaModal(`
                 <h2>💊 Calculador de Dosagens</h2>
                 <input type="number" id="peso" placeholder="Peso (kg)">
                 <input type="number" id="dose" placeholder="Dose (mg/kg)">
                 <input type="number" id="conc" placeholder="Concentração (mg/ml) [Opcional]">
                 <button onclick="executarCalculo()">Calcular</button>
-                <button onclick="fecharJanela()" class="danger-btn">Voltar</button>
+                <button onclick="fecharJanelaModal()" class="danger-btn">Voltar</button>
             `);
         }
 
@@ -272,40 +301,39 @@
                 let total = peso * dose;
                 let res = `<h2>📊 Resultado</h2><hr><p><b>Dose Total:</b> ${total.toFixed(2)} mg</p>`;
                 if (!isNaN(conc) && conc > 0) res += `<p><b>Volume:</b> ${(total/conc).toFixed(2)} ml</p>`;
-                res += `<br><button onclick="calcMed()">Novo</button><button onclick="fecharJanela()" class="danger-btn">Fechar</button>`;
-                abrirJanela(res);
+                res += `<br><button onclick="calcMed()">Novo</button><button onclick="fecharJanelaModal()" class="danger-btn">Fechar</button>`;
+                abrirJanelaModal(res);
             } else {
                 alert("Preencha valores válidos.");
             }
         }
 
         function infoSaude(titulo, msg) {
-            abrirJanela(`<h2>${titulo}</h2><hr><p>${msg}</p><br><button onclick="fecharJanela()">Fechar</button>`);
+            abrirJanelaModal(`<h2>${titulo}</h2><hr><p>${msg}</p><br><button onclick="fecharJanelaModal()">Fechar</button>`);
         }
 
         function infoDev() {
             let meuNomeCadastrado = localStorage.getItem("utilizador_nome") || "Utilizador";
-            abrirJanela(`
+            abrirJanelaModal(`
                 <h2>👨‍💻 Sobre o Desenvolvedor</h2>
                 <hr><p><b>Desenvolvedor:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
                 <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=' + encodeURIComponent('Olá Artur, sou o/a ${meuNomeCadastrado} e contacto através da app Angola 2026.'), '_blank')">💬 Conversar via WhatsApp</button>
                 <button class="call-btn" onclick="window.location.href='tel:${MEU_TELEFONE}'">📞 Ligar</button>
-                <br><br><button onclick="fecharJanela()">Fechar</button>
+                <br><br><button onclick="fecharJanelaModal()">Fechar</button>
             `);
         }
 
         function infoIban() {
-            abrirJanela(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="fecharJanela()">Fechar</button>`);
+            abrirJanelaModal(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="fecharJanelaModal()">Fechar</button>`);
         }
 
-        function abrirJanela(html) {
+        function abrirJanelaModal(html) {
             document.getElementById("modalConteudo").innerHTML = html;
             document.getElementById("modal").style.display = "flex";
         }
 
-        function fecharJanela() {
-            // Só permite fechar se o utilizador já estiver cadastrado
-            if (localStorage.getItem("utilizador_cadastrado") === "true") {
+        function fecharJanelaModal() {
+            if (localStorage.getItem("utilizador_cadastrado") === "true" && localStorage.getItem("sessao_ativa") === "true") {
                 document.getElementById("modal").style.display = "none";
             } else {
                 alert("Por favor, preencha o seu cadastro primeiro para entrar.");
