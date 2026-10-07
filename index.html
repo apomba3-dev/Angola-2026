@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angola 2026</title>
+    <!-- Configuração essencial para parecer uma App no iPhone -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Angola 2026">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background-color: #f5f5f7; color: #333; }
+        header { background: #004d40; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        h1 { margin: 0; font-size: 1.2rem; }
+        .container { padding: 15px; max-width: 600px; margin: auto; }
+        input[type="text"], input[type="number"], button { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        button { background: #00796b; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:active { background: #004d40; }
+        ul { list-style: none; padding: 0; }
+        li { background: white; padding: 15px; margin-bottom: 8px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
+        .menu-btn { background: none; border: none; color: white; font-size: 1.5rem; width: auto; padding: 0 10px; cursor: pointer; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 450px; max-height: 85vh; overflow-y: auto; }
+        .badge { background: #e0f2f1; color: #00796b; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        .iban-box { background: #f9f9f9; padding: 10px; border: 1px dashed #00796b; border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 0.95rem; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🇦🇴 Angola 2026</h1>
+        <button class="menu-btn" onclick="abrirMenu()">⋮</button>
+    </header>
+
+    <div class="container">
+        <input type="text" id="pesquisa" placeholder="Pesquisar artigos ou pressiona Enter para ir ao Google..." oninput="filtrar()" onkeypress="pesquisarWeb(event)">
+        <ul id="listaArtigos"></ul>
+    </div>
+
+    <!-- Modal para visualização -->
+    <div id="modal" class="modal" onclick="fecharModal(event)">
+        <div class="modal-content" id="modalConteudo"></div>
+    </div>
+
+    <script>
+        const dados = [
+            { 
+                titulo: "Angola 2026 - Introdução Institucional", 
+                categoria: "Institucional", 
+                conteudo: "Bem-vindo ao portal oficial da aplicação Angola 2026. Esta plataforma digital foi desenvolvida para centralizar dados históricos, diretrizes da administração pública e ferramentas de apoio clínico essenciais para a comunidade e profissionais no terreno." 
+            },
+            { 
+                titulo: "História de Angola: Da Independência à Atualidade", 
+                categoria: "História", 
+                conteudo: "Angola conquistou a sua independência a 11 de novembro de 1975, após séculos de colonização portuguesa e uma longa luta armada de Libertação Nacional. Após décadas de conflito subsequente, o país alcançou a paz definitiva em 2002, iniciando um período de reconstrução nacional, diversificação económica e modernização das infraestruturas." 
+            },
+            { 
+                titulo: "Administração Pública e Organização do Estado", 
+                categoria: "Governo", 
+                conteudo: "A Administração Pública em Angola rege-se pelos princípios da descentralização e desconcentração administrativa. O Estado organiza-se em órgãos centrais (poderes Executivo, Legislativo e Judicial) e órgãos locais (governos provinciais e administrações municipais/comunais)." 
+            },
+            { 
+                titulo: "Geografia e Organização Territorial", 
+                categoria: "Geografia", 
+                conteudo: "Com uma área de 1.246.700 km², Angola está dividida administrativamente em 18 províncias, subdivididas em municípios e comunas. Possui uma vasta diversidade de ecossistemas, desde a costa atlântica até às florestas tropicais e planaltos centrais." 
+            }
+        ];
+
+        function carregarLista(itens) {
+            const ul = document.getElementById("listaArtigos");
+            ul.innerHTML = "";
+            if (itens.length === 0) {
+                ul.innerHTML = "<li style='text-align:center; color:gray;'>Nenhum resultado encontrado localmente. Pressione Enter na barra acima para pesquisar na Web.</li>";
+                return;
+            }
+            itens.forEach((item) => {
+                const li = document.createElement("li");
+                li.innerHTML = `<strong>${item.titulo}</strong><br><span class="badge">${item.categoria}</span>`;
+                li.onclick = () => mostrarDetalhes(item);
+                ul.appendChild(li);
+            });
+        }
+
+        carregarLista(dados);
+
+        function filtrar() {
+            const termo = document.getElementById("pesquisa").value.toLowerCase();
+            const filtrados = dados.filter(d => d.titulo.toLowerCase().includes(termo) || d.conteudo.toLowerCase().includes(termo) || d.categoria.toLowerCase().includes(termo));
+            carregarLista(filtrados);
+        }
+
+        function pesquisarWeb(e) {
+            if (e.key === 'Enter') {
+                const termo = document.getElementById("pesquisa").value.trim();
+                if (termo) {
+                    window.location.href = `https://www.google.com/search?q=${encodeURIComponent(termo)}`;
+                }
+            }
+        }
+
+        function mostrarDetalhes(item) {
+            abrirJanela(`<h2>${item.titulo}</h2><p><span class="badge">${item.categoria}</span></p><hr><p style="line-height: 1.6;">${item.conteudo}</p><br><button onclick="fecharJanela()">Fechar</button>`);
+        }
+
+        function abrirMenu() {
+            abrirJanela(`
+                <h2>Menu de Opções</h2>
+                <hr>
+                <button onclick="calcMed()">💊 Cálculo Detalhado de Dosagens</button>
+                <button onclick="infoSaude('🦟 Guia: Paludismo (Malária)', 'O paludismo é uma das doenças de maior prevalência em Angola. Sintomas comuns: febre alta, calafrios intensos, dores musculares e cefaleias. <b>Prevenção e Tratamento:</b> Uso rigoroso de redes mosquiteiras tratadas com inseticida, eliminação de águas estagnadas e consulta imediata ao posto médico mais próximo para confirmação por teste rápido e terapêutica adequada.')">🦟 Guia: Paludismo</button>
+                <button onclick="infoSaude('🎗 Informação: HIV / SIDA', 'O HIV transmite-se através de fluidos corporais específicos. <b>Prevenção:</b> Uso correto de preservativos, testagem regular e adesão rigorosa aos medicamentos antirretrovirais (ARV) disponibilizados na rede pública.')">🎗 Informação: HIV/SIDA</button>
+                <button onclick="infoDev()">ℹ Sobre o Desenvolvedor</button>
+                <button onclick="infoIban()">💳 Consultar IBAN (Apoio)</button>
+                <br>
+                <button onclick="fecharJanela()" style="background:#d9534f">Fechar Menu</button>
+            `);
+        }
+
+        function calcMed() {
+            abrirJanela(`
+                <h2>💊 Calculador de Dosagens</h2>
+                <p style="font-size: 0.9rem; color: #555;">Insira os dados para calcular o passo a passo clínico:</p>
+                <input type="number" id="peso" placeholder="Peso do paciente (kg) [ex: 15]">
+                <input type="number" id="dose" placeholder="Dose por kg (mg) [ex: 15]">
+                <input type="number" id="conc" placeholder="Concentração (mg/ml) [Opcional]">
+                <button onclick="executarCalculo()">Calcular Passo a Passo</button>
+                <button onclick="fecharJanela()" style="background:#d9534f">Voltar</button>
+            `);
+        }
+
+        function executarCalculo() {
+            const peso = parseFloat(document.getElementById("peso").value);
+            const dose = parseFloat(document.getElementById("dose").value);
+            const conc = parseFloat(document.getElementById("conc").value);
+
+            if (!isNaN(peso) && !isNaN(dose)) {
+                let total = peso * dose;
+                let res = `<h2>📊 Resultado Passo a Passo</h2><hr>`;
+                res += `<p><b>1️⃣ Dados Iniciais:</b><br>• Peso: ${peso} kg<br>• Dose recomendada: ${dose} mg/kg</p>`;
+                res += `<p><b>2️⃣ Cálculo da Dose Total (mg):</b><br>• Fórmula: ${peso} × ${dose}<br>• <b>Total: ${total.toFixed(2)} mg</b></p>`;
+                
+                if (!isNaN(conc) && conc > 0) {
+                    let ml = total / conc;
+                    res += `<p><b>3️⃣ Conversão para Volume Líquido (ml):</b><br>• Concentração: ${conc} mg/ml<br>• Fórmula: ${total.toFixed(2)} ÷ ${conc}<br>• <b>Volume por toma: ${ml.toFixed(2)} ml</b></p>`;
+                }
+                res += `<p style='font-size:0.85rem; color:#d9534f;'>⚠️ Confirme sempre com um profissional de saúde antes de administrar.</p>`;
+                res += `<button onclick="calcMed()">Novo Cálculo</button><button onclick="fecharJanela()" style="background:#d9534f">Fechar</button>`;
+                abrirJanela(res);
+            } else {
+                alert("Por favor, preencha pelo menos o peso e a dose por kg com valores válidos.");
+            }
+        }
+
+        function infoSaude(titulo, desc) {
+            abrirJanela(`<h2>${titulo}</h2><hr><p style="line-height: 1.6;">${desc}</p><br><button onclick="fecharJanela()">Fechar</button>`);
+        }
+
+        function infoDev() {
+            abrirJanela(`<h2>👨‍💻 Sobre o Desenvolvedor</h2><hr><p><b>Aplicação:</b> Angola 2026<br><b>Desenvolvedor:</b> Artur Jamba Pomba<br><b>Contacto:</b> +244 944 048 287<br><br>Focado na digitalização de conteúdos históricos, administrativos e de saúde para a comunidade.</p><br><button onclick="fecharJanela()">Fechar</button>`);
+        }
+
+        function infoIban() {
+            abrirJanela(`
+                <h2>💳 Apoie o Projeto</h2>
+                <hr>
+                <p><b>Titular:</b> Artur Jamba Pomba</p>
+                <p><b>Banco:</b> BFA / BAI / Outro</p>
+                <p><b>IBAN:</b></p>
+                <div class="iban-box">000600009715277030196</div>
+                <p style="font-size: 0.9rem; color: #555;">Muito obrigado pelo apoio ao desenvolvimento contínuo da aplicação!</p>
+                <br>
+                <button onclick="fecharJanela()">Fechar</button>
+            `);
+        }
+
+        function abrirJanela(html) {
+            document.getElementById("modalConteudo").innerHTML = html;
+            document.getElementById("modal").style.display = "flex";
+        }
+
+        function fecharJanela() {
+            document.getElementById("modal").style.display = "none";
+        }
+
+        function fecharModal(e) {
+            if (e.target.id === 'modal') fecharJanela();
+        }
+    </script>
+</body>
+</html>
