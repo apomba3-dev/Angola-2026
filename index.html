@@ -132,6 +132,7 @@
                 <p style="font-size: 0.95rem; color: #444; margin-bottom: 15px;">Insira a sua senha para entrar na aplicação:</p>
                 <input type="password" id="senhaLogin" placeholder="Digite a sua senha">
                 <button onclick="validarLogin()" style="background: #0d47a1; margin-top: 5px;">Entrar</button>
+                <button onclick="esqueciMinhaSenha()" class="whatsapp-btn" style="margin-top: 5px;">💬 Esqueci-me da Senha</button>
             `);
         }
 
@@ -145,6 +146,13 @@
             } else {
                 alert("Senha incorreta! Tente novamente.");
             }
+        }
+
+        function esqueciMinhaSenha() {
+            let nomeSalvo = localStorage.getItem("utilizador_nome") || "Utilizador Desconhecido";
+            let contactoSalvo = localStorage.getItem("utilizador_contacto") || "Sem contacto";
+            let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, esqueci-me da senha da app Angola 2026.\nO meu nome é: ${nomeSalvo}\nContacto: ${contactoSalvo}`);
+            window.open(urlZap, '_blank');
         }
 
         function abrirJanelaFixa(html) {
@@ -317,7 +325,7 @@
             abrirJanelaModal(`
                 <h2>👨‍💻 Sobre o Desenvolvedor</h2>
                 <hr><p><b>Desenvolvedor:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
-                <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=' + encodeURIComponent('Olá Artur, sou o/a ${meuNomeCadastrado} e contacto através da app Angola 2026.'), '_blank')">💬 Conversar via WhatsApp</button>
+                <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, sou o/a ${meuNomeCadastrado} e contacto através da app Angola 2026.`) + `', '_blank')">💬 Conversar via WhatsApp</button>
                 <button class="call-btn" onclick="window.location.href='tel:${MEU_TELEFONE}'">📞 Ligar</button>
                 <br><br><button onclick="fecharJanelaModal()">Fechar</button>
             `);
