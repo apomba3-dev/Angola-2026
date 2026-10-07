@@ -11,15 +11,21 @@
     <link rel="manifest" href="manifest.json">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background-color: #f5f5f7; color: #333; }
-        header { background: #004d40; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
-        h1 { margin: 0; font-size: 1.2rem; }
+        
+        /* Cabeçalho com o menu à esquerda e o título */
+        header { background: #004d40; color: white; padding: 12px 15px; display: flex; align-items: center; justify-content: space-between; }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        h1 { margin: 0; font-size: 1.15rem; }
         .container { padding: 15px; max-width: 600px; margin: auto; }
+        
         input[type="text"], input[type="password"], input[type="number"], button { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
         button { background: #00796b; color: white; border: none; font-weight: bold; cursor: pointer; }
         button:active { background: #004d40; }
         ul { list-style: none; padding: 0; }
         li { background: white; padding: 15px; margin-bottom: 8px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
-        .menu-btn { background: none; border: none; color: white; font-size: 1.5rem; width: auto; padding: 0 10px; cursor: pointer; }
+        
+        /* Botão de Menu (Três Barras) no canto superior esquerdo */
+        .menu-btn { background: none; border: none; color: white; font-size: 1.6rem; width: auto; padding: 0; cursor: pointer; line-height: 1; }
         
         /* Ecrã Total Azul Ocupando Todos os Cantos Sem Espaços Vázios */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0d47a1; z-index: 9999; justify-content: center; align-items: center; margin: 0; padding: 15px; box-sizing: border-box; }
@@ -34,13 +40,19 @@
         .msg-user { background: #00796b; color: white; align-self: flex-end; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 0.9rem; word-break: break-word; }
         .msg-dev { background: #ffffff; color: #333; align-self: flex-start; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 0.9rem; border: 1px solid #ddd; word-break: break-word; }
         .log-box { background: #f9f9f9; border: 1px solid #ddd; padding: 8px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 5px; font-family: monospace; }
+        
+        /* Secções de Opções no Menu */
+        .menu-section-title { font-size: 0.85rem; font-weight: bold; color: #00796b; margin: 12px 0 5px 2px; text-transform: uppercase; letter-spacing: 0.5px; }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>🇦🇴 Angola 2026</h1>
-        <button class="menu-btn" onclick="abrirMenu()">⋮</button>
+        <div class="header-left">
+            <!-- Ícone de Três Barras no Canto Superior Esquerdo -->
+            <button class="menu-btn" onclick="abrirMenu()">☰</button>
+            <h1>🇦🇴 Angola 2026</h1>
+        </div>
     </header>
 
     <div class="container">
@@ -234,7 +246,7 @@
                     htmlLogs += `<div class="log-box"><b>#${acessos.length - index}</b> - ${log.perfil || 'Acesso geral'} <br><small>${log.dataHora}</small></div>`;
                 });
             }
-            htmlLogs += `<br><button onclick="limparLogs()" class="danger-btn">Apagar Registos</button><button onclick="fecharJanelaModal()">Fechar</button>`;
+            htmlLogs += `<br><button onclick="limparLogs()" class="danger-btn">Apagar Registos</button><button onclick="abrirMenu()">Voltar ao Menu</button>`;
             abrirJanelaModal(htmlLogs);
         }
 
@@ -247,13 +259,16 @@
 
         function abrirMenu() {
             abrirJanelaModal(`
-                <h2>Menu de Opções</h2>
+                <h2>☰ Menu Principal</h2>
                 <hr>
-                <button onclick="abrirEstatisticasAcessos()">📊 Ver Utilizadores Registados</button>
-                <button onclick="abrirChat()">💬 Chat & Mensagens</button>
+                <div class="menu-section-title">🩺 Opções de Saúde</div>
                 <button onclick="calcMed()">💊 Módulo: Dosagens</button>
                 <button onclick="infoSaude('🦟 Paludismo (Malária)', 'O paludismo é prevalente em Angola. Sintomas incluem febre alta e calafrios. Use redes mosqueteiras.')">🦟 Guia: Paludismo</button>
                 <button onclick="infoSaude('🎗 SIDA / HIV', 'A prevenção inclui preservativos, testagem regular e uso de antirretrovirais (ARV).')">🎗 Informação: HIV/SIDA</button>
+                
+                <div class="menu-section-title">⚙️ Geral & Ferramentas</div>
+                <button onclick="abrirEstatisticasAcessos()">📊 Ver Utilizadores Registados</button>
+                <button onclick="abrirChat()">💬 Chat & Mensagens</button>
                 <button onclick="infoDev()">ℹ Sobre o Desenvolvedor</button>
                 <button onclick="infoIban()">💳 Consultar IBAN (Apoio)</button>
                 <br>
@@ -267,7 +282,7 @@
                 <div class="chat-box" id="chatHistorico"></div>
                 <input type="text" id="mensagemInput" placeholder="Escreve a tua mensagem...">
                 <button onclick="enviarMensagemChat()">Enviar</button>
-                <button onclick="fecharJanelaModal()" class="danger-btn">Voltar</button>
+                <button onclick="abrirMenu()" class="danger-btn">Voltar ao Menu</button>
             `);
             carregarConversasBD();
         }
@@ -311,7 +326,7 @@
                 <input type="number" id="dose" placeholder="Dose (mg/kg)">
                 <input type="number" id="conc" placeholder="Concentração (mg/ml) [Opcional]">
                 <button onclick="executarCalculo()">Calcular</button>
-                <button onclick="fecharJanelaModal()" class="danger-btn">Voltar</button>
+                <button onclick="abrirMenu()" class="danger-btn">Voltar ao Menu</button>
             `);
         }
 
@@ -323,7 +338,7 @@
                 let total = peso * dose;
                 let res = `<h2>📊 Resultado</h2><hr><p><b>Dose Total:</b> ${total.toFixed(2)} mg</p>`;
                 if (!isNaN(conc) && conc > 0) res += `<p><b>Volume:</b> ${(total/conc).toFixed(2)} ml</p>`;
-                res += `<br><button onclick="calcMed()">Novo</button><button onclick="fecharJanelaModal()" class="danger-btn">Fechar</button>`;
+                res += `<br><button onclick="calcMed()">Novo</button><button onclick="abrirMenu()" class="danger-btn">Voltar ao Menu</button>`;
                 abrirJanelaModal(res);
             } else {
                 alert("Preencha valores válidos.");
@@ -331,7 +346,7 @@
         }
 
         function infoSaude(titulo, msg) {
-            abrirJanelaModal(`<h2>${titulo}</h2><hr><p>${msg}</p><br><button onclick="fecharJanelaModal()">Fechar</button>`);
+            abrirJanelaModal(`<h2>${titulo}</h2><hr><p>${msg}</p><br><button onclick="abrirMenu()">Voltar ao Menu</button>`);
         }
 
         function infoDev() {
@@ -341,12 +356,12 @@
                 <hr><p><b>Desenvolvedor:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
                 <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, sou o/a ${meuNomeCadastrado} e contacto através da app Angola 2026.`) + `', '_blank')">💬 Conversar via WhatsApp</button>
                 <button class="call-btn" onclick="window.location.href='tel:${MEU_TELEFONE}'">📞 Ligar</button>
-                <br><br><button onclick="fecharJanelaModal()">Fechar</button>
+                <br><br><button onclick="abrirMenu()">Voltar ao Menu</button>
             `);
         }
 
         function infoIban() {
-            abrirJanelaModal(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="fecharJanelaModal()">Fechar</button>`);
+            abrirJanelaModal(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="abrirMenu()">Voltar ao Menu</button>`);
         }
 
         function abrirJanelaModal(html) {
