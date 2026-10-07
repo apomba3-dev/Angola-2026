@@ -26,9 +26,15 @@
         .iban-box { background: #f9f9f9; padding: 10px; border: 1px dashed #00796b; border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 0.95rem; margin: 10px 0; }
         .whatsapp-btn { background: #25d366 !important; }
         .call-btn { background: #0288d1 !important; }
+        .danger-btn { background: #d9534f !important; }
+        
+        .chat-box { background: #eef2f3; border-radius: 8px; height: 180px; overflow-y: auto; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #ddd; }
+        .msg-user { background: #00796b; color: white; align-self: flex-end; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 0.9rem; word-break: break-word; }
+        .msg-dev { background: #ffffff; color: #333; align-self: flex-start; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 0.9rem; border: 1px solid #ddd; word-break: break-word; }
+        .log-box { background: #f9f9f9; border: 1px solid #ddd; padding: 8px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 5px; font-family: monospace; }
     </style>
 </head>
-<body>
+<body onload="registarAcessoApp()">
 
     <header>
         <h1>🇦🇴 Angola 2026</h1>
@@ -40,7 +46,7 @@
         <ul id="listaArtigos"></ul>
     </div>
 
-    <!-- Modal para visualização idêntica aos diálogos nativos -->
+    <!-- Modal geral -->
     <div id="modal" class="modal" onclick="fecharModal(event)">
         <div class="modal-content" id="modalConteudo"></div>
     </div>
@@ -51,7 +57,6 @@
         const MEU_IBAN = "000600009715277030196";
         const MEU_TELEFONE = "+244 944 048 287";
 
-        // Dados exatamente idênticos aos do repositório / entidade
         const dados = [
             { 
                 titulo: "Angola 2026 - Introdução Institucional", 
@@ -128,8 +133,6 @@
                 const termo = document.getElementById("inputPesquisa").value.trim();
                 if (termo) {
                     window.location.href = `https://www.google.com/search?q=${encodeURIComponent(termo)}`;
-                } else {
-                    alert("Escreva algo para pesquisar na web.");
                 }
             }
         }
@@ -145,29 +148,107 @@
             `);
         }
 
+        // --- SISTEMA DE REGISTO DE ACESSOS ---
+        function registarAcessoApp() {
+            let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
+            let agora = new Date().toLocaleString("pt-PT");
+            
+            // Adiciona o novo acesso
+            acessos.push({ dataHora: agora, dispositivo: navigator.userAgent });
+            
+            // Guarda na BD local
+            localStorage.setItem("angola_acessos_log", JSON.stringify(acessos));
+        }
+
+        function abrirEstatisticasAcessos() {
+            let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
+            let htmlLogs = `<h2>📊 Registos de Acessos</h2><p style="font-size:0.85rem; color:#555;">Histórico de vezes que a aplicação foi aberta neste dispositivo:</p><hr>`;
+            
+            if (acessos.length === 0) {
+                htmlLogs += `<p>Sem registos disponíveis.</p>`;
+            } else {
+                acessos.reverse().forEach((log, index) => {
+                    htmlLogs += `<div class="log-box"><b>#${acessos.length - index}</b> - ${log.dataHora}</div>`;
+                });
+            }
+            htmlLogs += `<br><button onclick="limparLogs()" class="danger-btn">Apagar Registos</button><button onclick="fecharJanela()">Fechar</button>`;
+            abrirJanela(htmlLogs);
+        }
+
+        function limparLogs() {
+            if (confirm("Pretende limpar os registos de acessos?")) {
+                localStorage.removeItem("angola_acessos_log");
+                abrirEstatisticasAcessos();
+            }
+        }
+        // -------------------------------------
+
         function abrirMenu() {
             abrirJanela(`
                 <h2>Menu de Opções</h2>
                 <hr>
-                <button onclick="calcMed()">💊 Módulo: Cálculo Detalhado de Dosagens</button>
-                <button onclick="infoSaude('🦟 Paludismo (Malária)', 'O paludismo é prevalente em Angola. Sintomas comuns incluem febre alta, calafrios e dores musculares. Use redes mosquiteiras e procure o posto médico mais próximo.')">🦟 Guia: Paludismo (Malária)</button>
-                <button onclick="infoSaude('🎗 SIDA / HIV', 'O HIV transmite-se através de fluidos específicos. A prevenção inclui preservativos, testagem regular e adesão aos antirretrovirais (ARV) nos serviços públicos.')">🎗 Informação: HIV/SIDA</button>
+                <button onclick="abrirEstatisticasAcessos()">📊 Ver Registos de Acessos</button>
+                <button onclick="abrirChat()">💬 Chat & Mensagens</button>
+                <button onclick="calcMed()">💊 Módulo: Dosagens</button>
+                <button onclick="infoSaude('🦟 Paludismo (Malária)', 'O paludismo é prevalente em Angola. Sintomas incluem febre alta e calafrios. Use redes mosquiteiras.')">🦟 Guia: Paludismo</button>
+                <button onclick="infoSaude('🎗 SIDA / HIV', 'A prevenção inclui preservativos, testagem regular e uso de antirretrovirais (ARV).')">🎗 Informação: HIV/SIDA</button>
                 <button onclick="infoDev()">ℹ Sobre o Desenvolvedor</button>
                 <button onclick="infoIban()">💳 Consultar IBAN (Apoio)</button>
                 <br>
-                <button onclick="fecharJanela()" style="background:#d9534f">Fechar Menu</button>
+                <button onclick="fecharJanela()" class="danger-btn">Fechar Menu</button>
             `);
+        }
+
+        function abrirChat() {
+            abrirJanela(`
+                <h2>💬 Chat com o Desenvolvedor</h2>
+                <div class="chat-box" id="chatHistorico"></div>
+                <input type="text" id="mensagemInput" placeholder="Escreve a tua mensagem...">
+                <button onclick="enviarMensagemChat()">Enviar</button>
+                <button onclick="fecharJanela()" class="danger-btn">Voltar</button>
+            `);
+            carregarConversasBD();
+        }
+
+        function carregarConversasBD() {
+            const historicoDiv = document.getElementById("chatHistorico");
+            if (!historicoDiv) return;
+            let conversas = JSON.parse(localStorage.getItem("angola_chat_db")) || [];
+            if (conversas.length === 0) {
+                historicoDiv.innerHTML = `<div class="msg-dev">Escreve uma mensagem para falar com o Artur.</div>`;
+                return;
+            }
+            historicoDiv.innerHTML = "";
+            conversas.forEach(msg => {
+                historicoDiv.innerHTML += `<div class="${msg.tipo === 'user' ? 'msg-user' : 'msg-dev'}">${msg.texto}</div>`;
+            });
+            historicoDiv.scrollTop = historicoDiv.scrollHeight;
+        }
+
+        function enviarMensagemChat() {
+            const input = document.getElementById("mensagemInput");
+            const texto = input.value.trim();
+            if (texto === "") return;
+            let conversas = JSON.parse(localStorage.getItem("angola_chat_db")) || [];
+            conversas.push({ tipo: "user", texto: texto });
+            conversas.push({ tipo: "dev", texto: "Mensagem guardada! Podes encaminhar para o WhatsApp do Artur." });
+            localStorage.setItem("angola_chat_db", JSON.stringify(conversas));
+            input.value = "";
+            carregarConversasBD();
+            let zapUrl = `https://wa.me/244944048287?text=` + encodeURIComponent("Mensagem da App: " + texto);
+            const historicoDiv = document.getElementById("chatHistorico");
+            historicoDiv.innerHTML += `<button class="whatsapp-btn" onclick="window.open('${zapUrl}', '_blank')">💬 Enviar para o WhatsApp</button>`;
+            historicoDiv.scrollTop = historicoDiv.scrollHeight;
         }
 
         function calcMed() {
             abrirJanela(`
-                <h2>💊 Calculador Detalhado de Dosagens</h2>
-                <p style="font-size: 0.9rem; color: #555;">Insira os dados para calcular o passo a passo clínico:</p>
-                <input type="number" id="peso" placeholder="Peso do paciente em kg (ex: 15)">
-                <input type="number" id="dose" placeholder="Dose p/ kg em mg (ex: 15 p/ Paracetamol)">
-                <input type="number" id="conc" placeholder="Concentração do xarope mg/ml (ex: 50)">
-                <button onclick="executarCalculo()">Calcular Passo a Passo</button>
-                <button onclick="fecharJanela()" style="background:#d9534f">Voltar</button>
+                <h2>💊 Calculador de Dosagens</h2>
+                <input type="number" id="peso" placeholder="Peso (kg)">
+                <input type="number" id="dose" placeholder="Dose (mg/kg)">
+                <input type="number" id="conc" placeholder="Concentração (mg/ml) [Opcional]">
+                <button onclick="executarCalculo()">Calcular</button>
+                <button onclick="fecharJanela()" class="danger-btn">Voltar</button>
             `);
         }
 
@@ -175,56 +256,33 @@
             const peso = parseFloat(document.getElementById("peso").value);
             const dose = parseFloat(document.getElementById("dose").value);
             const conc = parseFloat(document.getElementById("conc").value);
-
             if (!isNaN(peso) && !isNaN(dose)) {
-                let doseTotalMg = peso * dose;
-                let res = `<h2>📊 Resultado Detalhado</h2><hr>`;
-                res += `<p><b>1️⃣ Dados de Entrada:</b><br>• Peso do paciente: ${peso} kg<br>• Dose padrão recomendada: ${dose} mg/kg</p>`;
-                res += `<p><b>2️⃣ Cálculo da Dose Total (mg):</b><br>• Fórmula: Peso × Dose por kg<br>• Operação: ${peso} × ${dose} = <b>${doseTotalMg.toFixed(2)} mg</b></p>`;
-                
-                if (!isNaN(conc) && conc > 0) {
-                    let volumeMl = doseTotalMg / conc;
-                    res += `<p><b>3️⃣ Conversão para Volume Líquido (ml):</b><br>• Concentração do medicamento: ${conc} mg por cada ml<br>• Fórmula: Dose Total ÷ Concentração<br>• Operação: ${doseTotalMg.toFixed(2)} ÷ ${conc} = <b>${volumeMl.toFixed(2)} ml</b> por toma.</p>`;
-                }
-                res += `<p style='font-size:0.85rem; color:#d9534f;'>⚠️ <b>Nota Clínica Importante:</b> Confirme sempre os valores com o médico ou enfermeiro e verifique a bula do medicamento antes de administrar em centros de saúde em Angola.</p>`;
-                res += `<br><button onclick="calcMed()">Novo Cálculo</button><button onclick="fecharJanela()" style="background:#d9534f">Fechar</button>`;
+                let total = peso * dose;
+                let res = `<h2>📊 Resultado</h2><hr><p><b>Dose Total:</b> ${total.toFixed(2)} mg</p>`;
+                if (!isNaN(conc) && conc > 0) res += `<p><b>Volume:</b> ${(total/conc).toFixed(2)} ml</p>`;
+                res += `<br><button onclick="calcMed()">Novo</button><button onclick="fecharJanela()" class="danger-btn">Fechar</button>`;
                 abrirJanela(res);
             } else {
-                alert("Por favor, preencha pelo menos o peso e a dose por kg com valores válidos.");
+                alert("Preencha valores válidos.");
             }
         }
 
-        function infoSaude(titulo, mensagem) {
-            abrirJanela(`<h2>${titulo}</h2><hr><p style="line-height: 1.6;">${mensagem}</p><br><button onclick="fecharJanela()">Fechar</button>`);
+        function infoSaude(titulo, msg) {
+            abrirJanela(`<h2>${titulo}</h2><hr><p>${msg}</p><br><button onclick="fecharJanela()">Fechar</button>`);
         }
 
         function infoDev() {
             abrirJanela(`
                 <h2>👨‍💻 Sobre o Desenvolvedor</h2>
-                <hr>
-                <p><b>Aplicação:</b> Angola 2026<br><b>Desenvolvedor:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
-                <p>Focado na digitalização de conteúdos históricos, administrativos e de saúde para a comunidade.</p>
-                <hr>
-                <p><b>Fale diretamente comigo:</b></p>
-                <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=' + encodeURIComponent('Olá Artur, estou a contactar-te através da aplicação Angola 2026.'), '_blank')">💬 Conversar via WhatsApp</button>
-                <button class="call-btn" onclick="window.location.href='tel:${MEU_TELEFONE}'">📞 Ligar Diretamente</button>
-                <br><br>
-                <button onclick="fecharJanela()">Fechar</button>
+                <hr><p><b>Desenvolvedor:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
+                <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=' + encodeURIComponent('Olá Artur, contacto através da app Angola 2026.'), '_blank')">💬 Conversar via WhatsApp</button>
+                <button class="call-btn" onclick="window.location.href='tel:${MEU_TELEFONE}'">📞 Ligar</button>
+                <br><br><button onclick="fecharJanela()">Fechar</button>
             `);
         }
 
         function infoIban() {
-            abrirJanela(`
-                <h2>💳 Apoie o Projeto (IBAN)</h2>
-                <hr>
-                <p><b>Titular:</b> ${MEU_TITULAR}</p>
-                <p><b>Banco:</b> ${MEU_BANCO}</p>
-                <p><b>IBAN:</b></p>
-                <div class="iban-box">${MEU_IBAN}</div>
-                <p style="font-size: 0.9rem; color: #555;">Muito obrigado pelo apoio ao desenvolvimento contínuo da aplicação!</p>
-                <br>
-                <button onclick="fecharJanela()">Fechar</button>
-            `);
+            abrirJanela(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="fecharJanela()">Fechar</button>`);
         }
 
         function abrirJanela(html) {
