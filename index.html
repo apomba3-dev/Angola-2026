@@ -369,7 +369,7 @@
             `);
         }
 
-        // --- MÓDULO DE MÚSICA COM SELEÇÃO DE PASTA OBRIGATÓRIA ---
+        // --- MÓDULO DE MÚSICA CORRIGIDO E OTIMIZADO PARA MOBILE ---
         function abrirLeitorMusica(pastaAbertaNome = null) {
             if (!db) {
                 setTimeout(() => abrirLeitorMusica(pastaAbertaNome), 500);
@@ -390,13 +390,13 @@
                     let pastasSalvas = ePastas.target.result;
 
                     let htmlMusicas = `<h2>🎵 Gestor de Músicas e Pastas</h2>`;
-                    htmlMusicas += `<p style="font-size: 0.85rem; color: #cbd5e1;">Selecione onde vai guardar a música antes de escolher o ficheiro:</p>`;
+                    htmlMusicas += `<p style="font-size: 0.85rem; color: #cbd5e1;">Escolha a pasta de destino e adicione a sua música:</p>`;
                     
                     htmlMusicas += `<button onclick="criarNovaPasta()" style="background:#0284c7; margin-bottom:8px;">➕ Criar Nova Pasta</button>`;
                     
-                    htmlMusicas += `<div style="background:#090d16; padding:10px; border-radius:8px; border:1px solid #1e3a8a; margin-bottom:12px;">`;
-                    htmlMusicas += `<label style="font-size:0.85rem; color:#93c5fd; display:block; margin-bottom:5px;"><b>1. Onde deseja guardar esta música?</b></label>`;
-                    htmlMusicas += `<select id="selectPastaDestino" style="width:100%; padding:10px; border-radius:6px; background:#151c2f; color:#fff; border:1px solid #3b82f6; margin-bottom:8px;">`;
+                    htmlMusicas += `<div style="background:#090d16; padding:12px; border-radius:8px; border:1px solid #1e3a8a; margin-bottom:12px;">`;
+                    htmlMusicas += `<label style="font-size:0.85rem; color:#93c5fd; display:block; margin-bottom:5px;"><b>1. Onde quer guardar a música?</b></label>`;
+                    htmlMusicas += `<select id="selectPastaDestino" style="width:100%; padding:10px; border-radius:6px; background:#151c2f; color:#fff; border:1px solid #3b82f6; margin-bottom:10px;">`;
                     htmlMusicas += `<option value="Geral">📁 Geral (Padrão)</option>`;
                     
                     if (pastasSalvas && pastasSalvas.length > 0) {
@@ -407,8 +407,9 @@
                     }
                     htmlMusicas += `</select>`;
 
-                    htmlMusicas += `<label style="font-size:0.85rem; color:#93c5fd; display:block; margin-bottom:5px;"><b>2. Escolher Ficheiro de Áudio:</b></label>`;
-                    htmlMusicas += `<input type="file" id="ficheiroMusica" accept="audio/*" onchange="guardarMusicaDB(event)" style="margin-bottom:0;">`;
+                    htmlMusicas += `<label style="font-size:0.85rem; color:#93c5fd; display:block; margin-bottom:5px;"><b>2. Escolher Ficheiro de Áudio do Telemóvel:</b></label>`;
+                    htmlMusicas += `<button onclick="document.getElementById('ficheiroMusica').click()" style="background:#059669; margin-bottom:0;">📂 Selecionar Música</button>`;
+                    htmlMusicas += `<input type="file" id="ficheiroMusica" accept="audio/*" onchange="guardarMusicaDB(event)" style="display:none;">`;
                     htmlMusicas += `</div>`;
 
                     htmlMusicas += `<hr><div style="max-height: 220px; overflow-y: auto;">`;
@@ -730,8 +731,8 @@
                 <h2>❓ Ajuda e Feedback</h2>
                 <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.4;">
                     <b>Como usar a app:</b><br>
-                    - Selecione a pasta onde quer guardar no menu antes de carregar no ficheiro.<br>
-                    - Clique em <b>➕ Criar Nova Pasta</b> para escrever um nome diferente.<br>
+                    - Escolha a pasta no menu superior.<br>
+                    - Clique em <b>📂 Selecionar Música</b> para abrir os ficheiros de áudio.<br>
                 </p>
                 <hr>
                 <p style="font-size: 0.9rem; color: #cbd5e1;">Deixe aqui o seu comentário ou sugestão:</p>
