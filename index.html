@@ -571,4 +571,286 @@
                     htmlMusicas += `<div style="display:flex; gap:6px; margin-bottom:10px;">`;
                     htmlMusicas += `<button onclick="tentarFazerUploadMusica()" style="background:#059669; font-size:0.9rem; margin-bottom:0; padding:10px; flex-grow:1;">➕ Enviar Música</button>`;
                     htmlMusicas += `<button onclick="tentarCriarPasta()" style="background:#0284c7; font-size:0.9rem; margin-bottom:0; padding:10px; flex-grow:1;">📁 Criar Pasta</button>`;
-                    htmlMusicas
+                    htmlMusicas += `</div>`;
+                    htmlMusicas += `<hr>`;
+
+                    // Se estivermos a visualizar uma pasta específica
+                    if (pastaAbertaNome) {
+                        htmlMusicas += `<button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding:8px; margin-bottom:8px;">⬅️ Voltar às Pastas</button>`;
+                        htmlMusicas += `<h3>📁 ${pastaAbertaNome}</h3>`;
+
+                        let musicasDaPasta = musicasSalvas.filter(m => m.pasta === pastaAbertaNome);
+                        if (musicasDaPasta.length === 0) {
+                            htmlMusicas += `<p style="font-size:0.85rem; color:#64748b;">Nenhuma música nesta pasta.</p>`;
+                        } else {
+                            musicasDaPasta.forEach(m => {
+                                htmlMusicas += `<div class="log-box" style="display:flex; justify-content:space-between; align-items:center;">`;
+                                htmlMusicas += `<span style="word-break:break-all; max-width:65%;">🎵 ${m.nome}</span>`;
+                                htmlMusicas += `<div style="display:flex; gap:4px;">`;
+                                htmlMusicas += `<button onclick="tocarAudioBase64('${m.dados}', '${m.nome}')" style="background:#059669; padding:6px 10px; margin-bottom:0; font-size:0.8rem;">▶️ Tocar</button>`;
+                                htmlMusicas += `<button onclick="abrirPainelAdmin(function apagarMusicaAdmin() { eliminarMusica(${m.id}); })" class="danger-btn" style="padding:6px 10px; margin-bottom:0; font-size:0.8rem;">🗑️</button>`;
+                                htmlMusicas += `</div></div>`;
+                            });
+                        }
+                    } else {
+                        // Vista geral (Pastas + Músicas sem pasta)
+                        htmlMusicas += `<p style="font-size:0.85rem; color:#475569;">As tuas pastas e músicas guardadas:</p>`;
+                        
+                        if (pastasSalvas.length > 0) {
+                            htmlMusicas += `<h4 style="color:#1e3a8a; margin:5px 0;">Pastas</h4>`;
+                            pastasSalvas.forEach(p => {
+                                htmlMusicas += `<div class="log-box" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="abrirLeitorMusica('${p.nome}')">`;
+                                htmlMusicas += `<span>📁 ${p.nome}</span>`;
+                                htmlMusicas += `<button onclick="event.stopPropagation(); abrirPainelAdmin(function apagarPastaAdmin() { eliminarPasta(${p.id}); })" class="danger-btn" style="padding:4px 8px; margin-bottom:0; font-size:0.75rem;">🗑️</button>`;
+                                htmlMusicas += `</div>`;
+                            });
+                        }
+
+                        let musicasSoltas = musicasSalvas.filter(m => !m.pasta);
+                        if (musicasSoltas.length > 0) {
+                            htmlMusicas += `<h4 style="color:#1e3a8a; margin:10px 0 5px 0;">Músicas Gerais</h4>`;
+                            musicasSoltas.forEach(m => {
+                                htmlMusicas += `<div class="log-box" style="display:flex; justify-content:space-between; align-items:center;">`;
+                                htmlMusicas += `<span style="word-break:break-all; max-width:65%;">🎵 ${m.nome}</span>`;
+                                htmlMusicas += `<div style="display:flex; gap:4px;">`;
+                                htmlMusicas += `<button onclick="tocarAudioBase64('${m.dados}', '${m.nome}')" style="background:#059669; padding:6px 10px; margin-bottom:0; font-size:0.8rem;">▶️ Tocar</button>`;
+                                htmlMusicas += `<button onclick="abrirPainelAdmin(function apagarMusicaAdmin() { eliminarMusica(${m.id}); })" class="danger-btn" style="padding:6px 10px; margin-bottom:0; font-size:0.8rem;">🗑️</button>`;
+                                htmlMusicas += `</div></div>`;
+                            });
+                        }
+
+                        if (pastasSalvas.length === 0 && musicasSalvas.length === 0) {
+                            htmlMusicas += `<p style="font-size:0.85rem; color:#64748b; text-align:center;">Ainda não tens músicas ou pastas adicionadas.</p>`;
+                        }
+                    }
+
+                    htmlMusicas += `<br><button onclick="fecharJanelaModal()" class="secondary-btn">Fechar</button>`;
+                    abrirJanelaFixa(htmlMusicas);
+                };
+            };
+        }
+
+        function tentarFazerUploadMusica() {
+            abrirPainelAdmin(function executarUploadMusica() {
+                let input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'audio/*';
+                input.onchange = e => {
+                    let file = e.target.files[0];
+                    if (!file) return;
+
+                    let reader = new FileReader();
+                    reader.onload = function(event) {
+                        let base64Data = event.target.result;
+                        let transaction = db.transaction(["musicas"], "readwrite");
+                        let store = transaction.objectStore("musicas");
+                        let req = store.add({ nome: file.name, dados: base64Data, pasta: null });
+
+                        req.onsuccess = function() {
+                            mostrarToast("Música adicionada com sucesso!");
+                            abrirLeitorMusica();
+                        };
+                        req.onerror = function() {
+                            mostrarToast("Erro ao guardar a música na base de dados.");
+                        };
+                    };
+                    reader.readAsDataURL(file);
+                };
+                input.click();
+            });
+        }
+
+        function tentarCriarPasta() {
+            abrirPainelAdmin(function executarCriarPasta() {
+                let nomePasta = prompt("Nome da nova pasta de músicas:");
+                if (!nomePasta || nomePasta.trim() === "") return;
+
+                let transaction = db.transaction(["pastas"], "readwrite");
+                let store = transaction.objectStore("pastas");
+                let req = store.add({ nome: nomePasta.trim() });
+
+                req.onsuccess = function() {
+                    mostrarToast("Pasta criada com sucesso!");
+                    abrirLeitorMusica();
+                };
+                req.onerror = function() {
+                    mostrarToast("Erro ao criar a pasta.");
+                };
+            });
+        }
+
+        function eliminarMusica(id) {
+            let transaction = db.transaction(["musicas"], "readwrite");
+            let store = transaction.objectStore("musicas");
+            let req = store.delete(id);
+            req.onsuccess = function() {
+                mostrarToast("Música eliminada!");
+                abrirLeitorMusica();
+            };
+        }
+
+        function eliminarPasta(id) {
+            let transaction = db.transaction(["pastas"], "readwrite");
+            let store = transaction.objectStore("pastas");
+            let req = store.delete(id);
+            req.onsuccess = function() {
+                mostrarToast("Pasta eliminada!");
+                abrirLeitorMusica();
+            };
+        }
+
+        let audioAtual = null;
+        function tocarAudioBase64(base64, nome) {
+            if (audioAtual) {
+                audioAtual.pause();
+                audioAtual = null;
+            }
+
+            audioAtual = new Audio(base64);
+            audioAtual.play().then(() => {
+                mostrarToast(`A reproduzir: ${nome}`);
+            }).catch(err => {
+                mostrarToast("Erro ao reproduzir o aúdio.");
+            });
+        }
+
+        // --- MÓDULO DE GALERIA DE IMAGENS ---
+        function abrirGaleriaImagens() {
+            if (!db) {
+                setTimeout(abrirGaleriaImagens, 500);
+                return;
+            }
+
+            let transaction = db.transaction(["imagens"], "readonly");
+            let store = transaction.objectStore("imagens");
+            let req = store.getAll();
+
+            req.onsuccess = function(e) {
+                let imagensSalvas = e.target.result;
+                let htmlImg = `<h2>🖼️ Galeria de Imagens</h2>`;
+                htmlImg += `<button onclick="tentarFazerUploadImagem()" style="background:#059669; font-size:0.9rem; margin-bottom:10px; padding:10px;">➕ Enviar Imagem</button>`;
+                htmlImg += `<hr>`;
+
+                if (imagensSalvas.length === 0) {
+                    htmlImg += `<p style="font-size:0.85rem; color:#64748b; text-align:center;">Nenhuma imagem guardada.</p>`;
+                } else {
+                    htmlImg += `<div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; max-height:250px; overflow-y:auto;">`;
+                    imagensSalvas.forEach(img => {
+                        htmlImg += `<div style="border:1px solid #cbd5e1; border-radius:6px; padding:4px; text-align:center; background:#f8fafc;">`;
+                        htmlImg += `<img src="${img.dados}" style="width:100%; height:80px; object-fit:cover; border-radius:4px; cursor:pointer;" onclick="expandirImagem('${img.dados}')">`;
+                        htmlImg += `<button onclick="abrirPainelAdmin(function apagarImg() { eliminarImagem(${img.id}); })" class="danger-btn" style="padding:4px; font-size:0.7rem; margin-top:4px; margin-bottom:0;">Apagar</button>`;
+                        htmlImg += `</div>`;
+                    });
+                    htmlImg += `</div>`;
+                }
+
+                htmlImg += `<br><button onclick="fecharJanelaModal()" class="secondary-btn">Fechar</button>`;
+                abrirJanelaFixa(htmlImg);
+            };
+        }
+
+        function tentarFazerUploadImagem() {
+            abrirPainelAdmin(function executarUploadImg() {
+                let input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = e => {
+                    let file = e.target.files[0];
+                    if (!file) return;
+
+                    let reader = new FileReader();
+                    reader.onload = function(event) {
+                        let base64Data = event.target.result;
+                        let transaction = db.transaction(["imagens"], "readwrite");
+                        let store = transaction.objectStore("imagens");
+                        let req = store.add({ nome: file.name, dados: base64Data });
+
+                        req.onsuccess = function() {
+                            mostrarToast("Imagem guardada com sucesso!");
+                            abrirGaleriaImagens();
+                        };
+                    };
+                    reader.readAsDataURL(file);
+                };
+                input.click();
+            });
+        }
+
+        function expandirImagem(base64) {
+            abrirJanelaFixa(`
+                <h2>Visualizar Imagem</h2>
+                <hr>
+                <img src="${base64}" style="width:100%; max-height:300px; object-fit:contain; border-radius:6px;">
+                <br><br>
+                <button onclick="abrirGaleriaImagens()" class="secondary-btn">Voltar à Galeria</button>
+            `);
+        }
+
+        function eliminarImagem(id) {
+            let transaction = db.transaction(["imagens"], "readwrite");
+            let store = transaction.objectStore("imagens");
+            let req = store.delete(id);
+            req.onsuccess = function() {
+                mostrarToast("Imagem eliminada!");
+                abrirGaleriaImagens();
+            };
+        }
+
+        // --- SUBMENU DIREITO (AJUDAS E DEFINIÇÕES) ---
+        function abrirSubmenuDireito() {
+            let nomeUtilizador = localStorage.getItem("utilizador_nome") || "Não registado";
+            let contactoUtilizador = localStorage.getItem("utilizador_contacto") || "Sem contacto";
+
+            abrirJanelaFixa(`
+                <h2>⚙️ Opções & Definições</h2>
+                <hr>
+                <p style="font-size:0.9rem;"><strong>Utilizador:</strong> ${nomeUtilizador}</p>
+                <p style="font-size:0.9rem;"><strong>Contacto:</strong> ${contactoUtilizador}</p>
+                <hr>
+                <button onclick="abrirJanelaSobre()" class="call-btn" style="padding:10px; margin-bottom:8px;">ℹ️ Sobre a Aplicação</button>
+                <button onclick="abrirJanelaDoacao()" class="whatsapp-btn" style="padding:10px; margin-bottom:8px;">💳 Apoiar / Doação (IBAN)</button>
+                <button onclick="abrirJanelaTermos()" class="secondary-btn" style="padding:10px; margin-bottom:8px;">📜 Termos de Uso</button>
+                <button onclick="fecharJanelaModal()">Fechar</button>
+            `);
+        }
+
+        function abrirJanelaSobre() {
+            abrirJanelaFixa(`
+                <h2>ℹ️ Sobre o Angola 2026</h2>
+                <hr>
+                <p style="font-size:0.9rem; line-height:1.4;">Aplicação desenvolvida para consulta de conteúdos históricos, cívicos, institucionais e gestão multimédia pessoal (Músicas e Imagens).</p>
+                <p style="font-size:0.9rem;"><strong>Criador:</strong> ${MEU_TITULAR}</p>
+                <p style="font-size:0.9rem;"><strong>Contacto:</strong> ${MEU_TELEFONE}</p>
+                <br>
+                <button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar</button>
+            `);
+        }
+
+        function abrirJanelaDoacao() {
+            abrirJanelaFixa(`
+                <h2>💳 Apoiar o Criador</h2>
+                <hr>
+                <p style="font-size:0.9rem;">Se gostas da aplicação e pretendes apoiar o desenvolvimento, podes efetuar uma transferência:</p>
+                <p style="font-size:0.85rem; margin-bottom:2px;"><strong>Titular:</strong> ${MEU_TITULAR}</p>
+                <p style="font-size:0.85rem; margin-bottom:2px;"><strong>Banco:</strong> ${MEU_BANCO}</p>
+                <div class="iban-box">${MEU_IBAN}</div>
+                <button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar</button>
+            `);
+        }
+
+        function abrirJanelaTermos() {
+            abrirJanelaFixa(`
+                <h2>📜 Termos de Uso</h2>
+                <hr>
+                <p style="font-size:0.85rem; line-height:1.4;">Esta aplicação armazena dados localmente no seu dispositivo utilizando IndexedDB e LocalStorage. Os conteúdos multimédia adicionados são da inteira responsabilidade do utilizador.</p>
+                <br>
+                <button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar</button>
+            `);
+        }
+
+        function abrirMenu() {
+            abrirSubmenuDireito();
+        }
+    </script>
+</body>
+</html>
