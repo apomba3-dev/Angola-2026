@@ -22,6 +22,12 @@
         input[type="text"], input[type="password"], input[type="number"], button { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
         button { background: #00796b; color: white; border: none; font-weight: bold; cursor: pointer; }
         button:active { background: #004d40; }
+        
+        /* Abas de Navegação Rápida por Temas */
+        .tabs-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+        .tab-btn { background: #ffffff; color: #00796b; border: 1px solid #00796b; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; cursor: pointer; width: auto; margin-bottom: 0; flex-shrink: 0; }
+        .tab-btn:active, .tab-btn.active { background: #00796b; color: white; }
+
         ul { list-style: none; padding: 0; }
         li { background: white; padding: 15px; margin-bottom: 8px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
         
@@ -62,6 +68,17 @@
 
     <div class="container">
         <input type="text" id="inputPesquisa" placeholder="Pesquisar artigos ou pressiona Enter para o Google..." oninput="filtrar()" onkeypress="pesquisarWeb(event)">
+        
+        <!-- Barra de Abas de Navegação Rápida -->
+        <div class="tabs-container">
+            <button class="tab-btn active" onclick="filtrarPorAba('Todas', this)">🔄 Todas</button>
+            <button class="tab-btn" onclick="filtrarPorAba('História', this)">📜 História</button>
+            <button class="tab-btn" onclick="filtrarPorAba('Cidadania', this)">🇦🇴 Patriotismo</button>
+            <button class="tab-btn" onclick="filtrarPorAba('Instituições', this)">🏛️ Política</button>
+            <button class="tab-btn" onclick="filtrarPorAba('Administração', this)">📋 Adm. Pública</button>
+            <button class="tab-btn" onclick="filtrarPorAba('Minint', this)">🛡️ MININT</button>
+        </div>
+
         <ul id="listaArtigos"></ul>
     </div>
 
@@ -195,7 +212,7 @@
             const ul = document.getElementById("listaArtigos");
             ul.innerHTML = "";
             if (!itens || itens.length === 0) {
-                ul.innerHTML = "<li style='text-align:center; color:gray;'>Nenhum resultado encontrado localmente. Pressione Enter para pesquisar na Web.</li>";
+                ul.innerHTML = "<li style='text-align:center; color:gray;'>Nenhum resultado encontrado. Pressione Enter para pesquisar na Web.</li>";
                 return;
             }
             itens.forEach((item) => {
@@ -217,6 +234,21 @@
                     d.conteudo.toLowerCase().includes(termo) || 
                     d.categoria.toLowerCase().includes(termo)
                 );
+            }
+            carregarLista(listaFiltrada);
+        }
+
+        function filtrarPorAba(categoriaFiltro, elementoBotao) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            elementoBotao.classList.add('active');
+            document.getElementById("inputPesquisa").value = "";
+
+            if (typeof dados === 'undefined') return;
+
+            if (categoriaFiltro === 'Todas') {
+                listaFiltrada = [...dados];
+            } else {
+                listaFiltrada = dados.filter(d => d.categoria.toLowerCase() === categoriaFiltro.toLowerCase());
             }
             carregarLista(listaFiltrada);
         }
@@ -262,27 +294,26 @@
             }
         }
 
-        /* Menu Principal (Esquerda) */
+        /* Menu Principal (Esquerda) - Opções de Saúde e Chat */
         function abrirMenu() {
             abrirJanelaModal(`
                 <h2>☰ Menu Principal</h2>
                 <hr>
                 <button onclick="abrirSubmenuSaude()">🩺 Opções de Saúde</button>
-                <button onclick="infoDev()">ℹ Sobre o Desenvolvedor</button>
-                <button onclick="infoIban()">💳 Consultar IBAN (Apoio)</button>
+                <button onclick="abrirChat()">💬 Chat com o Desenvolvedor</button>
                 <br>
                 <button onclick="fecharJanelaModal()" class="danger-btn">Fechar Menu</button>
             `);
         }
 
-        /* Submenu Direito (Direita - Canto Superior) */
+        /* Submenu e Ferramentas (Direita) - Sobre, IBAN e Utilizadores Registados */
         function abrirSubmenuDireito() {
             abrirJanelaModal(`
                 <h2>⚙️ Submenu & Ferramentas</h2>
                 <hr>
+                <button onclick="infoDev()">ℹ Sobre o Desenvolvedor</button>
+                <button onclick="infoIban()">💳 Consultar IBAN (Apoio)</button>
                 <button onclick="abrirEstatisticasAcessos()">📊 Ver Utilizadores Registados</button>
-                <button onclick="abrirChat()">💬 Chat com o Desenvolvedor</button>
-                <button onclick="abrirSubmenuSaude()">🩺 Opções de Saúde</button>
                 <br>
                 <button onclick="fecharJanelaModal()" class="danger-btn">Fechar Submenu</button>
             `);
@@ -298,7 +329,7 @@
                 <button onclick="infoSaude('🦟 Paludismo (Malária)', 'O paludismo é prevalente em Angola. Sintomas incluem febre alta e calafrios. Use redes mosqueteiras.')">🦟 Guia: Paludismo</button>
                 <button onclick="infoSaude('🎗 SIDA / HIV', 'A prevenção inclui preservativos, testagem regular e uso de antirretrovirais (ARV).')">🎗 Informação: HIV/SIDA</button>
                 <br>
-                <button onclick="abrirSubmenuDireito()" class="secondary-btn">⬅ Voltar ao Submenu</button>
+                <button onclick="abrirMenu()" class="secondary-btn">⬅ Voltar ao Menu Principal</button>
             `);
         }
 
@@ -308,7 +339,7 @@
                 <div class="chat-box" id="chatHistorico"></div>
                 <input type="text" id="mensagemInput" placeholder="Escreve a tua mensagem...">
                 <button onclick="enviarMensagemChat()">Enviar</button>
-                <button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>
+                <button onclick="abrirMenu()" class="secondary-btn">Voltar ao Menu Principal</button>
             `);
             carregarConversasBD();
         }
@@ -382,12 +413,12 @@
                 <hr><p><b>Desenvolvedor:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
                 <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, sou o/a ${meuNomeCadastrado} e contacto através da app Angola 2026.`) + `', '_blank')">💬 Conversar via WhatsApp</button>
                 <button class="call-btn" onclick="window.location.href='tel:${MEU_TELEFONE}'">📞 Ligar</button>
-                <br><br><button onclick="abrirMenu()" class="secondary-btn">Voltar ao Menu</button>
+                <br><br><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>
             `);
         }
 
         function infoIban() {
-            abrirJanelaModal(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="abrirMenu()" class="secondary-btn">Voltar ao Menu</button>`);
+            abrirJanelaModal(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>`);
         }
 
         function abrirJanelaModal(html) {
