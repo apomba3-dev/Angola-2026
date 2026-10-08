@@ -19,7 +19,8 @@
         h1 { margin: 0; font-size: 1rem; text-align: center; flex-grow: 1; }
         .container { padding: 15px; max-width: 600px; margin: auto; }
         
-        input[type="text"], input[type="password"], input[type="number"], button { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        input[type="text"], input[type="password"], input[type="number"], textarea, button { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        textarea { resize: vertical; height: 100px; font-family: inherit; }
         button { background: #00796b; color: white; border: none; font-weight: bold; cursor: pointer; }
         button:active { background: #004d40; }
         
@@ -306,7 +307,7 @@
             `);
         }
 
-        /* Submenu e Ferramentas (Direita) - Sobre, IBAN e Utilizadores Registados */
+        /* Submenu e Ferramentas (Direita) - Sobre, IBAN, Utilizadores Registados e Ajuda/Feedback */
         function abrirSubmenuDireito() {
             abrirJanelaModal(`
                 <h2>⚙️ Submenu & Ferramentas</h2>
@@ -314,9 +315,39 @@
                 <button onclick="infoDev()">ℹ Sobre o Desenvolvedor</button>
                 <button onclick="infoIban()">💳 Consultar IBAN (Apoio)</button>
                 <button onclick="abrirEstatisticasAcessos()">📊 Ver Utilizadores Registados</button>
+                <button onclick="abrirAjudaFeedback()">❓ Ajuda e Feedback</button>
                 <br>
                 <button onclick="fecharJanelaModal()" class="danger-btn">Fechar Submenu</button>
             `);
+        }
+
+        function abrirAjudaFeedback() {
+            abrirJanelaModal(`
+                <h2>❓ Ajuda e Feedback</h2>
+                <p style="font-size: 0.9rem; color: #555; line-height: 1.4;">
+                    <b>Como usar a app:</b><br>
+                    - Use as abas no topo para filtrar por temas.<br>
+                    - Use a barra de pesquisa para procurar artigos ou ir ao Google.<br>
+                    - No menu esquerdo tem as opções de saúde e chat.<br>
+                </p>
+                <hr>
+                <p style="font-size: 0.9rem; color: #555;">Deixe aqui o seu comentário ou sugestão:</p>
+                <textarea id="textoFeedback" placeholder="Escreva a sua mensagem ou sugestão de melhoria..."></textarea>
+                <button onclick="enviarFeedback()" class="whatsapp-btn">💬 Enviar Feedback por WhatsApp</button>
+                <br>
+                <button onclick="abrirSubmenuDireito()" class="secondary-btn">⬅ Voltar ao Submenu</button>
+            `);
+        }
+
+        function enviarFeedback() {
+            const texto = document.getElementById("textoFeedback").value.trim();
+            if (texto === "") {
+                alert("Por favor, escreva alguma mensagem antes de enviar.");
+                return;
+            }
+            let nomeUtilizador = localStorage.getItem("utilizador_nome") || "Utilizador";
+            let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Feedback da app Angola 2026\nDe: ${nomeUtilizador}\n\nMensagem: ${texto}`);
+            window.open(urlZap, '_blank');
         }
 
         /* Opções de Saúde */
