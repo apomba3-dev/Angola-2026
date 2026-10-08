@@ -208,4 +208,351 @@
             fecharJanela();
 
             if (confirm("Pretende notificar o criador (Artur) sobre o seu registo via WhatsApp?")) {
-                let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, registei-
+                let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, registei-me na app Angola 2026.\nNome: ${nome}\nContacto: ${contacto}`);
+                window.open(urlZap, '_blank');
+            }
+        }
+
+        function mostrarEcraLogin() {
+            let nomeSalvo = localStorage.getItem("utilizador_nome") || "Utilizador";
+            abrirJanelaFixa(`
+                <h2>🔐 Bem-vindo de volta, ${nomeSalvo}</h2>
+                <hr>
+                <p style="font-size: 0.95rem; color: #cbd5e1; margin-bottom: 15px;">Insira a sua senha de acesso:</p>
+                <input type="password" id="senhaLogin" placeholder="Digite a sua senha">
+                <button onclick="validarLogin()" style="margin-top: 5px;">Entrar</button>
+                <button onclick="esqueciMinhaSenha()" class="whatsapp-btn" style="margin-top: 5px;">💬 Esqueci-me da Senha</button>
+            `);
+        }
+
+        function validarLogin() {
+            const senhaDigitada = document.getElementById("senhaLogin").value.trim();
+            const senhaSalva = localStorage.getItem("utilizador_senha");
+
+            if (!senhaDigitada) {
+                alert("Por favor, digite a senha.");
+                return;
+            }
+
+            if (senhaDigitada === senhaSalva) {
+                localStorage.setItem("sessao_ativa", "true");
+                fecharJanela();
+            } else {
+                alert("Senha incorreta! Tente novamente.");
+            }
+        }
+
+        function fecharJanela() {
+            document.getElementById("modal").style.display = "none";
+        }
+
+        function esqueciMinhaSenha() {
+            let nomeSalvo = localStorage.getItem("utilizador_nome") || "Utilizador Desconhecido";
+            let contactoSalvo = localStorage.getItem("utilizador_contacto") || "Sem contacto";
+            let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, esqueci-me da senha da app Angola 2026.\nO meu nome é: ${nomeSalvo}\nContacto: ${contactoSalvo}`);
+            window.open(urlZap, '_blank');
+        }
+
+        function abrirJanelaFixa(html) {
+            document.getElementById("modalConteudo").innerHTML = html;
+            document.getElementById("modal").style.display = "flex";
+        }
+
+        function carregarLista(itens) {
+            const ul = document.getElementById("listaArtigos");
+            ul.innerHTML = "";
+            if (!itens || itens.length === 0) {
+                ul.innerHTML = "<li style='text-align:center; color:#cbd5e1;'>Nenhum resultado local encontrado. Escreve a tua pergunta na barra acima e clica em 🔎 para pesquisar!</li>";
+                return;
+            }
+            itens.forEach((item) => {
+                const li = document.createElement("li");
+                li.innerHTML = `<strong>${item.titulo}</strong><br><span class="badge">${item.categoria}</span>`;
+                li.onclick = () => mostrarDetalhes(item);
+                ul.appendChild(li);
+            });
+        }
+
+        function filtrar() {
+            if (typeof dados === 'undefined') return;
+            const termo = document.getElementById("inputPesquisa").value.toLowerCase().trim();
+            if (termo === "") {
+                listaFiltrada = [...dados];
+            } else {
+                listaFiltrada = dados.filter(d => 
+                    d.titulo.toLowerCase().includes(termo) || 
+                    d.conteudo.toLowerCase().includes(termo) || 
+                    d.categoria.toLowerCase().includes(termo)
+                );
+            }
+            carregarLista(listaFiltrada);
+        }
+
+        function filtrarPorAba(categoriaFiltro, elementoBotao) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            elementoBotao.classList.add('active');
+            document.getElementById("inputPesquisa").value = "";
+
+            if (typeof dados === 'undefined') return;
+
+            if (categoriaFiltro === 'Todas') {
+                listaFiltrada = [...dados];
+            } else {
+                listaFiltrada = dados.filter(d => d.categoria.toLowerCase() === categoriaFiltro.toLowerCase());
+            }
+            carregarLista(listaFiltrada);
+        }
+
+        function pesquisarWeb(e) {
+            if (e.key === 'Enter') {
+                executarPesquisaBotao();
+            }
+        }
+
+        // Função de Assistente Inteligente Inteligível e Estável
+        function executarPesquisaBotao() {
+            const termo = document.getElementById("inputPesquisa").value.trim();
+            if (!termo) return;
+            
+            const termoLower = termo.toLowerCase();
+            let respostaIA = "";
+
+            if (termoLower.includes("artur jamba pomba") || (termoLower.includes("artur") && termoLower.includes("pomba"))) {
+                respostaIA = `<b>Artur Jamba Pomba</b><br><br>` +
+                             `- <b>Origem:</b> Angolana<br>` +
+                             `- <b>Data de Nascimento:</b> 22/11/1999<br>` +
+                             `- <b>Percurso Escolar:</b> Frequentou as escolas do Liceu Dr. A. A. Neto, na província da Huíla.<br>` +
+                             `- <b>Realização:</b> Criador da aplicação <b>Angola 2026</b>, desenvolvida para facilitar os estudos e a história de Angola.`;
+            } else if (termoLower.includes("presidente") && termoLower.includes("angola")) {
+                respostaIA = "Atualmente, o Presidente da República de Angola é João Lourenço, que lidera o poder executivo do país.";
+            } else if (termoLower.includes("capital")) {
+                respostaIA = "A capital de Angola é Luanda, sendo também o principal centro financeiro, cultural e político do país.";
+            } else if (termoLower.includes("josé manuel santos") || termoLower.includes("josé eduardo dos santos")) {
+                respostaIA = "<b>José Eduardo dos Santos</b><br><br>Foi o segundo e mais longevo presidente de Angola, governando de 1979 até 2017. Teve um papel crucial na história contemporânea do país e no fim da guerra civil.";
+            } else {
+                respostaIA = `Com base na questão "<b>${termo}</b>", podes consultar os artigos institucionais na página principal ou pesquisar diretamente na web através do navegador se necessário.`;
+            }
+
+            abrirJanelaFixa(`
+                <h2>✨ Assistente Inteligente</h2>
+                <hr>
+                <p><b>Pesquisa:</b> ${termo}</p>
+                <p style="color: #e2e8f0; line-height: 1.6;">${respostaIA}</p>
+                <br>
+                <button onclick="fecharJanelaModal()" class="secondary-btn">Fechar</button>
+            `);
+        }
+
+        function mostrarDetalhes(item) {
+            abrirJanelaFixa(`
+                <h2>${item.titulo}</h2>
+                <p><span class="badge">${item.categoria}</span></p>
+                <hr>
+                <p style="line-height: 1.6; color: #f1f5f9;">${item.conteudo}</p>
+                <br>
+                <button onclick="fecharJanelaModal()">Fechar</button>
+            `);
+        }
+
+        function abrirEstatisticasAcessos() {
+            let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
+            let htmlLogs = `<h2>📊 Utilizadores Registados</h2><p style="font-size:0.85rem; color:#94a3b8;">Pessoas que fizeram o cadastro neste dispositivo:</p><hr>`;
+            if (acessos.length === 0) {
+                htmlLogs += `<p>Sem registos disponíveis.</p>`;
+            } else {
+                acessos.reverse().forEach((log, index) => {
+                    htmlLogs += `<div class="log-box"><b>#${acessos.length - index}</b> - ${log.perfil || 'Acesso geral'} <br><small>${log.dataHora}</small></div>`;
+                });
+            }
+            htmlLogs += `<br><button onclick="limparLogs()" class="danger-btn">Apagar Registos</button><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>`;
+            abrirJanelaFixa(htmlLogs);
+        }
+
+        function limparLogs() {
+            if (confirm("Pretende limpar os registos?")) {
+                localStorage.removeItem("angola_acessos_log");
+                abrirEstatisticasAcessos();
+            }
+        }
+
+        function abrirMenu() {
+            abrirJanelaFixa(`
+                <h2>☰ Menu Principal</h2>
+                <hr>
+                <button onclick="abrirSubmenuSaude()">🩺 Opções de Saúde</button>
+                <button onclick="abrirChat()">💬 Chat com o Desenvolvedor</button>
+                <br>
+                <button onclick="fecharJanelaModal()" class="danger-btn">Fechar Menu</button>
+            `);
+        }
+
+        function abrirSubmenuDireito() {
+            abrirJanelaFixa(`
+                <h2>⚙️ Submenu & Ferramentas</h2>
+                <hr>
+                <button onclick="infoDev()">ℹ Sobre o Desenvolvedor</button>
+                <button onclick="infoIban()">💳 Consultar IBAN (Apoio)</button>
+                <button onclick="abrirEstatisticasAcessos()">📊 Ver Utilizadores Registados</button>
+                <button onclick="partilharApp()" class="whatsapp-btn">🔗 Partilhar Aplicação</button>
+                <button onclick="abrirAjudaFeedback()">❓ Ajuda e Feedback</button>
+                <br>
+                <button onclick="fecharJanelaModal()" class="danger-btn">Fechar Submenu</button>
+            `);
+        }
+
+        function partilharApp() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Angola 2026',
+                    text: 'Confere a aplicação Angola 2026 desenvolvida por Artur Jamba Pomba!',
+                    url: window.location.href
+                }).catch((error) => console.log('Erro ao partilhar:', error));
+            } else {
+                let textoPartilha = "Confere a aplicação Angola 2026: " + window.location.href;
+                navigator.clipboard.writeText(textoPartilha).then(() => {
+                    alert("Link copiado para a área de transferência!");
+                }).catch(() => {
+                    alert("Não foi possível partilhar automaticamente.");
+                });
+            }
+        }
+
+        function abrirAjudaFeedback() {
+            abrirJanelaFixa(`
+                <h2>❓ Ajuda e Feedback</h2>
+                <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.4;">
+                    <b>Como usar a app:</b><br>
+                    - Use as abas no topo para filtrar por temas.<br>
+                    - Escreva qualquer palavra na barra de pesquisa e clique no botão 🔎 para obter dados automáticos.<br>
+                </p>
+                <hr>
+                <p style="font-size: 0.9rem; color: #cbd5e1;">Deixe aqui o seu comentário ou sugestão:</p>
+                <textarea id="textoFeedback" placeholder="Escreva a sua mensagem ou sugestão de melhoria..."></textarea>
+                <button onclick="enviarFeedback()" class="whatsapp-btn">💬 Enviar Feedback por WhatsApp</button>
+                <br>
+                <button onclick="abrirSubmenuDireito()" class="secondary-btn">⬅ Voltar ao Submenu</button>
+            `);
+        }
+
+        function enviarFeedback() {
+            const texto = document.getElementById("textoFeedback").value.trim();
+            if (texto === "") {
+                alert("Por favor, escreva alguma mensagem antes de enviar.");
+                return;
+            }
+            let nomeUtilizador = localStorage.getItem("utilizador_nome") || "Utilizador";
+            let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Feedback da app Angola 2026\nDe: ${nomeUtilizador}\n\nMensagem: ${texto}`);
+            window.open(urlZap, '_blank');
+        }
+
+        function abrirSubmenuSaude() {
+            abrirJanelaFixa(`
+                <h2>🩺 Opções de Saúde</h2>
+                <p style="font-size: 0.9rem; color: #cbd5e1;">Escolha uma das opções abaixo:</p>
+                <hr>
+                <button onclick="calcMed()">💊 Módulo: Dosagens</button>
+                <button onclick="infoSaude('🦟 Paludismo (Malária)', 'O paludismo é prevalente em Angola. Sintomas incluem febre alta e calafrios. Use redes mosquiteiras.')">🦟 Guia: Paludismo</button>
+                <button onclick="infoSaude('🎗 SIDA / HIV', 'A prevenção inclui preservativos, testagem regular e uso de antirretrovirais (ARV).')">🎗 Informação: HIV/SIDA</button>
+                <br>
+                <button onclick="abrirMenu()" class="secondary-btn">⬅ Voltar ao Menu Principal</button>
+            `);
+        }
+
+        function abrirChat() {
+            abrirJanelaFixa(`
+                <h2>💬 Chat com o Desenvolvedor</h2>
+                <div class="chat-box" id="chatHistorico"></div>
+                <input type="text" id="mensagemInput" placeholder="Escreve a tua mensagem...">
+                <button onclick="enviarMensagemChat()">Enviar</button>
+                <button onclick="abrirMenu()" class="secondary-btn">Voltar ao Menu Principal</button>
+            `);
+            carregarConversasBD();
+        }
+
+        function carregarConversasBD() {
+            const historicoDiv = document.getElementById("chatHistorico");
+            if (!historicoDiv) return;
+            let conversas = JSON.parse(localStorage.getItem("angola_chat_db")) || [];
+            if (conversas.length === 0) {
+                historicoDiv.innerHTML = `<div class="msg-dev">Escreve uma mensagem para falar com o Artur.</div>`;
+                return;
+            }
+            historicoDiv.innerHTML = "";
+            conversas.forEach(msg => {
+                historicoDiv.innerHTML += `<div class="${msg.tipo === 'user' ? 'msg-user' : 'msg-dev'}">${msg.texto}</div>`;
+            });
+            historicoDiv.scrollTop = historicoDiv.scrollHeight;
+        }
+
+        function enviarMensagemChat() {
+            const input = document.getElementById("mensagemInput");
+            const texto = input.value.trim();
+            if (texto === "") return;
+            let conversas = JSON.parse(localStorage.getItem("angola_chat_db")) || [];
+            conversas.push({ tipo: "user", texto: texto });
+            conversas.push({ tipo: "dev", texto: "Mensagem guardada! Podes encaminhar para o WhatsApp do Artur." });
+            localStorage.setItem("angola_chat_db", JSON.stringify(conversas));
+            input.value = "";
+            carregarConversasBD();
+            let nomeUtilizador = localStorage.getItem("utilizador_nome") || "Desconhecido";
+            let zapUrl = `https://wa.me/244944048287?text=` + encodeURIComponent(`Mensagem de ${nomeUtilizador}: ${texto}`);
+            const historicoDiv = document.getElementById("chatHistorico");
+            historicoDiv.innerHTML += `<button class="whatsapp-btn" onclick="window.open('${zapUrl}', '_blank')">💬 Enviar para o WhatsApp</button>`;
+            historicoDiv.scrollTop = historicoDiv.scrollHeight;
+        }
+
+        function calcMed() {
+            abrirJanelaFixa(`
+                <h2>💊 Calculador de Dosagens</h2>
+                <input type="number" id="peso" placeholder="Peso (kg)">
+                <input type="number" id="dose" placeholder="Dose (mg/kg)">
+                <input type="number" id="conc" placeholder="Concentração (mg/ml) [Opcional]">
+                <button onclick="executarCalculo()">Calcular</button>
+                <button onclick="abrirSubmenuSaude()" class="secondary-btn">Voltar às Opções</button>
+            `);
+        }
+
+        function executarCalculo() {
+            const peso = parseFloat(document.getElementById("peso").value);
+            const dose = parseFloat(document.getElementById("dose").value);
+            const conc = parseFloat(document.getElementById("conc").value);
+            if (!isNaN(peso) && !isNaN(dose)) {
+                let total = peso * dose;
+                let res = `<h2>📊 Resultado</h2><hr><p><b>Dose Total:</b> ${total.toFixed(2)} mg</p>`;
+                if (!isNaN(conc) && conc > 0) res += `<p><b>Volume:</b> ${(total/conc).toFixed(2)} ml</p>`;
+                res += `<br><button onclick="calcMed()">Novo</button><button onclick="abrirSubmenuSaude()" class="secondary-btn">Voltar às Opções</button>`;
+                abrirJanelaFixa(res);
+            } else {
+                alert("Preencha valores válidos.");
+            }
+        }
+
+        function infoSaude(titulo, msg) {
+            abrirJanelaFixa(`<h2>${titulo}</h2><hr><p style="color: #f1f5f9;">${msg}</p><br><button onclick="abrirSubmenuSaude()" class="secondary-btn">Voltar às Opções</button>`);
+        }
+
+        function infoDev() {
+            let meuNomeCadastrado = localStorage.getItem("utilizador_nome") || "Utilizador";
+            abrirJanelaFixa(`
+                <h2>👨‍💻 Sobre o Desenvolvedor</h2>
+                <hr><p style="color: #f1f5f9;"><b>Desenvolvedor:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
+                <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, sou o/a ${meuNomeCadastrado} e contacto através da app Angola 2026.`) + `', '_blank')">💬 Conversar via WhatsApp</button>
+                <button class="call-btn" onclick="window.location.href='tel:${MEU_TELEFONE}'">📞 Ligar</button>
+                <br><br><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>
+            `);
+        }
+
+        function infoIban() {
+            abrirJanelaFixa(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>`);
+        }
+
+        function fecharJanelaModal() {
+            if (localStorage.getItem("utilizador_cadastrado") === "true" && localStorage.getItem("sessao_ativa") === "true") {
+                document.getElementById("modal").style.display = "none";
+            } else {
+                alert("Por favor, preencha o seu cadastro primeiro para entrar.");
+            }
+        }
+    </script>
+</body>
+</html>
