@@ -369,7 +369,7 @@
             `);
         }
 
-        // --- MÓDULO DE MÚSICA (ELIMINAÇÃO SEM CAIXA CINZENTA) ---
+        // --- MÓDULO DE MÚSICA (COMPLETO E SEM CAIXA DE CONFIRMAÇÃO) ---
         function abrirLeitorMusica(pastaAbertaNome = null) {
             if (!db) {
                 setTimeout(() => abrirLeitorMusica(pastaAbertaNome), 500);
@@ -585,7 +585,6 @@
             };
         }
 
-        // Eliminação direta de música sem pop-up de confirmação
         function apagarMusicaDB(id, pastaNome) {
             let transaction = db.transaction(["musicas"], "readwrite");
             let store = transaction.objectStore("musicas");
@@ -620,7 +619,7 @@
         }
         // --------------------------------------------------------
 
-        // --- MÓDULO DE IMAGENS (ELIMINAÇÃO SEM CAIXA CINZENTA) ---
+        // --- MÓDULO DE IMAGENS (COMPLETO E SEM CAIXA DE CONFIRMAÇÃO) ---
         function abrirGaleriaImagens() {
             if (!db) {
                 setTimeout(abrirGaleriaImagens, 500);
@@ -636,7 +635,8 @@
                 
                 let htmlImagens = `<h2>🖼️ Galeria de Imagens</h2>`;
                 htmlImagens += `<p style="font-size: 0.85rem; color: #cbd5e1;">Adicione fotografias ou imagens do telemóvel (Guardado permanentemente):</p>`;
-                htmlImagens += `<input type="file" id="ficheiroImagem" accept="image/*" onchange="guardarImagemDB(event)">`;
+                htmlImagens += `<button onclick="document.getElementById('ficheiroImagem').click()" style="background:#059669; font-size:1rem; margin-bottom:10px; padding:12px;">📂 Selecionar Imagem</button>`;
+                htmlImagens += `<input type="file" id="ficheiroImagem" accept="image/*" onchange="guardarImagemDB(event)" style="display:none;">`;
                 htmlImagens += `<hr><div style="max-height: 240px; overflow-y: auto;">`;
 
                 if (imagensSalvas.length === 0) {
@@ -701,7 +701,6 @@
             `);
         }
 
-        // Eliminação direta de imagem sem pop-up de confirmação
         function apagarImagemDB(id) {
             let transaction = db.transaction(["imagens"], "readwrite");
             let store = transaction.objectStore("imagens");
@@ -783,7 +782,7 @@
                 <h2>❓ Ajuda e Feedback</h2>
                 <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.4;">
                     <b>Como usar a app:</b><br>
-                    - Agora a eliminação de músicas e imagens ocorre de forma imediata ao clicar no botão de apagar (✕), sem janelas intermédias.<br>
+                    - Selecione a pasta no topo, escolha o ficheiro e gerencie as suas músicas com total liberdade e sem caixas de confirmação.<br>
                 </p>
                 <hr>
                 <p style="font-size: 0.9rem; color: #cbd5e1;">Deixe aqui o seu comentário ou sugestão:</p>
@@ -887,7 +886,32 @@
             }
         }
 
-        <Elicitations message="O que pretendes ajustar a seguir?">
-          <Elicitation label="Adicionar nova funcionalidade" query="Como posso adicionar uma nova categoria à aplicação?" />
-          <Elicitation label="Exportar base de dados" query="Como posso criar uma opção de exportar o backup do IndexedDB?" />
-        </Elicitations>
+        function infoSaude(titulo, msg) {
+            abrirJanelaFixa(`<h2>${titulo}</h2><hr><p style="color: #f1f5f9;">${msg}</p><br><button onclick="abrirSubmenuSaude()" class="secondary-btn">Voltar às Opções</button>`);
+        }
+
+        function infoDev() {
+            let meuNomeCadastrado = localStorage.getItem("utilizador_nome") || "Utilizador";
+            abrirJanelaFixa(`
+                <h2>👨‍💻 Sobre o Desenvolvedor</h2>
+                <hr><p style="color: #f1f5f9;"><b>Desenvolvedor:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
+                <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, sou o/a ${meuNomeCadastrado} e contacto através da app Angola 2026.`) + `', '_blank')">💬 Conversar via WhatsApp</button>
+                <button class="call-btn" onclick="window.location.href='tel:${MEU_TELEFONE}'">📞 Ligar</button>
+                <br><br><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>
+            `);
+        }
+
+        function infoIban() {
+            abrirJanelaFixa(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>`);
+        }
+
+        function fecharJanelaModal() {
+            if (localStorage.getItem("utilizador_cadastrado") === "true" && localStorage.getItem("sessao_ativa") === "true") {
+                document.getElementById("modal").style.display = "none";
+            } else {
+                alert("Por favor, preencha o seu cadastro primeiro para entrar.");
+            }
+        }
+    </script>
+</body>
+</html>
