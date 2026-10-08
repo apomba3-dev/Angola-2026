@@ -19,7 +19,13 @@
         h1 { margin: 0; font-size: 1rem; text-align: center; flex-grow: 1; }
         .container { padding: 15px; max-width: 600px; margin: auto; }
         
-        input[type="text"], input[type="password"], input[type="number"], textarea, button { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        /* Caixa de Pesquisa com Botão Integrado (Tabela/Flex) */
+        .search-box-container { display: flex; gap: 6px; margin-bottom: 12px; }
+        .search-box-container input[type="text"] { flex-grow: 1; margin-bottom: 0; }
+        .search-action-btn { width: auto; padding: 0 16px; margin-bottom: 0; background: #00796b; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
+        .search-action-btn:active { background: #004d40; }
+
+        input[type="password"], input[type="number"], textarea, button { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
         textarea { resize: vertical; height: 100px; font-family: inherit; }
         button { background: #00796b; color: white; border: none; font-weight: bold; cursor: pointer; }
         button:active { background: #004d40; }
@@ -68,7 +74,11 @@
     </header>
 
     <div class="container">
-        <input type="text" id="inputPesquisa" placeholder="Pesquisar artigos ou pressiona Enter para o Google..." oninput="filtrar()" onkeypress="pesquisarWeb(event)">
+        <!-- Barra de Pesquisa com o Botão 🔎 integrado -->
+        <div class="search-box-container">
+            <input type="text" id="inputPesquisa" placeholder="Pesquisar artigos ou pressiona Enter para o Google..." oninput="filtrar()" onkeypress="pesquisarWeb(event)">
+            <button class="search-action-btn" onclick="executarPesquisaBotao()" title="Pesquisar">🔎</button>
+        </div>
         
         <!-- Barra de Abas de Navegação Rápida -->
         <div class="tabs-container">
@@ -256,10 +266,21 @@
 
         function pesquisarWeb(e) {
             if (e.key === 'Enter') {
-                const termo = document.getElementById("inputPesquisa").value.trim();
-                if (termo) {
-                    window.location.href = `https://www.google.com/search?q=${encodeURIComponent(termo)}`;
-                }
+                executarPesquisaBotao();
+            }
+        }
+
+        function executarPesquisaBotao() {
+            const termo = document.getElementById("inputPesquisa").value.trim();
+            if (!termo) return;
+            
+            // Verifica se encontrou algo localmente na lista filtrada atual
+            if (listaFiltrada.length > 0) {
+                // Se houver resultados locais, foca no primeiro ou mantém a lista filtrada visível
+                filtrar();
+            } else {
+                // Se não encontrar nada localmente, direciona logo para a pesquisa web do Google
+                window.location.href = `https://www.google.com/search?q=${encodeURIComponent(termo)}`;
             }
         }
 
@@ -327,7 +348,7 @@
                 <p style="font-size: 0.9rem; color: #555; line-height: 1.4;">
                     <b>Como usar a app:</b><br>
                     - Use as abas no topo para filtrar por temas.<br>
-                    - Use a barra de pesquisa para procurar artigos ou ir ao Google.<br>
+                    - Use a barra de pesquisa com o botão 🔎 para procurar artigos.<br>
                     - No menu esquerdo tem as opções de saúde e chat.<br>
                 </p>
                 <hr>
@@ -449,7 +470,7 @@
         }
 
         function infoIban() {
-            abrirJanelaModal(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>`);
+            abrirJanelaModal(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</b></div><br><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>`);
         }
 
         function abrirJanelaModal(html) {
