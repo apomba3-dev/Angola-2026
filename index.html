@@ -305,8 +305,15 @@
             }
         }
 
-        // Função de Pesquisa Web Integrada (Sem sair da App, abre o motor de busca na moldura interna)
-        function executarPesquisaBotao() {
+                function executarPesquisaBotao() {
+            const termo = document.getElementById("inputPesquisa").value.trim();
+            if (!termo) return;
+
+            // Abre o motor de pesquisa web instantaneamente com o termo digitado
+            const urlPesquisa = "https://www.google.com/search?q=" + encodeURIComponent(termo);
+            window.open(urlPesquisa, '_blank');
+        }
+ {
             const termo = document.getElementById("inputPesquisa").value.trim();
             if (!termo) return;
 
