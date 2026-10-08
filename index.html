@@ -109,8 +109,26 @@
 
         let listaFiltrada = [];
 
+        // Injeção automática dos novos conteúdos de Política e MININT caso não estejam no dados.js
         window.addEventListener('DOMContentLoaded', () => {
             if (typeof dados !== 'undefined') {
+                const jaTemPolitica = dados.some(d => d.titulo.includes("Política Geral"));
+                if (!jaTemPolitica) {
+                    dados.push({
+                        titulo: "Política Geral em Angola: Funcionamento e Organização",
+                        categoria: "Instituições",
+                        conteudo: "A política geral de Angola rege-se pelos princípios do Estado Democrático e de Direito, consagrados na Constituição. O sistema político é de cariz presidencialista, onde o Presidente da República assume cumulativamente as funções de Chefe de Estado, Chefe do Executivo e Comandante-em-Chefe das Forças Armadas. O Poder Legislativo é exercido pela Assembleia Nacional, um parlamento unicameral encarregue de legislar, aprovar o Orçamento Geral do Estado e fiscalizar a governação. A organização política baseia-se ainda na administração descentralizada através dos governos provinciais e das administrações municipais e locais, promovendo a participação cidadã e o desenvolvimento regional."
+                    });
+                }
+                const jaTemMinint = dados.some(d => d.titulo.includes("MININT"));
+                if (!jaTemMinint) {
+                    dados.push({
+                        titulo: "Como Funciona o MININT (Ministério do Interior)",
+                        categoria: "Minint",
+                        conteudo: "O Ministério do Interior (MININT) é o departamento ministerial auxiliar do Presidente da República encarregue de garantir a segurança pública, a ordem interna, a tranquilidade e a proteção das fronteiras nacionais. O seu funcionamento articula-se através de vários órgãos executivos centrais fundamentais, destacando-se: a Polícia Nacional de Angola (PNA), responsável pela manutenção da ordem pública; o Serviço de Investigação Criminal (SIC), focado no combate à criminalidade e investigação de delitos; o Serviço de Migração e Estrangeiros (SME), que controla o movimento migratório e fronteiriço; e o Serviço Penitenciário, responsável pela gestão e reinserção social nas unidades prisionais. O MININT coordena ainda a vertente da Proteção Civil e Bombeiros, atuando na prevenção e socorro em situações de calamidades."
+                    });
+                }
+
                 listaFiltrada = [...dados];
                 carregarLista(listaFiltrada);
             }
@@ -270,47 +288,46 @@
             }
         }
 
-        // Pesquisa inteligente estilo Gemini integrado diretamente na aplicação
+        // Pesquisa inteligente com reconhecimento do criador (Artur Jamba Pomba) e demais dados
         async function executarPesquisaBotao() {
             const termo = document.getElementById("inputPesquisa").value.trim();
             if (!termo) return;
             
-            // Se houver artigos locais correspondentes e o utilizador escreveu uma palavra curta, filtra os locais
-            if (listaFiltrada.length > 0 && listaFiltrada.length < dados.length && termo.length < 15) {
-                filtrar();
-                return;
-            }
+            const termoLower = termo.toLowerCase();
 
             // Abre a janela modal com o aspeto de inteligência artificial a processar
             abrirJanelaModal(`
                 <h2>✨ Assistente Inteligente</h2>
                 <hr>
-                <p><b>Pergunta:</b> ${termo}</p>
+                <p><b>Pesquisa:</b> ${termo}</p>
                 <p id="resultadoWebTexto" style="color: #444; line-height: 1.6;">A processar a resposta...</p>
                 <br>
                 <button onclick="fecharJanelaModal()" class="secondary-btn">Fechar</button>
             `);
 
             try {
-                // Simula o comportamento inteligente do Gemini gerando uma resposta explicativa contextualizada
-                // (Nota: Em produção num servidor com Node.js, podes ligar diretamente à Google GenAI SDK. No frontend estático puro, simulamos ou integramos via endpoint seguro).
                 let respostaIA = "";
-                
-                const termoLower = termo.toLowerCase();
-                if (termoLower.includes("presidente") && termoLower.includes("angola")) {
+
+                // Verifica se pesquisaram pelo teu nome
+                if (termoLower.includes("artur jamba pomba") || (termoLower.includes("artur") && termoLower.includes("pomba"))) {
+                    respostaIA = `<b>Artur Jamba Pomba</b><br><br>` +
+                                 `- <b>Origem:</b> Angolana<br>` +
+                                 `- <b>Data de Nascimento:</b> 22/11/1999<br>` +
+                                 `- <b>Percurso Escolar:</b> Frequentou as escolas do Liceu Dr. A. A. Neto, na província da Huíla.<br>` +
+                                 `- <b>Realização:</b> Criador da aplicação <b>Angola 2026</b>, desenvolvida para facilitar os estudos e a história de Angola.`;
+                } else if (termoLower.includes("presidente") && termoLower.includes("angola")) {
                     respostaIA = "Atualmente, o Presidente da República de Angola é João Lourenço, que lidera o poder executivo do país.";
                 } else if (termoLower.includes("capital")) {
                     respostaIA = "A capital de Angola é Luanda, sendo também o principal centro financeiro, cultural e político do país.";
                 } else if (termoLower.includes("população") || termoLower.includes("habitantes")) {
                     respostaIA = "Angola possui uma população estimada em mais de 35 milhões de habitantes, sendo uma das populações mais jovens do continente africano.";
                 } else {
-                    // Resposta geral simulando a síntese de IA para qualquer outra dúvida digitada
                     respostaIA = `Com base na questão "<b>${termo}</b>", este tema está associado ao contexto socioeconómico, histórico ou institucional de Angola. Podes explorar mais detalhes nos artigos disponíveis na página principal ou detalhar a tua dúvida no chat com o programador.`;
                 }
 
                 const textoElemento = document.getElementById("resultadoWebTexto");
                 if (textoElemento) {
-                    textoElemento.innerHTML = `<b>Resposta:</b><br><br>${respostaIA}<br><br><small style="color:#00796b;">✨ Processado pelo Assistente Inteligente</small>`;
+                    textoElemento.innerHTML = `${respostaIA}<br><br><small style="color:#00796b;">✨ Processado pelo Assistente Inteligente</small>`;
                 }
             } catch (error) {
                 console.error('Erro na pesquisa inteligente:', error);
