@@ -99,7 +99,7 @@
             <button class="search-action-btn" onclick="executarPesquisaBotao()" title="Pesquisar na Web">🔎</button>
         </div>
         
-        <!-- Abas de Navegação Rápida -->
+        <!-- Abas de Navegação Rápida (Com a nova aba de Imagens) -->
         <div class="tabs-container">
             <button class="tab-btn active" onclick="filtrarPorAba('Todas', this)">🔄 Todas</button>
             <button class="tab-btn" onclick="filtrarPorAba('História', this)">📜 História</button>
@@ -108,6 +108,7 @@
             <button class="tab-btn" onclick="filtrarPorAba('Administração', this)">📋 Adm. Pública</button>
             <button class="tab-btn" onclick="filtrarPorAba('Minint', this)">🛡️ MININT</button>
             <button class="tab-btn" onclick="filtrarPorAba('Música', this)">🎵 Músicas</button>
+            <button class="tab-btn" onclick="filtrarPorAba('Imagens', this)">🖼️ Imagens</button>
         </div>
 
         <ul id="listaArtigos"></ul>
@@ -128,9 +129,9 @@
 
         let listaFiltrada = [];
 
-        // --- GESTÃO DA INDEXEDDB (Armazenamento Permanente de Ficheiros de Áudio) ---
+        // --- GESTÃO DA INDEXEDDB (Armazenamento Permanente de Músicas e Imagens) ---
         let db;
-        const requestDB = indexedDB.open("AngolaMusicasDB", 1);
+        const requestDB = indexedDB.open("AngolaAppDB", 2);
 
         requestDB.onerror = function(event) {
             console.log("Erro ao abrir a base de dados IndexedDB");
@@ -145,6 +146,9 @@
             if (!dbConnection.objectStoreNames.contains("musicas")) {
                 dbConnection.createObjectStore("musicas", { keyPath: "id", autoIncrement: true });
             }
+            if (!dbConnection.objectStoreNames.contains("imagens")) {
+                dbConnection.createObjectStore("imagens", { keyPath: "id", autoIncrement: true });
+            }
         };
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -154,7 +158,7 @@
                     dados.push({
                         titulo: "Política Geral em Angola: Funcionamento e Organização",
                         categoria: "Instituições",
-                        conteudo: "A política geral de Angola rege-se pelos princípios do Estado Democrático e de Direito, consagrados na Constituição. O sistema político é de cariz presidencialista, onde o Presidente da República assume cumulativamente as funções de Chefe de Estado, Chefe do Executivo e Comandante-em-Chefe das Forças Armadas. O Poder Legislativo é exercido pela Assembleia Nacional, um parlamento unicameral encarregue de legislar, aprovar o Orçamento Geral do Estado e fiscalizar a governação. A organização política baseia-se ainda na administração descentralizada através dos governos provinciais e das administrações municipais e locais, promovendo a participação cidadã e o desenvolvimento regional."
+                        conteudo: "A política geral de Angola rege-se pelos princípios do Estado Democrático e de Direito, consagrados na Constituição. O sistema político é de cariz presidencialista, onde o Presidente da República assume cumulativamente as funções de Chefe de Estado, Chefe do Executivo e Comandante-em-Chef das Forças Armadas. O Poder Legislativo é exercido pela Assembleia Nacional, um parlamento unicameral encarregue de legislar, aprovar o Orçamento Geral do Estado e fiscalizar a governação. A organização política baseia-se ainda na administração descentralizada através dos governos provinciais e das administrações municipais e locais, promovendo a participação cidadã e o desenvolvimento regional."
                     });
                 }
                 const jaTemMinint = dados.some(d => d.titulo.includes("MININT"));
@@ -173,6 +177,16 @@
                         categoria: "Música",
                         conteudo: "Guarde, organize por autor e reproduza as suas músicas favoritas de forma permanente no seu dispositivo.",
                         isPlayerModulo: true
+                    });
+                }
+
+                const jaTemImagensApp = dados.some(d => d.categoria === "Imagens");
+                if (!jaTemImagensApp) {
+                    dados.push({
+                        titulo: "Módulo de Imagens Pessoais",
+                        categoria: "Imagens",
+                        conteudo: "Guarde e visualize as suas fotografias e imagens favoritas de forma permanente no seu telemóvel.",
+                        isGaleriaModulo: true
                     });
                 }
 
@@ -348,6 +362,10 @@
                 abrirLeitorMusica();
                 return;
             }
+            if (item.isGaleriaModulo) {
+                abrirGaleriaImagens();
+                return;
+            }
 
             abrirJanelaFixa(`
                 <h2>${item.titulo}</h2>
@@ -470,6 +488,98 @@
         }
         // --------------------------------------------------------
 
+        // --- MÓDULO DE IMAGENS COM PERISTÊNCIA (IndexedDB) ---
+        function abrirGaleriaImagens() {
+            if (!db) {
+                setTimeout(abrirGaleriaImagens, 500);
+                return;
+            }
+
+            let transaction = db.transaction(["imagens"], "readonly");
+            let store = transaction.objectStore("imagens");
+            let request = store.getAll();
+
+            request.onsuccess = function(event) {
+                let imagensSalvas = event.target.result;
+                
+                let htmlImagens = `<h2>🖼️ Galeria de Imagens</h2>`;
+                htmlImagens += `<p style="font-size: 0.85rem; color: #cbd5e1;">Adicione fotografias ou imagens do telemóvel (Guardado permanentemente):</p>`;
+                htmlImagens += `<input type="file" id="ficheiroImagem" accept="image/*" onchange="guardarImagemDB(event)">`;
+                htmlImagens += `<hr><div style="max-height: 240px; overflow-y: auto;">`;
+
+                if (imagensSalvas.length === 0) {
+                    htmlImagens += `<p style="font-size:0.85rem; color:#94a3b8; text-align:center;">Sem imagens guardadas.</p>`;
+                } else {
+                    imagensSalvas.forEach((imgItem) => {
+                        let urlImg = URL.createObjectURL(imgItem.blob);
+                        htmlImagens += `<div style="background:#020617; padding:8px; margin-bottom:8px; border-radius:6px; border:1px solid #1e3a8a; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+                                <img src="${urlImg}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;" alt="Miniatura">
+                                <span style="font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px;">📷 ${imgItem.titulo}</span>
+                            </div>
+                            <div>
+                                <button onclick='verImagemCompleta("${urlImg}", "${imgItem.titulo}")' style="padding:4px 8px; margin:0; font-size:0.75rem; width:auto; background:#059669;" title="Ver">🔍</button>
+                                <button onclick='apagarImagemDB(${imgItem.id})' style="padding:4px 8px; margin:0; font-size:0.75rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+                htmlImagens += `</div>`;
+                htmlImagens += `<br><button onclick="fecharJanelaModal()" class="secondary-btn">Fechar e Voltar</button>`;
+                
+                abrirJanelaFixa(htmlImagens);
+            };
+        }
+
+        function guardarImagemDB(event) {
+            const ficheiro = event.target.files[0];
+            if (!ficheiro) return;
+
+            let tituloImg = prompt("Introduza um título ou descrição para a imagem:", ficheiro.name);
+            if (!tituloImg) tituloImg = ficheiro.name;
+
+            let transaction = db.transaction(["imagens"], "readwrite");
+            let store = transaction.objectStore("imagens");
+            
+            let novaImagem = {
+                titulo: tituloImg.trim(),
+                blob: ficheiro
+            };
+
+            let request = store.add(novaImagem);
+
+            request.onsuccess = function() {
+                alert("Imagem guardada permanentemente com sucesso!");
+                abrirGaleriaImagens();
+            };
+
+            request.onerror = function() {
+                alert("Erro ao guardar o ficheiro de imagem.");
+            };
+        }
+
+        function verImagemCompleta(url, titulo) {
+            abrirJanelaFixa(`
+                <h2>📷 ${titulo}</h2>
+                <hr>
+                <div style="text-align:center; margin-bottom:15px;">
+                    <img src="${url}" style="max-width:100%; max-height:300px; border-radius:8px; border:1px solid #3b82f6;" alt="Imagem">
+                </div>
+                <button onclick="abrirGaleriaImagens()" class="secondary-btn">⬅ Voltar à Galeria</button>
+            `);
+        }
+
+        function apagarImagemDB(id) {
+            let transaction = db.transaction(["imagens"], "readwrite");
+            let store = transaction.objectStore("imagens");
+            let request = store.delete(id);
+
+            request.onsuccess = function() {
+                abrirGaleriaImagens();
+            };
+        }
+        // --------------------------------------------------------
+
         function abrirEstatisticasAcessos() {
             let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
             let htmlLogs = `<h2>📊 Utilizadores Registados</h2><p style="font-size:0.85rem; color:#94a3b8;">Pessoas que fizeram o cadastro neste dispositivo:</p><hr>`;
@@ -497,6 +607,7 @@
                 <hr>
                 <button onclick="abrirSubmenuSaude()">🩺 Opções de Saúde</button>
                 <button onclick="abrirLeitorMusica()">🎵 Módulo de Música</button>
+                <button onclick="abrirGaleriaImagens()">🖼️ Módulo de Imagens</button>
                 <button onclick="abrirChat()">💬 Chat com o Desenvolvedor</button>
                 <br>
                 <button onclick="fecharJanelaModal()" class="danger-btn">Fechar Menu</button>
@@ -539,7 +650,7 @@
                 <h2>❓ Ajuda e Feedback</h2>
                 <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.4;">
                     <b>Como usar a app:</b><br>
-                    - As músicas adicionadas ficam guardadas por autor de forma segura e permanente no telemóvel.<br>
+                    - As músicas e imagens adicionadas ficam guardadas de forma segura e permanente no telemóvel.<br>
                 </p>
                 <hr>
                 <p style="font-size: 0.9rem; color: #cbd5e1;">Deixe aqui o seu comentário ou sugestão:</p>
