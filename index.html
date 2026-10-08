@@ -47,7 +47,7 @@
         button { background: #1d4ed8; color: white; border: none; font-weight: bold; cursor: pointer; }
         button:active { background: #1e3a8a; }
         
-        /* Abas de Navegação Rápida por Temas */
+        /* Abas de Navegação Rápida */
         .tabs-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; white-space: nowrap; -webkit-overflow-scrolling: touch; }
         .tab-btn { background: #151c2f; color: #93c5fd; border: 1px solid #3b82f6; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; cursor: pointer; width: auto; margin-bottom: 0; flex-shrink: 0; }
         .tab-btn:active, .tab-btn.active { background: #1d4ed8; color: white; }
@@ -128,6 +128,25 @@
 
         let listaFiltrada = [];
 
+        // --- GESTÃO DA INDEXEDDB (Armazenamento Permanente de Ficheiros de Áudio) ---
+        let db;
+        const requestDB = indexedDB.open("AngolaMusicasDB", 1);
+
+        requestDB.onerror = function(event) {
+            console.log("Erro ao abrir a base de dados IndexedDB");
+        };
+
+        requestDB.onsuccess = function(event) {
+            db = event.target.result;
+        };
+
+        requestDB.onupgradeneeded = function(event) {
+            let dbConnection = event.target.result;
+            if (!dbConnection.objectStoreNames.contains("musicas")) {
+                dbConnection.createObjectStore("musicas", { keyPath: "id", autoIncrement: true });
+            }
+        };
+
         window.addEventListener('DOMContentLoaded', () => {
             if (typeof dados !== 'undefined') {
                 const jaTemPolitica = dados.some(d => d.titulo.includes("Política Geral"));
@@ -152,7 +171,7 @@
                     dados.push({
                         titulo: "Módulo de Músicas Pessoais",
                         categoria: "Música",
-                        conteudo: "Guarde e reproduza as suas músicas favoritas em formato MP3 diretamente na memória do seu dispositivo para ouvir offline na aplicação.",
+                        conteudo: "Guarde e reproduza as suas músicas favoritas de forma permanente no seu dispositivo para ouvir offline na aplicação.",
                         isPlayerModulo: true
                     });
                 }
@@ -340,70 +359,97 @@
             `);
         }
 
-        // --- MÓDULO DE MÚSICA LOCAL ---
+        // --- MÓDULO DE MÚSICA COM PERISTÊNCIA REAL (IndexedDB) ---
         function abrirLeitorMusica() {
-            let musicasSalvas = JSON.parse(localStorage.getItem("angola_musicas_db")) || [];
-            
-            let htmlMusicas = `<h2>🎵 Leitor de Música Local</h2>`;
-            htmlMusicas += `<p style="font-size: 0.85rem; color: #cbd5e1;">Adicione ficheiros de áudio (.mp3) do seu telemóvel para guardar offline:</p>`;
-            htmlMusicas += `<input type="file" id="ficheiroMusica" accept="audio/*" onchange="guardarMusica(event)">`;
-            htmlMusicas += `<hr><div style="max-height: 180px; overflow-y: auto;">`;
-
-            if (musicasSalvas.length === 0) {
-                htmlMusicas += `<p style="font-size:0.85rem; color:#94a3b8; text-align:center;">Sem músicas guardadas neste dispositivo.</p>`;
-            } else {
-                musicasSalvas.forEach((musica, index) => {
-                    htmlMusicas += `<div style="background:#020617; padding:8px; margin-bottom:5px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:0.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;">🎶 ${musica.nome}</span>
-                        <div>
-                            <button onclick="reproduzirMusica(${index})" style="padding:4px 8px; margin:0; font-size:0.8rem; width:auto; background:#059669;">▶</button>
-                            <button onclick="apagarMusica(${index})" style="padding:4px 8px; margin:0; font-size:0.8rem; width:auto; background:#dc2626;">✕</button>
-                        </div>
-                    </div>`;
-                });
+            if (!db) {
+                setTimeout(abrirLeitorMusica, 500);
+                return;
             }
-            htmlMusicas += `</div>`;
-            htmlMusicas += `<audio id="audioPlayer" controls style="width:100%; margin-top:10px; display:none;"></audio>`;
-            htmlMusicas += `<br><button onclick="fecharJanelaModal()" class="secondary-btn">Fechar e Voltar</button>`;
-            
-            abrirJanelaFixa(htmlMusicas);
+
+            let transaction = db.transaction(["musicas"], "readonly");
+            let store = transaction.objectStore("musicas");
+            let request = store.getAll();
+
+            request.onsuccess = function(event) {
+                let musicasSalvas = event.target.result;
+                
+                let htmlMusicas = `<h2>🎵 Leitor de Música Permanente</h2>`;
+                htmlMusicas += `<p style="font-size: 0.85rem; color: #cbd5e1;">Adicione ficheiros (.mp3) que ficassem guardados no telemóvel mesmo após sair da app:</p>`;
+                htmlMusicas += `<input type="file" id="ficheiroMusica" accept="audio/*" onchange="guardarMusicaDB(event)">`;
+                htmlMusicas += `<hr><div style="max-height: 180px; overflow-y: auto;">`;
+
+                if (musicasSalvas.length === 0) {
+                    htmlMusicas += `<p style="font-size:0.85rem; color:#94a3b8; text-align:center;">Sem músicas guardadas permanentemente.</p>`;
+                } else {
+                    musicasSalvas.forEach((musica) => {
+                        htmlMusicas += `<div style="background:#020617; padding:8px; margin-bottom:5px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:0.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;">🎶 ${musica.nome}</span>
+                            <div>
+                                <button onclick='reproduzirMusicaDB(${musica.id})' style="padding:4px 8px; margin:0; font-size:0.8rem; width:auto; background:#059669;" title="Ouvir">▶</button>
+                                <button onclick='apagarMusicaDB(${musica.id})' style="padding:4px 8px; margin:0; font-size:0.8rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+                htmlMusicas += `</div>`;
+                htmlMusicas += `<audio id="audioPlayer" controls style="width:100%; margin-top:10px; display:none;"></audio>`;
+                htmlMusicas += `<br><button onclick="fecharJanelaModal()" class="secondary-btn">Fechar e Voltar</button>`;
+                
+                abrirJanelaFixa(htmlMusicas);
+            };
         }
 
-        function guardarMusica(event) {
+        function guardarMusicaDB(event) {
             const ficheiro = event.target.files[0];
             if (!ficheiro) return;
 
-            const leitor = new FileReader();
-            leitor.onload = function(e) {
-                const base64Audio = e.target.result;
-                let musicasSalvas = JSON.parse(localStorage.getItem("angola_musicas_db")) || [];
-                
-                musicasSalvas.push({ nome: ficheiro.name, dados: base64Audio });
-                localStorage.setItem("angola_musicas_db", JSON.stringify(musicasSalvas));
-                
-                alert("Música guardada com sucesso no telemóvel!");
+            let transaction = db.transaction(["musicas"], "readwrite");
+            let store = transaction.objectStore("musicas");
+            
+            let novaMusica = {
+                nome: ficheiro.name,
+                blob: ficheiro
+            };
+
+            let request = store.add(novaMusica);
+
+            request.onsuccess = function() {
+                alert("Música guardada permanentemente com sucesso!");
                 abrirLeitorMusica();
             };
-            leitor.readAsDataURL(ficheiro);
+
+            request.onerror = function() {
+                alert("Erro ao guardar o ficheiro de áudio.");
+            };
         }
 
-        function reproduzirMusica(index) {
-            let musicasSalvas = JSON.parse(localStorage.getItem("angola_musicas_db")) || [];
-            if (musicasSalvas[index]) {
-                const player = document.getElementById("audioPlayer");
-                player.src = musicasSalvas[index].dados;
-                player.style.display = "block";
-                player.play();
-            }
+        function reproduzirMusicaDB(id) {
+            let transaction = db.transaction(["musicas"], "readonly");
+            let store = transaction.objectStore("musicas");
+            let request = store.get(id);
+
+            request.onsuccess = function(event) {
+                let musica = event.target.result;
+                if (musica && musica.blob) {
+                    const player = document.getElementById("audioPlayer");
+                    const urlAudio = URL.createObjectURL(musica.blob);
+                    player.src = urlAudio;
+                    player.style.display = "block";
+                    player.play();
+                }
+            };
         }
 
-        function apagarMusica(index) {
-            let musicasSalvas = JSON.parse(localStorage.getItem("angola_musicas_db")) || [];
-            musicasSalvas.splice(index, 1);
-            localStorage.setItem("angola_musicas_db", JSON.stringify(musicasSalvas));
-            abrirLeitorMusica();
+        function apagarMusicaDB(id) {
+            let transaction = db.transaction(["musicas"], "readwrite");
+            let store = transaction.objectStore("musicas");
+            let request = store.delete(id);
+
+            request.onsuccess = function() {
+                abrirLeitorMusica();
+            };
         }
-        // -----------------------------
+        // --------------------------------------------------------
 
         function abrirEstatisticasAcessos() {
             let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
@@ -474,8 +520,7 @@
                 <h2>❓ Ajuda e Feedback</h2>
                 <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.4;">
                     <b>Como usar a app:</b><br>
-                    - Use as abas no topo para filtrar por temas.<br>
-                    - Escreva qualquer termo na barra de pesquisa e clique no botão 🔎 para pesquisar na web.<br>
+                    - As músicas adicionadas ficam guardadas de forma segura e permanente no telemóvel.<br>
                 </p>
                 <hr>
                 <p style="font-size: 0.9rem; color: #cbd5e1;">Deixe aqui o seu comentário ou sugestão:</p>
