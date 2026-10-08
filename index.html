@@ -44,10 +44,40 @@
         button:active { background: #1e3a8a; }
         
         .tabs-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-        .tab-btn { background: #151c2f; color: #93c5fd; border: 1px solid #3b82f6; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; cursor: pointer; width: auto; margin-bottom: 0; flex-shrink: 0; }
-        .tab-btn:active, .tab-btn.active { background: #1d4ed8; color: white; }
+        
+        /* Abas com efeito de destaque e transição */
+        .tab-btn { 
+            background: #151c2f; 
+            color: #93c5fd; 
+            border: 1px solid #3b82f6; 
+            padding: 8px 14px; 
+            border-radius: 20px; 
+            font-size: 0.85rem; 
+            font-weight: bold; 
+            cursor: pointer; 
+            width: auto; 
+            margin-bottom: 0; 
+            flex-shrink: 0;
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-btn:active, .tab-btn.active { 
+            background: #1d4ed8; 
+            color: white; 
+            transform: scale(0.96);
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.9);
+        }
 
-        ul { list-style: none; padding: 0; }
+        /* Transição suave de desvanecimento para a lista */
+        #listaArtigos {
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
+            list-style: none; 
+            padding: 0;
+        }
+        .fade-out {
+            opacity: 0;
+        }
+
         li { background: #151c2f; color: #ffffff; padding: 15px; margin-bottom: 8px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.4); cursor: pointer; border: 1px solid #1e3a8a; }
         li strong { color: #ffffff; font-size: 1.05rem; }
         
@@ -155,6 +185,7 @@
 
         let listaFiltrada = [];
         let adminAutenticado = false;
+        let estadoTodasOculto = false;
         let temporizadorInatividade;
         const TEMPO_LIMITE_MINUTOS = 3;
 
@@ -253,7 +284,38 @@
                 carregarLista(listaFiltrada);
             }
             verificarSessaoUtilizador();
+            configurarBotaoTodasDuploClique();
         });
+
+        function configurarBotaoTodasDuploClique() {
+            const botoesAba = document.querySelectorAll('.tab-btn');
+            botoesAba.forEach(btn => {
+                if (btn.innerText.includes("Todas")) {
+                    btn.onclick = () => {
+                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        document.getElementById("inputPesquisa").value = "";
+
+                        const ul = document.getElementById("listaArtigos");
+                        ul.classList.add("fade-out");
+
+                        setTimeout(() => {
+                            if (!estadoTodasOculto) {
+                                ul.innerHTML = "<li style='text-align:center; color:#cbd5e1;'>Frases ocultadas. Clica novamente no botão 'Todas' para voltar a mostrar.</li>";
+                                mostrarToast("Frases ocultadas!");
+                                estadoTodasOculto = true;
+                            } else {
+                                listaFiltrada = [...dados];
+                                carregarLista(listaFiltrada);
+                                mostrarToast("Frases restauradas!");
+                                estadoTodasOculto = false;
+                            }
+                            ul.classList.remove("fade-out");
+                        }, 150);
+                    };
+                }
+            });
+        }
 
         function verificarSessaoUtilizador() {
             let sessaoAtiva = localStorage.getItem("sessao_ativa");
@@ -366,21 +428,27 @@
 
         function carregarLista(itens) {
             const ul = document.getElementById("listaArtigos");
-            ul.innerHTML = "";
-            if (!itens || itens.length === 0) {
-                ul.innerHTML = "<li style='text-align:center; color:#cbd5e1;'>Nenhum resultado local encontrado. Escreve a tua pergunta na barra acima e clica em 🔎 para pesquisar na web!</li>";
-                return;
-            }
-            itens.forEach((item) => {
-                const li = document.createElement("li");
-                li.innerHTML = `<strong>${item.titulo}</strong><br><span class="badge">${item.categoria}</span>`;
-                li.onclick = () => mostrarDetalhes(item);
-                ul.appendChild(li);
-            });
+            ul.classList.add("fade-out");
+
+            setTimeout(() => {
+                ul.innerHTML = "";
+                if (!itens || itens.length === 0) {
+                    ul.innerHTML = "<li style='text-align:center; color:#cbd5e1;'>Nenhum resultado local encontrado. Escreve a tua pergunta na barra acima e clica em 🔎 para pesquisar na web!</li>";
+                } else {
+                    itens.forEach((item) => {
+                        const li = document.createElement("li");
+                        li.innerHTML = `<strong>${item.titulo}</strong><br><span class="badge">${item.categoria}</span>`;
+                        li.onclick = () => mostrarDetalhes(item);
+                        ul.appendChild(li);
+                    });
+                }
+                ul.classList.remove("fade-out");
+            }, 150);
         }
 
         function filtrar() {
             if (typeof dados === 'undefined') return;
+            estadoTodasOculto = false;
             const termo = document.getElementById("inputPesquisa").value.toLowerCase().trim();
             if (termo === "") {
                 listaFiltrada = [...dados];
@@ -395,6 +463,10 @@
         }
 
         function filtrarPorAba(categoriaFiltro, elementoBotao) {
+            if (categoriaFiltro === 'Todas' && estadoTodasOculto) {
+                return;
+            }
+            estadoTodasOculto = false;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             elementoBotao.classList.add('active');
             document.getElementById("inputPesquisa").value = "";
