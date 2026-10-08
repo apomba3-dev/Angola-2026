@@ -95,8 +95,8 @@
     <div class="container">
         <!-- Barra de Pesquisa Integrada -->
         <div class="search-box-container">
-            <input type="text" id="inputPesquisa" placeholder="Pesquisar artigos ou perguntar ao assistente..." oninput="filtrar()" onkeypress="pesquisarWeb(event)">
-            <button class="search-action-btn" onclick="executarPesquisaBotao()" title="Pesquisar">🔎</button>
+            <input type="text" id="inputPesquisa" placeholder="Pesquisar artigos ou pesquisar na web..." oninput="filtrar()" onkeypress="pesquisarWeb(event)">
+            <button class="search-action-btn" onclick="executarPesquisaBotao()" title="Pesquisar na Web">🔎</button>
         </div>
         
         <!-- Abas de Navegação Rápida -->
@@ -258,7 +258,7 @@
             const ul = document.getElementById("listaArtigos");
             ul.innerHTML = "";
             if (!itens || itens.length === 0) {
-                ul.innerHTML = "<li style='text-align:center; color:#cbd5e1;'>Nenhum resultado local encontrado. Escreve a tua pergunta na barra acima e clica em 🔎 para consultar o assistente!</li>";
+                ul.innerHTML = "<li style='text-align:center; color:#cbd5e1;'>Nenhum resultado local encontrado. Escreve a tua pergunta na barra acima e clica em 🔎 para pesquisar na web!</li>";
                 return;
             }
             itens.forEach((item) => {
@@ -305,36 +305,12 @@
             }
         }
 
-        // Função de Assistente Inteligente Interno (Sem sair da App e sem erros de iframe)
         function executarPesquisaBotao() {
             const termo = document.getElementById("inputPesquisa").value.trim();
             if (!termo) return;
 
-            const termoLower = termo.toLowerCase();
-            let respostaIA = "";
-
-            if (termoLower.includes("artur jamba pomba") || (termoLower.includes("artur") && termoLower.includes("pomba"))) {
-                respostaIA = `<b>Artur Jamba Pomba</b><br><br>- <b>Origem:</b> Angolana<br>- <b>Data de Nascimento:</b> 22/11/1999<br>- <b>Perfil:</b> Criador e programador principal da aplicação <b>Angola 2026</b>, focada em utilidades, história e desenvolvimento tecnológico.`;
-            } else if (termoLower.includes("presidente") && termoLower.includes("angola")) {
-                respostaIA = `<b>Presidente de Angola</b><br><br>Atualmente, o Presidente da República de Angola é João Lourenço, que lidera o poder executivo do país.`;
-            } else if (termoLower.includes("capital")) {
-                respostaIA = `<b>Capital de Angola</b><br><br>A capital de Angola é Luanda, o principal centro político, financeiro e demográfico do país.`;
-            } else if (termoLower.includes("josé eduardo dos santos") || termoLower.includes("josé manuel santos")) {
-                respostaIA = `<b>José Eduardo dos Santos</b><br><br>Foi o segundo presidente de Angola, tendo governado o país de 1979 até 2017. Desempenhou um papel central na história contemporânea angolana.`;
-            } else {
-                respostaIA = `Resultados processados pelo assistente para: "<b>${termo}</b>".<br><br>Este tema pode ser consultado detalhadamente nos artigos categorizados na página principal da aplicação ou através do chat direto com o programador.`;
-            }
-
-            abrirJanelaFixa(`
-                <h2>✨ Assistente Inteligente</h2>
-                <hr>
-                <p><b>Consulta:</b> ${termo}</p>
-                <div style="background: #020617; padding: 12px; border-radius: 8px; border: 1px solid #1e3a8a; color: #e2e8f0; line-height: 1.6;">
-                    ${respostaIA}
-                </div>
-                <br>
-                <button onclick="fecharJanelaModal()" class="secondary-btn">Fechar e Voltar</button>
-            `);
+            const urlPesquisa = "https://www.google.com/search?q=" + encodeURIComponent(termo);
+            window.open(urlPesquisa, '_blank');
         }
 
         function mostrarDetalhes(item) {
@@ -417,7 +393,7 @@
                 <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.4;">
                     <b>Como usar a app:</b><br>
                     - Use as abas no topo para filtrar por temas.<br>
-                    - Escreva qualquer termo na barra de pesquisa e clique no botão 🔎 para obter respostas instantâneas do assistente dentro da app.<br>
+                    - Escreva qualquer termo na barra de pesquisa e clique no botão 🔎 para pesquisar na web em tempo real.<br>
                 </p>
                 <hr>
                 <p style="font-size: 0.9rem; color: #cbd5e1;">Deixe aqui o seu comentário ou sugestão:</p>
