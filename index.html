@@ -63,7 +63,6 @@
         .modal-content hr { border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0; }
         .modal-content p { color: #334155; }
         
-        /* Inputs e botões específicos para o pop-up */
         .modal-content input, .modal-content select, .modal-content textarea { background: rgba(248, 250, 252, 0.9); color: #0f172a; border: 1px solid #cbd5e1; }
         .modal-content input::placeholder, .modal-content textarea::placeholder { color: #94a3b8; }
         
@@ -104,8 +103,6 @@
         }
 
         .chat-box { background: #020617; border-radius: 8px; height: 180px; overflow-y: auto; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #1e3a8a; }
-        .msg-user { background: #1d4ed8; color: white; align-self: flex-end; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 0.9rem; word-break: break-word; }
-        .msg-dev { background: #1e293b; color: #f8fafc; align-self: flex-start; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 0.9rem; border: 1px solid #334155; word-break: break-word; }
         .log-box { background: #020617; border: 1px solid #1e3a8a; padding: 8px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 5px; font-family: monospace; color: #e2e8f0; }
     </style>
 </head>
@@ -154,8 +151,31 @@
         const MEU_BANCO = "Banco (BFA/BAI/Outro)";
         const MEU_IBAN = "000600009715277030196";
         const MEU_TELEFONE = "+244 944 048 287";
+        const SENHA_ADMIN_OFICIAL = "admin2026";
 
         let listaFiltrada = [];
+        let adminAutenticado = false;
+        let temporizadorInatividade;
+        const TEMPO_LIMITE_MINUTOS = 3;
+
+        function reiniciarTemporizadorInatividade() {
+            clearTimeout(temporizadorInatividade);
+            if (adminAutenticado) {
+                temporizadorInatividade = setTimeout(() => {
+                    adminAutenticado = false;
+                    mostrarToast("Sessão de administrador terminada por inatividade.");
+                    let modal = document.getElementById("modal");
+                    if (modal && modal.style.display === "flex") {
+                        fecharJanelaModal();
+                    }
+                }, TEMPO_LIMITE_MINUTOS * 60 * 1000);
+            }
+        }
+
+        window.addEventListener("mousemove", reiniciarTemporizadorInatividade);
+        window.addEventListener("click", reiniciarTemporizadorInatividade);
+        window.addEventListener("keypress", reiniciarTemporizadorInatividade);
+        window.addEventListener("touchstart", reiniciarTemporizadorInatividade);
 
         function mostrarToast(mensagem) {
             const toast = document.getElementById("toastNotificacao");
@@ -319,7 +339,17 @@
         }
 
         function fecharJanela() {
+            adminAutenticado = false;
             document.getElementById("modal").style.display = "none";
+        }
+
+        function fecharJanelaModal() {
+            adminAutenticado = false;
+            if (localStorage.getItem("utilizador_cadastrado") === "true" && localStorage.getItem("sessao_ativa") === "true") {
+                document.getElementById("modal").style.display = "none";
+            } else {
+                mostrarToast("Preencha o cadastro primeiro!");
+            }
         }
 
         function esqueciMinhaSenha() {
@@ -413,6 +443,37 @@
             `);
         }
 
+        // --- PAINEL DE ADMINISTRADOR CENTRALIZADO ---
+        function abrirPainelAdmin(callbackSucesso) {
+            if (adminAutenticado) {
+                callbackSucesso();
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>🔒 Painel de Administrador</h2>
+                <hr>
+                <p style="font-size: 0.9rem; margin-bottom: 12px;">Introduz a senha de administrador para autorizar esta ação:</p>
+                <input type="password" id="senhaPainelAdmin" placeholder="Senha do Administrador" style="padding:10px; font-size:0.9rem; margin-bottom:10px;">
+                <button onclick="verificarLoginAdmin(${callbackSucesso.name})" style="background:#059669; padding:10px; margin-bottom:6px;">Autenticar</button>
+                <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding: 10px;">Voltar</button>
+            `);
+        }
+
+        function verificarLoginAdmin(funcaoDestino) {
+            const senhaDigitada = document.getElementById("senhaPainelAdmin").value.trim();
+            if (senhaDigitada === SENHA_ADMIN_OFICIAL) {
+                adminAutenticado = true;
+                mostrarToast("Administrador autenticado!");
+                if (typeof funcaoDestino === "function") {
+                    funcaoDestino();
+                } else {
+                    abrirLeitorMusica();
+                }
+            } else {
+                mostrarToast("Senha de administrador incorreta!");
+            }
+        }
+
         // --- MÓDULO DE MÚSICA ---
         function abrirLeitorMusica(pastaAbertaNome = null) {
             if (!db) {
@@ -435,33 +496,19 @@
 
                     let htmlMusicas = `<h2>🎵 Gestor de Músicas</h2>`;
                     
-                    htmlMusicas += `<div style="background:rgba(241, 245, 249, 0.9); padding:10px; border-radius:8px; border:1px solid #cbd5e1; margin-bottom:12px;">`;
-                    htmlMusicas += `<label style="font-size:0.85rem; color:#1e3a8a; display:block; margin-bottom:4px;"><b>📂 GUARDAR NA PASTA:</b></label>`;
-                    htmlMusicas += `<select id="selectPastaDestino" style="width:100%; padding:10px; border-radius:6px; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; font-size:0.95rem; margin-bottom:8px;">`;
-                    htmlMusicas += `<option value="Geral">📁 Geral (Padrão)</option>`;
-                    
-                    let listaNomesPastas = ["Geral"];
-                    if (pastasSalvas && pastasSalvas.length > 0) {
-                        pastasSalvas.forEach(p => {
-                            let nomeP = p.nome || p;
-                            listaNomesPastas.push(nomeP);
-                            htmlMusicas += `<option value="${nomeP}">📁 ${nomeP}</option>`;
-                        });
-                    }
-                    htmlMusicas += `</select>`;
-
-                    htmlMusicas += `<button onclick="document.getElementById('ficheiroMusica').click()" style="background:#059669; font-size:0.95rem; margin-bottom:0; padding:10px;">📂 Selecionar Áudio</button>`;
-                    htmlMusicas += `<input type="file" id="ficheiroMusica" accept="audio/*" onchange="guardarMusicaDB(event)" style="display:none;">`;
+                    htmlMusicas += `<div style="display:flex; gap:6px; margin-bottom:10px;">`;
+                    htmlMusicas += `<button onclick="tentarFazerUploadMusica()" style="background:#059669; font-size:0.9rem; margin-bottom:0; padding:10px; flex-grow:1;">➕ Enviar Música</button>`;
+                    htmlMusicas += `<button onclick="tentarCriarPasta()" style="background:#0284c7; font-size:0.9rem; margin-bottom:0; padding:10px; flex-grow:1;">📁 Criar Pasta</button>`;
                     htmlMusicas += `</div>`;
-
-                    htmlMusicas += `<button onclick="criarNovaPasta()" style="background:#0284c7; margin-bottom:10px; padding:10px; font-size:0.9rem;">➕ Criar Nova Pasta</button>`;
-                    htmlMusicas += `<hr><div style="max-height: 180px; overflow-y: auto;">`;
+                    htmlMusicas += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
 
                     let todasAsPastasObj = { "Geral": [] };
+                    let listaNomesPastas = ["Geral"];
                     if (pastasSalvas) {
                         pastasSalvas.forEach(p => { 
                             let nomeP = p.nome || p;
                             todasAsPastasObj[nomeP] = []; 
+                            listaNomesPastas.push(nomeP);
                         });
                     }
 
@@ -482,7 +529,7 @@
                         htmlMusicas += `<div style="display:flex; justify-content:space-between; align-items:center;">`;
                         htmlMusicas += `<span onclick="abrirLeitorMusica('${estaAberta ? null : nomePasta}')" style="color:#1e3a8a; font-size:0.9rem; font-weight:bold; cursor:pointer; flex-grow:1;">📁 ${nomePasta} (${listaNestaPasta.length}) 🔽</span>`;
                         if (nomePasta !== "Geral") {
-                            htmlMusicas += `<button onclick='confirmarApagarPasta("${nomePasta}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#64748b;" title="Apagar">Apagar</button>`;
+                            htmlMusicas += `<button onclick='tentarApagarPasta("${nomePasta}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#64748b;" title="Apagar">Apagar</button>`;
                         }
                         htmlMusicas += `</div>`;
 
@@ -496,8 +543,8 @@
                                         <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:120px;" title="${musica.nome}">🎶 ${musica.nome}</span>
                                         <div style="display: flex; gap: 3px;">
                                             <button onclick='reproduzirMusicaDB(${musica.id}, "${nomePasta}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#059669;" title="Ouvir">▶</button>
-                                            <button onclick='copiarMusicaParaOutraPasta(${musica.id}, "${nomePasta}", ${JSON.stringify(listaNomesPastas)})' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#0284c7;" title="Copiar">📋</button>
-                                            <button onclick='confirmarApagarMusica(${musica.id}, "${nomePasta}", "${musica.nome}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                                            <button onclick='tentarCopiarMusica(${musica.id}, "${nomePasta}", ${JSON.stringify(listaNomesPastas)})' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#0284c7;" title="Copiar">📋</button>
+                                            <button onclick='tentarApagarMusica(${musica.id}, "${nomePasta}", "${musica.nome}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                                         </div>
                                     </div>`;
                                 });
@@ -514,100 +561,43 @@
             };
         }
 
-        function confirmarApagarMusica(id, pastaNome, nomeMusica) {
-            abrirJanelaFixa(`
-                <h2>⚠️ Eliminar Música</h2>
-                <hr>
-                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar:</p>
-                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; word-break: break-all;">🎶 ${nomeMusica}</p>
-                <button onclick="apagarMusicaDB(${id}, '${pastaNome}')" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Eliminar</button>
-                <button onclick="abrirLeitorMusica('${pastaNome}')" class="secondary-btn" style="padding: 10px;">Cancelar</button>
-            `);
-        }
-
-        function confirmarApagarPasta(nomePasta) {
-            abrirJanelaFixa(`
-                <h2>⚠️ Eliminar Pasta</h2>
-                <hr>
-                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar a pasta?</p>
-                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px;">📁 ${nomePasta}</p>
-                <button onclick="apagarPasta('${nomePasta}')" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Apagar</button>
-                <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
-            `);
-        }
-
-        function copiarMusicaParaOutraPasta(idMusica, pastaAtual, todasAsPastas) {
-            let pastasDisponiveis = todasAsPastas.filter(p => p !== pastaAtual);
-            if (pastasDisponiveis.length === 0) {
-                mostrarToast("Não há outras pastas.");
+        function tentarFazerUploadMusica() {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(tentarFazerUploadMusica);
                 return;
             }
+            let transaction = db.transaction(["pastas"], "readonly");
+            let req = transaction.objectStore("pastas").getAll();
+            req.onsuccess = function(e) {
+                let pastas = e.target.result;
+                let htmlPastas = `<option value="Geral">📁 Geral (Padrão)</option>`;
+                if (pastas) {
+                    pastas.forEach(p => {
+                        let nomeP = p.nome || p;
+                        htmlPastas += `<option value="${nomeP}">📁 ${nomeP}</option>`;
+                    });
+                }
+                abrirJanelaFixa(`
+                    <h2>📤 Enviar Música</h2>
+                    <hr>
+                    <label style="font-size:0.85rem; color:#1e3a8a; display:block; margin-bottom:4px;"><b>PASTA DE DESTINO:</b></label>
+                    <select id="selectPastaUpload" style="width:100%; padding:10px; border-radius:6px; background:rgba(248, 250, 252, 0.9); color:#0f172a; border:1px solid #cbd5e1; font-size:0.95rem; margin-bottom:8px;">
+                        ${htmlPastas}
+                    </select>
+                    <input type="file" id="ficheiroMusica" accept="audio/*" style="margin-bottom:8px; font-size:0.9rem;">
+                    <button onclick="guardarMusicaDB()" style="background:#059669; padding:10px; margin-bottom:6px;">Confirmar Envio</button>
+                    <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding:10px;">Cancelar</button>
+                `);
+            };
+        }
 
-            let textoOpcoes = "Escolha a pasta de destino:\n";
-            pastasDisponiveis.forEach((p, index) => {
-                textoOpcoes += `${index + 1} - ${p}\n`;
-            });
-
-            let escolha = prompt(textoOpcoes + "\nDigite o número ou nome:");
-            if (!escolha) return;
-
-            let pastaDestino = escolha.trim();
-            if (!isNaN(pastaDestino) && pastaDestino > 0 && pastaDestino <= pastasDisponiveis.length) {
-                pastaDestino = pastasDisponiveis[pastaDestino - 1];
-            }
-
-            if (!todasAsPastas.includes(pastaDestino)) {
-                mostrarToast("Pasta inválida!");
+        function guardarMusicaDB() {
+            const ficheiro = document.getElementById("ficheiroMusica").files[0];
+            if (!ficheiro) {
+                mostrarToast("Selecione um ficheiro de áudio!");
                 return;
             }
-
-            let transaction = db.transaction(["musicas"], "readwrite");
-            let store = transaction.objectStore("musicas");
-            let reqGet = store.get(idMusica);
-
-            reqGet.onsuccess = function(e) {
-                let musicaOriginal = e.target.result;
-                if (!musicaOriginal) return;
-
-                let novaCopia = {
-                    nome: musicaOriginal.nome,
-                    pasta: pastaDestino,
-                    blob: musicaOriginal.blob
-                };
-
-                let reqAdd = store.add(novaCopia);
-                reqAdd.onsuccess = function() {
-                    mostrarToast(`Copiado para "${pastaDestino}"!`);
-                    abrirLeitorMusica(pastaAtual);
-                };
-            };
-        }
-
-        function criarNovaPasta() {
-            let nomePasta = prompt("Nome da nova pasta:");
-            if (!nomePasta || nomePasta.trim() === "") return;
-
-            nomePasta = nomePasta.trim();
-
-            let transaction = db.transaction(["pastas"], "readwrite");
-            let store = transaction.objectStore("pastas");
-            let request = store.add({ nome: nomePasta });
-
-            request.onsuccess = function() {
-                mostrarToast(`Pasta "${nomePasta}" criada!`);
-                abrirLeitorMusica(nomePasta);
-            };
-
-            request.onerror = function() {
-                mostrarToast("Erro: A pasta já existe.");
-            };
-        }
-
-        function guardarMusicaDB(event) {
-            const ficheiro = event.target.files[0];
-            if (!ficheiro) return;
-
-            const selectPasta = document.getElementById("selectPastaDestino");
+            const selectPasta = document.getElementById("selectPastaUpload");
             let pastaEscolhida = selectPasta ? selectPasta.value : "Geral";
 
             let transaction = db.transaction(["musicas"], "readwrite");
@@ -620,43 +610,80 @@
             };
 
             let request = store.add(novaMusica);
-
             request.onsuccess = function() {
                 mostrarToast(`Guardado em "${pastaEscolhida}"!`);
                 abrirLeitorMusica(pastaEscolhida);
             };
+        }
 
+        function tentarCriarPasta() {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(tentarCriarPasta);
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>📁 Criar Nova Pasta</h2>
+                <hr>
+                <input type="text" id="nomeNovaPastaInput" placeholder="Nome da pasta" style="padding:10px; font-size:0.9rem; margin-bottom:8px;">
+                <button onclick="executarCriarPasta()" style="padding:10px; margin-bottom:6px;">Criar</button>
+                <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding:10px;">Cancelar</button>
+            `);
+        }
+
+        function executarCriarPasta() {
+            let nomePasta = document.getElementById("nomeNovaPastaInput").value.trim();
+            if (!nomePasta) {
+                mostrarToast("Insira um nome válido.");
+                return;
+            }
+            let transaction = db.transaction(["pastas"], "readwrite");
+            let request = transaction.objectStore("pastas").add({ nome: nomePasta });
+            request.onsuccess = function() {
+                mostrarToast(`Pasta criada!`);
+                abrirLeitorMusica(nomePasta);
+            };
             request.onerror = function() {
-                mostrarToast("Erro ao guardar áudio.");
+                mostrarToast("Erro: A pasta já existe.");
             };
         }
 
-        function reproduzirMusicaDB(id, pastaNome) {
-            let transaction = db.transaction(["musicas"], "readonly");
-            let store = transaction.objectStore("musicas");
-            let request = store.get(id);
-
-            request.onsuccess = function(event) {
-                let musica = event.target.result;
-                if (musica && musica.blob) {
-                    const player = document.getElementById("audioPlayer");
-                    const urlAudio = URL.createObjectURL(musica.blob);
-                    player.src = urlAudio;
-                    player.style.display = "block";
-                    player.play();
-                }
-            };
+        function tentarApagarMusica(id, pastaNome, nomeMusica) {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(() => tentarApagarMusica(id, pastaNome, nomeMusica));
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>⚠️ Eliminar Música</h2>
+                <hr>
+                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar:</p>
+                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; word-break: break-all;">🎶 ${nomeMusica}</p>
+                <button onclick="apagarMusicaDB(${id}, '${pastaNome}')" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Eliminar</button>
+                <button onclick="abrirLeitorMusica('${pastaNome}')" class="secondary-btn" style="padding: 10px;">Cancelar</button>
+            `);
         }
 
         function apagarMusicaDB(id, pastaNome) {
             let transaction = db.transaction(["musicas"], "readwrite");
-            let store = transaction.objectStore("musicas");
-            let request = store.delete(id);
-
+            let request = transaction.objectStore("musicas").delete(id);
             request.onsuccess = function() {
                 mostrarToast("Música eliminada!");
                 abrirLeitorMusica(pastaNome);
             };
+        }
+
+        function tentarApagarPasta(nomePasta) {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(() => tentarApagarPasta(nomePasta));
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>⚠️ Eliminar Pasta</h2>
+                <hr>
+                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar a pasta?</p>
+                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px;">📁 ${nomePasta}</p>
+                <button onclick="apagarPasta(${JSON.stringify(nomePasta)})" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Apagar</button>
+                <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
+            `);
         }
 
         function apagarPasta(nomePasta) {
@@ -679,7 +706,50 @@
                 abrirLeitorMusica();
             };
         }
-        // --------------------------------------------------------
+
+        function tentarCopiarMusica(idMusica, pastaAtual, todasAsPastas) {
+            let pastasDisponiveis = todasAsPastas.filter(p => p !== pastaAtual);
+            if (pastasDisponiveis.length === 0) {
+                mostrarToast("Não há outras pastas.");
+                return;
+            }
+            let textoOpcoes = "Escolha a pasta de destino:\n";
+            pastasDisponiveis.forEach((p, index) => {
+                textoOpcoes += `${index + 1} - ${p}\n`;
+            });
+            let escolha = prompt(textoOpcoes + "\nDigite o número ou nome:");
+            if (!escolha) return;
+            let pastaDestino = escolha.trim();
+            if (!isNaN(pastaDestino) && pastaDestino > 0 && pastaDestino <= pastasDisponiveis.length) {
+                pastaDestino = pastasDisponiveis[pastaDestino - 1];
+            }
+            if (!todasAsPastas.includes(pastaDestino)) {
+                mostrarToast("Pasta inválida!");
+                return;
+            }
+            let transaction = db.transaction(["musicas"], "readwrite");
+            let store = transaction.objectStore("musicas");
+            store.get(idMusica).onsuccess = function(e) {
+                let musicaOriginal = e.target.result;
+                if (!musicaOriginal) return;
+                store.add({ nome: musicaOriginal.nome, pasta: pastaDestino, blob: musicaOriginal.blob }).onsuccess = function() {
+                    mostrarToast(`Copiado para "${pastaDestino}"!`);
+                    abrirLeitorMusica(pastaAtual);
+                };
+            };
+        }
+
+        function reproduzirMusicaDB(id) {
+            db.transaction(["musicas"], "readonly").objectStore("musicas").get(id).onsuccess = function(event) {
+                let musica = event.target.result;
+                if (musica && musica.blob) {
+                    const player = document.getElementById("audioPlayer");
+                    player.src = URL.createObjectURL(musica.blob);
+                    player.style.display = "block";
+                    player.play();
+                }
+            };
+        }
 
         // --- MÓDULO DE IMAGENS ---
         function abrirGaleriaImagens() {
@@ -689,15 +759,11 @@
             }
 
             let transaction = db.transaction(["imagens"], "readonly");
-            let store = transaction.objectStore("imagens");
-            let request = store.getAll();
-
-            request.onsuccess = function(event) {
+            transaction.objectStore("imagens").getAll().onsuccess = function(event) {
                 let imagensSalvas = event.target.result;
                 
                 let htmlImagens = `<h2>🖼️ Galeria de Imagens</h2>`;
-                htmlImagens += `<button onclick="document.getElementById('ficheiroImagem').click()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">📂 Selecionar Imagem</button>`;
-                htmlImagens += `<input type="file" id="ficheiroImagem" accept="image/*" onchange="guardarImagemDB(event)" style="display:none;">`;
+                htmlImagens += `<button onclick="tentarFazerUploadImagem()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar Imagem</button>`;
                 htmlImagens += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
 
                 if (imagensSalvas.length === 0) {
@@ -712,7 +778,7 @@
                             </div>
                             <div>
                                 <button onclick='verImagemCompleta("${urlImg}", "${imgItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#059669;" title="Ver">🔍</button>
-                                <button onclick='confirmarApagarImagem(${imgItem.id}, "${imgItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                                <button onclick='tentarApagarImagem(${imgItem.id}, "${imgItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                             </div>
                         </div>`;
                     });
@@ -724,7 +790,42 @@
             };
         }
 
-        function confirmarApagarImagem(id, tituloImg) {
+        function tentarFazerUploadImagem() {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(tentarFazerUploadImagem);
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>📤 Enviar Imagem</h2>
+                <hr>
+                <input type="text" id="tituloImagem" placeholder="Título da imagem" style="padding:10px; font-size:0.9rem; margin-bottom:8px;">
+                <input type="file" id="ficheiroImagem" accept="image/*" style="margin-bottom:8px; font-size:0.9rem;">
+                <button onclick="guardarImagemDB()" style="background:#059669; padding:10px; margin-bottom:6px;">Confirmar Envio</button>
+                <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding:10px;">Cancelar</button>
+            `);
+        }
+
+        function guardarImagemDB() {
+            const ficheiro = document.getElementById("ficheiroImagem").files[0];
+            if (!ficheiro) {
+                mostrarToast("Selecione um ficheiro de imagem!");
+                return;
+            }
+            let titulo = document.getElementById("tituloImagem").value.trim();
+            if (!titulo) titulo = ficheiro.name;
+
+            let transaction = db.transaction(["imagens"], "readwrite");
+            transaction.objectStore("imagens").add({ titulo: titulo, blob: ficheiro }).onsuccess = function() {
+                mostrarToast("Imagem guardada!");
+                abrirGaleriaImagens();
+            };
+        }
+
+        function tentarApagarImagem(id, tituloImg) {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(() => tentarApagarImagem(id, tituloImg));
+                return;
+            }
             abrirJanelaFixa(`
                 <h2>⚠️ Eliminar Imagem</h2>
                 <hr>
@@ -735,30 +836,11 @@
             `);
         }
 
-        function guardarImagemDB(event) {
-            const ficheiro = event.target.files[0];
-            if (!ficheiro) return;
-
-            let tituloImg = prompt("Título da imagem:", ficheiro.name);
-            if (!tituloImg) tituloImg = ficheiro.name;
-
+        function apagarImagemDB(id) {
             let transaction = db.transaction(["imagens"], "readwrite");
-            let store = transaction.objectStore("imagens");
-            
-            let novaImagem = {
-                titulo: tituloImg.trim(),
-                blob: ficheiro
-            };
-
-            let request = store.add(novaImagem);
-
-            request.onsuccess = function() {
-                mostrarToast("Imagem guardada!");
+            transaction.objectStore("imagens").delete(id).onsuccess = function() {
+                mostrarToast("Imagem eliminada!");
                 abrirGaleriaImagens();
-            };
-
-            request.onerror = function() {
-                mostrarToast("Erro ao guardar.");
             };
         }
 
@@ -771,17 +853,6 @@
                 </div>
                 <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding: 10px;">⬅ Voltar</button>
             `);
-        }
-
-        function apagarImagemDB(id) {
-            let transaction = db.transaction(["imagens"], "readwrite");
-            let store = transaction.objectStore("imagens");
-            let request = store.delete(id);
-
-            request.onsuccess = function() {
-                mostrarToast("Imagem eliminada!");
-                abrirGaleriaImagens();
-            };
         }
         // --------------------------------------------------------
 
@@ -969,14 +1040,6 @@
 
         function infoIban() {
             abrirJanelaFixa(`<h2>💳 IBAN</h2><hr><div class="iban-box" style="background:rgba(241, 245, 249, 0.9); color:#1e3a8a; border:1px dashed #cbd5e1;">${MEU_IBAN}</div><br><button onclick="abrirSubmenuDireito()" class="secondary-btn" style="padding:10px;">Voltar</button>`);
-        }
-
-        function fecharJanelaModal() {
-            if (localStorage.getItem("utilizador_cadastrado") === "true" && localStorage.getItem("sessao_ativa") === "true") {
-                document.getElementById("modal").style.display = "none";
-            } else {
-                mostrarToast("Preencha o cadastro primeiro!");
-            }
         }
     </script>
 </body>
