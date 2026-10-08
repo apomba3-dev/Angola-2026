@@ -171,7 +171,7 @@
                     dados.push({
                         titulo: "Módulo de Músicas Pessoais",
                         categoria: "Música",
-                        conteudo: "Guarde e reproduza as suas músicas favoritas de forma permanente no seu dispositivo para ouvir offline na aplicação.",
+                        conteudo: "Guarde, organize por autor e reproduza as suas músicas favoritas de forma permanente no seu dispositivo.",
                         isPlayerModulo: true
                     });
                 }
@@ -359,7 +359,7 @@
             `);
         }
 
-        // --- MÓDULO DE MÚSICA COM PERISTÊNCIA REAL (IndexedDB) ---
+        // --- MÓDULO DE MÚSICA COM PERISTÊNCIA E ÁLBUNS POR AUTOR ---
         function abrirLeitorMusica() {
             if (!db) {
                 setTimeout(abrirLeitorMusica, 500);
@@ -373,23 +373,38 @@
             request.onsuccess = function(event) {
                 let musicasSalvas = event.target.result;
                 
-                let htmlMusicas = `<h2>🎵 Leitor de Música Permanente</h2>`;
-                htmlMusicas += `<p style="font-size: 0.85rem; color: #cbd5e1;">Adicione ficheiros (.mp3) que ficassem guardados no telemóvel mesmo após sair da app:</p>`;
+                let htmlMusicas = `<h2>🎵 Álbuns por Autor</h2>`;
+                htmlMusicas += `<p style="font-size: 0.85rem; color: #cbd5e1;">Adicione músicas e organize-as por artista (Guardado permanentemente):</p>`;
                 htmlMusicas += `<input type="file" id="ficheiroMusica" accept="audio/*" onchange="guardarMusicaDB(event)">`;
-                htmlMusicas += `<hr><div style="max-height: 180px; overflow-y: auto;">`;
+                htmlMusicas += `<hr><div style="max-height: 220px; overflow-y: auto;">`;
 
                 if (musicasSalvas.length === 0) {
-                    htmlMusicas += `<p style="font-size:0.85rem; color:#94a3b8; text-align:center;">Sem músicas guardadas permanentemente.</p>`;
+                    htmlMusicas += `<p style="font-size:0.85rem; color:#94a3b8; text-align:center;">Sem músicas guardadas.</p>`;
                 } else {
+                    let albuns = {};
                     musicasSalvas.forEach((musica) => {
-                        htmlMusicas += `<div style="background:#020617; padding:8px; margin-bottom:5px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:0.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;">🎶 ${musica.nome}</span>
-                            <div>
-                                <button onclick='reproduzirMusicaDB(${musica.id})' style="padding:4px 8px; margin:0; font-size:0.8rem; width:auto; background:#059669;" title="Ouvir">▶</button>
-                                <button onclick='apagarMusicaDB(${musica.id})' style="padding:4px 8px; margin:0; font-size:0.8rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
-                            </div>
-                        </div>`;
+                        let artista = musica.autor || "Desconhecido";
+                        if (!albuns[artista]) {
+                            albuns[artista] = [];
+                        }
+                        albuns[artista].push(musica);
                     });
+
+                    for (let autor in albuns) {
+                        htmlMusicas += `<div style="background:#090d16; border:1px solid #1e3a8a; border-radius:8px; padding:10px; margin-bottom:10px;">`;
+                        htmlMusicas += `<h3 style="color:#93c5fd; margin:0 0 8px 0; font-size:0.95rem;">🎤 ${autor} (${albuns[autor].length})</h3>`;
+                        
+                        albuns[autor].forEach((musica) => {
+                            htmlMusicas += `<div style="background:#020617; padding:6px 8px; margin-bottom:5px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;">🎶 ${musica.nome}</span>
+                                <div>
+                                    <button onclick='reproduzirMusicaDB(${musica.id})' style="padding:3px 6px; margin:0; font-size:0.75rem; width:auto; background:#059669;" title="Ouvir">▶</button>
+                                    <button onclick='apagarMusicaDB(${musica.id})' style="padding:3px 6px; margin:0; font-size:0.75rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                                </div>
+                            </div>`;
+                        });
+                        htmlMusicas += `</div>`;
+                    }
                 }
                 htmlMusicas += `</div>`;
                 htmlMusicas += `<audio id="audioPlayer" controls style="width:100%; margin-top:10px; display:none;"></audio>`;
@@ -403,18 +418,22 @@
             const ficheiro = event.target.files[0];
             if (!ficheiro) return;
 
+            let autor = prompt("Introduza o nome do Autor / Artista:", "Desconhecido");
+            if (!autor) autor = "Desconhecido";
+
             let transaction = db.transaction(["musicas"], "readwrite");
             let store = transaction.objectStore("musicas");
             
             let novaMusica = {
                 nome: ficheiro.name,
+                autor: autor.trim(),
                 blob: ficheiro
             };
 
             let request = store.add(novaMusica);
 
             request.onsuccess = function() {
-                alert("Música guardada permanentemente com sucesso!");
+                alert("Música guardada permanentemente no álbum do autor!");
                 abrirLeitorMusica();
             };
 
@@ -520,7 +539,7 @@
                 <h2>❓ Ajuda e Feedback</h2>
                 <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.4;">
                     <b>Como usar a app:</b><br>
-                    - As músicas adicionadas ficam guardadas de forma segura e permanente no telemóvel.<br>
+                    - As músicas adicionadas ficam guardadas por autor de forma segura e permanente no telemóvel.<br>
                 </p>
                 <hr>
                 <p style="font-size: 0.9rem; color: #cbd5e1;">Deixe aqui o seu comentário ou sugestão:</p>
