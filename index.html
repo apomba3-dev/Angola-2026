@@ -309,55 +309,69 @@
             }
         }
 
+        // Função integrada para simular o comportamento de busca em tempo real na janela modal
         async function executarPesquisaBotao() {
             const termo = document.getElementById("inputPesquisa").value.trim();
             if (!termo) return;
-            
-            const termoLower = termo.toLowerCase();
 
-            abrirJanelaModal(`
+            abrirJanelaFixa(`
                 <h2>✨ Assistente Inteligente</h2>
                 <hr>
                 <p><b>Pesquisa:</b> ${termo}</p>
-                <p id="resultadoWebTexto" style="color: #e2e8f0; line-height: 1.6;">A processar a resposta...</p>
+                <div class="assistente-conteudo" style="color: #e2e8f0; line-height: 1.6;">A pesquisar na web, por favor aguarde...</div>
                 <br>
                 <button onclick="fecharJanelaModal()" class="secondary-btn">Fechar</button>
             `);
 
             try {
-                let respostaIA = "";
+                // Caso queiras ligar ao teu servidor Flask de backend, descomenta o código abaixo:
+                /*
+                const response = await fetch('/pesquisar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ termo: termo })
+                });
+                const data = await response.json();
+                document.querySelector(".assistente-conteudo").innerHTML = data.resposta;
+                */
 
-                if (termoLower.includes("artur jamba pomba") || (termoLower.includes("artur") && termoLower.includes("pomba"))) {
-                    respostaIA = `<b>Artur Jamba Pomba</b><br><br>` +
-                                 `- <b>Origem:</b> Angolana<br>` +
-                                 `- <b>Data de Nascimento:</b> 22/11/1999<br>` +
-                                 `- <b>Percurso Escolar:</b> Frequentou as escolas do Liceu Dr. A. A. Neto, na província da Huíla.<br>` +
-                                 `- <b>Realização:</b> Criador da aplicação <b>Angola 2026</b>, desenvolvida para facilitar os estudos e a história de Angola.`;
-                } else if (termoLower.includes("presidente") && termoLower.includes("angola")) {
-                    respostaIA = "Atualmente, o Presidente da República de Angola é João Lourenço, que lidera o poder executivo do país.";
-                } else if (termoLower.includes("capital")) {
-                    respostaIA = "A capital de Angola é Luanda, sendo também o principal centro financeiro, cultural e político do país.";
-                } else if (termoLower.includes("população") || termoLower.includes("habitantes")) {
-                    respostaIA = "Angola possui uma população estimada em mais de 35 milhões de habitantes, sendo uma das nações mais dinâmicas da região.";
-                } else {
-                    respostaIA = `Com base na questão "<b>${termo}</b>", este tema está associado ao contexto socioeconómico, histórico ou institucional de Angola. Podes explorar mais detalhes nos artigos disponíveis na página principal ou detalhar a tua dúvida no chat com o programador.`;
-                }
+                // Simulação inteligente integrada diretamente na app (funciona localmente sem falhar):
+                setTimeout(() => {
+                    const termoLower = termo.toLowerCase();
+                    let respostaIA = "";
 
-                const textoElemento = document.getElementById("resultadoWebTexto");
-                if (textoElemento) {
-                    textoElemento.innerHTML = `${respostaIA}<br><br><small style="color:#93c5fd;">✨ Processado pelo Assistente Inteligente</small>`;
-                }
+                    if (termoLower.includes("artur jamba pomba") || (termoLower.includes("artur") && termoLower.includes("pomba"))) {
+                        respostaIA = `<b>Artur Jamba Pomba</b><br><br>` +
+                                     `- <b>Origem:</b> Angolana<br>` +
+                                     `- <b>Data de Nascimento:</b> 22/11/1999<br>` +
+                                     `- <b>Percurso Escolar:</b> Frequentou as escolas do Liceu Dr. A. A. Neto, na província da Huíla.<br>` +
+                                     `- <b>Realização:</b> Criador da aplicação <b>Angola 2026</b>, desenvolvida para facilitar os estudos e a história de Angola.`;
+                    } else if (termoLower.includes("presidente") && termoLower.includes("angola")) {
+                        respostaIA = "Atualmente, o Presidente da República de Angola é João Lourenço, que lidera o poder executivo do país.";
+                    } else if (termoLower.includes("capital")) {
+                        respostaIA = "A capital de Angola é Luanda, sendo também o principal centro financeiro, cultural e político do país.";
+                    } else if (termoLower.includes("josé manuel santos")) {
+                        respostaIA = "<b>José Manuel Santos / José Eduardo dos Santos</b><br><br>José Eduardo dos Santos foi o segundo e mais longevo presidente de Angola, governando de 1979 até 2017.";
+                    } else {
+                        respostaIA = `Com base na questão "<b>${termo}</b>", este tema está associado ao contexto socioeconómico, histórico ou institucional de Angola. Podes explorar mais detalhes nos artigos disponíveis na página principal ou detalhar a tua dúvida no chat com o programador.`;
+                    }
+
+                    const conteudoEl = document.querySelector(".assistente-conteudo");
+                    if (conteudoEl) {
+                        conteudoEl.innerHTML = `${respostaIA}<br><br><small style="color:#93c5fd;">✨ Processado pelo Assistente Inteligente</small>`;
+                    }
+                }, 800);
+
             } catch (error) {
-                console.error('Erro na pesquisa inteligente:', error);
-                const textoElemento = document.getElementById("resultadoWebTexto");
-                if (textoElemento) {
-                    textoElemento.innerHTML = "Ocorreu um erro ao processar a resposta. Tente novamente.";
+                const conteudoEl = document.querySelector(".assistente-conteudo");
+                if (conteudoEl) {
+                    conteudoEl.innerHTML = "Erro ao ligar ao motor de busca.";
                 }
             }
         }
 
         function mostrarDetalhes(item) {
-            abrirJanelaModal(`
+            abrirJanelaFixa(`
                 <h2>${item.titulo}</h2>
                 <p><span class="badge">${item.categoria}</span></p>
                 <hr>
@@ -378,7 +392,7 @@
                 });
             }
             htmlLogs += `<br><button onclick="limparLogs()" class="danger-btn">Apagar Registos</button><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>`;
-            abrirJanelaModal(htmlLogs);
+            abrirJanelaFixa(htmlLogs);
         }
 
         function limparLogs() {
@@ -389,7 +403,7 @@
         }
 
         function abrirMenu() {
-            abrirJanelaModal(`
+            abrirJanelaFixa(`
                 <h2>☰ Menu Principal</h2>
                 <hr>
                 <button onclick="abrirSubmenuSaude()">🩺 Opções de Saúde</button>
@@ -400,7 +414,7 @@
         }
 
         function abrirSubmenuDireito() {
-            abrirJanelaModal(`
+            abrirJanelaFixa(`
                 <h2>⚙️ Submenu & Ferramentas</h2>
                 <hr>
                 <button onclick="infoDev()">ℹ Sobre o Desenvolvedor</button>
@@ -413,7 +427,6 @@
             `);
         }
 
-        // Função para partilhar a aplicação
         function partilharApp() {
             if (navigator.share) {
                 navigator.share({
@@ -422,10 +435,9 @@
                     url: window.location.href
                 }).catch((error) => console.log('Erro ao partilhar:', error));
             } else {
-                // Alternativa caso o navegador não suporte partilha nativa
                 let textoPartilha = "Confere a aplicação Angola 2026: " + window.location.href;
                 navigator.clipboard.writeText(textoPartilha).then(() => {
-                    alert("Link copiado para a área de transferência! Podes colar e partilhar com os teus amigos.");
+                    alert("Link copiado para a área de transferência!");
                 }).catch(() => {
                     alert("Não foi possível partilhar automaticamente.");
                 });
@@ -433,7 +445,7 @@
         }
 
         function abrirAjudaFeedback() {
-            abrirJanelaModal(`
+            abrirJanelaFixa(`
                 <h2>❓ Ajuda e Feedback</h2>
                 <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.4;">
                     <b>Como usar a app:</b><br>
@@ -461,7 +473,7 @@
         }
 
         function abrirSubmenuSaude() {
-            abrirJanelaModal(`
+            abrirJanelaFixa(`
                 <h2>🩺 Opções de Saúde</h2>
                 <p style="font-size: 0.9rem; color: #cbd5e1;">Escolha uma das opções abaixo:</p>
                 <hr>
@@ -474,7 +486,7 @@
         }
 
         function abrirChat() {
-            abrirJanelaModal(`
+            abrirJanelaFixa(`
                 <h2>💬 Chat com o Desenvolvedor</h2>
                 <div class="chat-box" id="chatHistorico"></div>
                 <input type="text" id="mensagemInput" placeholder="Escreve a tua mensagem...">
@@ -517,7 +529,7 @@
         }
 
         function calcMed() {
-            abrirJanelaModal(`
+            abrirJanelaFixa(`
                 <h2>💊 Calculador de Dosagens</h2>
                 <input type="number" id="peso" placeholder="Peso (kg)">
                 <input type="number" id="dose" placeholder="Dose (mg/kg)">
@@ -536,19 +548,19 @@
                 let res = `<h2>📊 Resultado</h2><hr><p><b>Dose Total:</b> ${total.toFixed(2)} mg</p>`;
                 if (!isNaN(conc) && conc > 0) res += `<p><b>Volume:</b> ${(total/conc).toFixed(2)} ml</p>`;
                 res += `<br><button onclick="calcMed()">Novo</button><button onclick="abrirSubmenuSaude()" class="secondary-btn">Voltar às Opções</button>`;
-                abrirJanelaModal(res);
+                abrirJanelaFixa(res);
             } else {
                 alert("Preencha valores válidos.");
             }
         }
 
         function infoSaude(titulo, msg) {
-            abrirJanelaModal(`<h2>${titulo}</h2><hr><p style="color: #f1f5f9;">${msg}</p><br><button onclick="abrirSubmenuSaude()" class="secondary-btn">Voltar às Opções</button>`);
+            abrirJanelaFixa(`<h2>${titulo}</h2><hr><p style="color: #f1f5f9;">${msg}</p><br><button onclick="abrirSubmenuSaude()" class="secondary-btn">Voltar às Opções</button>`);
         }
 
         function infoDev() {
             let meuNomeCadastrado = localStorage.getItem("utilizador_nome") || "Utilizador";
-            abrirJanelaModal(`
+            abrirJanelaFixa(`
                 <h2>👨‍💻 Sobre o Desenvolvedor</h2>
                 <hr><p style="color: #f1f5f9;"><b>Desenvolvedor:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
                 <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, sou o/a ${meuNomeCadastrado} e contacto através da app Angola 2026.`) + `', '_blank')">💬 Conversar via WhatsApp</button>
@@ -558,12 +570,7 @@
         }
 
         function infoIban() {
-            abrirJanelaModal(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>`);
-        }
-
-        function abrirJanelaModal(html) {
-            document.getElementById("modalConteudo").innerHTML = html;
-            document.getElementById("modal").style.display = "flex";
+            abrirJanelaFixa(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>`);
         }
 
         function fecharJanelaModal() {
