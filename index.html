@@ -338,7 +338,7 @@
                 } else if (termoLower.includes("capital")) {
                     respostaIA = "A capital de Angola é Luanda, sendo também o principal centro financeiro, cultural e político do país.";
                 } else if (termoLower.includes("população") || termoLower.includes("habitantes")) {
-                    respostaIA = "Angola possui uma população estimada em mais de 35 milhões de habitantes, sendo uma das populações mais jovens do continente africano.";
+                    respostaIA = "Angola possui uma população estimada em mais de 35 milhões de habitantes, sendo uma das nações mais dinâmicas da região.";
                 } else {
                     respostaIA = `Com base na questão "<b>${termo}</b>", este tema está associado ao contexto socioeconómico, histórico ou institucional de Angola. Podes explorar mais detalhes nos artigos disponíveis na página principal ou detalhar a tua dúvida no chat com o programador.`;
                 }
@@ -406,10 +406,30 @@
                 <button onclick="infoDev()">ℹ Sobre o Desenvolvedor</button>
                 <button onclick="infoIban()">💳 Consultar IBAN (Apoio)</button>
                 <button onclick="abrirEstatisticasAcessos()">📊 Ver Utilizadores Registados</button>
+                <button onclick="partilharApp()" class="whatsapp-btn">🔗 Partilhar Aplicação</button>
                 <button onclick="abrirAjudaFeedback()">❓ Ajuda e Feedback</button>
                 <br>
                 <button onclick="fecharJanelaModal()" class="danger-btn">Fechar Submenu</button>
             `);
+        }
+
+        // Função para partilhar a aplicação
+        function partilharApp() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Angola 2026',
+                    text: 'Confere a aplicação Angola 2026 desenvolvida por Artur Jamba Pomba!',
+                    url: window.location.href
+                }).catch((error) => console.log('Erro ao partilhar:', error));
+            } else {
+                // Alternativa caso o navegador não suporte partilha nativa
+                let textoPartilha = "Confere a aplicação Angola 2026: " + window.location.href;
+                navigator.clipboard.writeText(textoPartilha).then(() => {
+                    alert("Link copiado para a área de transferência! Podes colar e partilhar com os teus amigos.");
+                }).catch(() => {
+                    alert("Não foi possível partilhar automaticamente.");
+                });
+            }
         }
 
         function abrirAjudaFeedback() {
