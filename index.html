@@ -369,7 +369,7 @@
             `);
         }
 
-        // --- MÓDULO DE MÚSICA CORRIGIDO E OTIMIZADO PARA MOBILE ---
+        // --- MÓDULO DE MÚSICA COM CONFIRMAÇÃO VISUAL DA PASTA ---
         function abrirLeitorMusica(pastaAbertaNome = null) {
             if (!db) {
                 setTimeout(() => abrirLeitorMusica(pastaAbertaNome), 500);
@@ -390,13 +390,11 @@
                     let pastasSalvas = ePastas.target.result;
 
                     let htmlMusicas = `<h2>🎵 Gestor de Músicas e Pastas</h2>`;
-                    htmlMusicas += `<p style="font-size: 0.85rem; color: #cbd5e1;">Escolha a pasta de destino e adicione a sua música:</p>`;
                     
-                    htmlMusicas += `<button onclick="criarNovaPasta()" style="background:#0284c7; margin-bottom:8px;">➕ Criar Nova Pasta</button>`;
-                    
-                    htmlMusicas += `<div style="background:#090d16; padding:12px; border-radius:8px; border:1px solid #1e3a8a; margin-bottom:12px;">`;
-                    htmlMusicas += `<label style="font-size:0.85rem; color:#93c5fd; display:block; margin-bottom:5px;"><b>1. Onde quer guardar a música?</b></label>`;
-                    htmlMusicas += `<select id="selectPastaDestino" style="width:100%; padding:10px; border-radius:6px; background:#151c2f; color:#fff; border:1px solid #3b82f6; margin-bottom:10px;">`;
+                    // Caixa de destaque interativa para escolher onde guardar
+                    htmlMusicas += `<div style="background:#020617; padding:12px; border-radius:8px; border:2px solid #3b82f6; margin-bottom:15px;">`;
+                    htmlMusicas += `<label style="font-size:0.9rem; color:#93c5fd; display:block; margin-bottom:6px;"><b>📂 ESCOLHA ONDE GUARDAR A MÚSICA:</b></label>`;
+                    htmlMusicas += `<select id="selectPastaDestino" style="width:100%; padding:12px; border-radius:6px; background:#151c2f; color:#fff; border:1px solid #60a5fa; font-size:1rem; margin-bottom:10px;">`;
                     htmlMusicas += `<option value="Geral">📁 Geral (Padrão)</option>`;
                     
                     if (pastasSalvas && pastasSalvas.length > 0) {
@@ -407,12 +405,12 @@
                     }
                     htmlMusicas += `</select>`;
 
-                    htmlMusicas += `<label style="font-size:0.85rem; color:#93c5fd; display:block; margin-bottom:5px;"><b>2. Escolher Ficheiro de Áudio do Telemóvel:</b></label>`;
-                    htmlMusicas += `<button onclick="document.getElementById('ficheiroMusica').click()" style="background:#059669; margin-bottom:0;">📂 Selecionar Música</button>`;
+                    htmlMusicas += `<button onclick="document.getElementById('ficheiroMusica').click()" style="background:#059669; font-size:1rem; margin-bottom:0; padding:12px;">📂 Selecionar Ficheiro de Áudio</button>`;
                     htmlMusicas += `<input type="file" id="ficheiroMusica" accept="audio/*" onchange="guardarMusicaDB(event)" style="display:none;">`;
                     htmlMusicas += `</div>`;
 
-                    htmlMusicas += `<hr><div style="max-height: 220px; overflow-y: auto;">`;
+                    htmlMusicas += `<button onclick="criarNovaPasta()" style="background:#0284c7; margin-bottom:12px;">➕ Criar Nova Pasta com Nome Diferente</button>`;
+                    htmlMusicas += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
 
                     let todasAsPastasObj = { "Geral": [] };
                     if (pastasSalvas) {
@@ -471,7 +469,7 @@
         }
 
         function criarNovaPasta() {
-            let nomePasta = prompt("Digite um nome diferente para a nova pasta de música:");
+            let nomePasta = prompt("Digite o nome da nova pasta de música:");
             if (!nomePasta || nomePasta.trim() === "") return;
 
             nomePasta = nomePasta.trim();
@@ -731,8 +729,7 @@
                 <h2>❓ Ajuda e Feedback</h2>
                 <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.4;">
                     <b>Como usar a app:</b><br>
-                    - Escolha a pasta no menu superior.<br>
-                    - Clique em <b>📂 Selecionar Música</b> para abrir os ficheiros de áudio.<br>
+                    - Selecione a pasta desejada na caixa azul no topo antes de adicionar a música.<br>
                 </p>
                 <hr>
                 <p style="font-size: 0.9rem; color: #cbd5e1;">Deixe aqui o seu comentário ou sugestão:</p>
@@ -804,7 +801,7 @@
             input.value = "";
             carregarConversasBD();
             let nomeUtilizador = localStorage.getItem("utilizador_nome") || "Desconhecido";
-            let zapUrl = `https://wa.me/244944048287?text=` + encodeURIComponent(`Mensagem de ${nomeUtilizador}: ${texto}`);
+            let zapUrl = `https://wa.me/244944048287?text=` + encodeURIComponent(`Mensagem de ${nomeURL ? nomeURL : nomeUtilizador}: ${texto}`);
             const historicoDiv = document.getElementById("chatHistorico");
             historicoDiv.innerHTML += `<button class="whatsapp-btn" onclick="window.open('${zapUrl}', '_blank')">💬 Enviar para o WhatsApp</button>`;
             historicoDiv.scrollTop = historicoDiv.scrollHeight;
@@ -830,38 +827,4 @@
                 let res = `<h2>📊 Resultado</h2><hr><p><b>Dose Total:</b> ${total.toFixed(2)} mg</p>`;
                 if (!isNaN(conc) && conc > 0) res += `<p><b>Volume:</b> ${(total/conc).toFixed(2)} ml</p>`;
                 res += `<br><button onclick="calcMed()">Novo</button><button onclick="abrirSubmenuSaude()" class="secondary-btn">Voltar às Opções</button>`;
-                abrirJanelaFixa(res);
-            } else {
-                alert("Preencha valores válidos.");
-            }
-        }
-
-        function infoSaude(titulo, msg) {
-            abrirJanelaFixa(`<h2>${titulo}</h2><hr><p style="color: #f1f5f9;">${msg}</p><br><button onclick="abrirSubmenuSaude()" class="secondary-btn">Voltar às Opções</button>`);
-        }
-
-        function infoDev() {
-            let meuNomeCadastrado = localStorage.getItem("utilizador_nome") || "Utilizador";
-            abrirJanelaFixa(`
-                <h2>👨‍💻 Sobre o Desenvolvedor</h2>
-                <hr><p style="color: #f1f5f9;"><b>Desenvolvedor:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
-                <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, sou o/a ${meuNomeCadastrado} e contacto através da app Angola 2026.`) + `', '_blank')">💬 Conversar via WhatsApp</button>
-                <button class="call-btn" onclick="window.location.href='tel:${MEU_TELEFONE}'">📞 Ligar</button>
-                <br><br><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>
-            `);
-        }
-
-        function infoIban() {
-            abrirJanelaFixa(`<h2>💳 Apoie o Projeto</h2><hr><p><b>IBAN:</b></p><div class="iban-box">${MEU_IBAN}</div><br><button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar ao Submenu</button>`);
-        }
-
-        function fecharJanelaModal() {
-            if (localStorage.getItem("utilizador_cadastrado") === "true" && localStorage.getItem("sessao_ativa") === "true") {
-                document.getElementById("modal").style.display = "none";
-            } else {
-                alert("Por favor, preencha o seu cadastro primeiro para entrar.");
-            }
-        }
-    </script>
-</body>
-</html>
+                abrir
