@@ -99,7 +99,7 @@
             <button class="search-action-btn" onclick="executarPesquisaBotao()" title="Pesquisar na Web">🔎</button>
         </div>
         
-        <!-- Abas de Navegação Rápida (Com a nova aba de Imagens) -->
+        <!-- Abas de Navegação Rápida -->
         <div class="tabs-container">
             <button class="tab-btn active" onclick="filtrarPorAba('Todas', this)">🔄 Todas</button>
             <button class="tab-btn" onclick="filtrarPorAba('História', this)">📜 História</button>
@@ -129,9 +129,9 @@
 
         let listaFiltrada = [];
 
-        // --- GESTÃO DA INDEXEDDB (Armazenamento Permanente de Músicas e Imagens) ---
+        // --- GESTÃO DA INDEXEDDB (Armazenamento Permanente de Músicas, Pastas e Imagens) ---
         let db;
-        const requestDB = indexedDB.open("AngolaAppDB", 2);
+        const requestDB = indexedDB.open("AngolaAppDB", 3);
 
         requestDB.onerror = function(event) {
             console.log("Erro ao abrir a base de dados IndexedDB");
@@ -145,6 +145,9 @@
             let dbConnection = event.target.result;
             if (!dbConnection.objectStoreNames.contains("musicas")) {
                 dbConnection.createObjectStore("musicas", { keyPath: "id", autoIncrement: true });
+            }
+            if (!dbConnection.objectStoreNames.contains("pastas")) {
+                dbConnection.createObjectStore("pastas", { keyPath: "id", autoIncrement: true });
             }
             if (!dbConnection.objectStoreNames.contains("imagens")) {
                 dbConnection.createObjectStore("imagens", { keyPath: "id", autoIncrement: true });
@@ -175,7 +178,7 @@
                     dados.push({
                         titulo: "Módulo de Músicas Pessoais",
                         categoria: "Música",
-                        conteudo: "Guarde, organize por autor e reproduza as suas músicas favoritas de forma permanente no seu dispositivo.",
+                        conteudo: "Crie pastas personalizadas, organize e reproduza as suas músicas favoritas de forma permanente no seu dispositivo.",
                         isPlayerModulo: true
                     });
                 }
@@ -377,58 +380,116 @@
             `);
         }
 
-        // --- MÓDULO DE MÚSICA COM PERISTÊNCIA E ÁLBUNS POR AUTOR ---
+        // --- MÓDULO DE MÚSICA COM CRIAÇÃO LIVRE DE PASTAS E CARREGAMENTO ---
         function abrirLeitorMusica() {
             if (!db) {
                 setTimeout(abrirLeitorMusica, 500);
                 return;
             }
 
-            let transaction = db.transaction(["musicas"], "readonly");
-            let store = transaction.objectStore("musicas");
-            let request = store.getAll();
+            let transaction = db.transaction(["musicas", "pastas"], "readonly");
+            let storeMusicas = transaction.objectStore("musicas");
+            let storePastas = transaction.objectStore("pastas");
 
-            request.onsuccess = function(event) {
-                let musicasSalvas = event.target.result;
-                
-                let htmlMusicas = `<h2>🎵 Álbuns por Autor</h2>`;
-                htmlMusicas += `<p style="font-size: 0.85rem; color: #cbd5e1;">Adicione músicas e organize-as por artista (Guardado permanentemente):</p>`;
-                htmlMusicas += `<input type="file" id="ficheiroMusica" accept="audio/*" onchange="guardarMusicaDB(event)">`;
-                htmlMusicas += `<hr><div style="max-height: 220px; overflow-y: auto;">`;
+            let reqMusicas = storeMusicas.getAll();
+            let reqPastas = storePastas.getAll();
 
-                if (musicasSalvas.length === 0) {
-                    htmlMusicas += `<p style="font-size:0.85rem; color:#94a3b8; text-align:center;">Sem músicas guardadas.</p>`;
-                } else {
-                    let albuns = {};
+            reqMusicas.onsuccess = function(eMusicas) {
+                let musicasSalvas = eMusicas.target.result;
+
+                reqPastas.onsuccess = function(ePastas) {
+                    let pastasSalvas = ePastas.target.result;
+
+                    let htmlMusicas = `<h2>🎵 Gestor de Músicas e Pastas</h2>`;
+                    htmlMusicas += `<p style="font-size: 0.85rem; color: #cbd5e1;">Crie pastas personalizadas e adicione músicas guardadas permanentemente:</p>`;
+                    
+                    // Botão para criar nova pasta diretamente
+                    htmlMusicas += `<button onclick="criarNovaPasta()" style="background:#0284c7; margin-bottom:8px;">➕ Criar Nova Pasta</button>`;
+                    
+                    // Seletor para escolher a pasta onde vai carregar a música
+                    htmlMusicas += `<div style="background:#090d16; padding:10px; border-radius:8px; border:1px solid #1e3a8a; margin-bottom:12px;">`;
+                    htmlMusicas += `<label style="font-size:0.85rem; color:#93c5fd; display:block; margin-bottom:5px;"><b>1. Selecione a Pasta de Destino:</b></label>`;
+                    htmlMusicas += `<select id="selectPastaDestino" style="width:100%; padding:10px; border-radius:6px; background:#151c2f; color:#fff; border:1px solid #3b82f6; margin-bottom:8px;">`;
+                    htmlMusicas += `<option value="Geral">📁 Geral (Padrão)</option>`;
+                    
+                    if (pastasSalvas && pastasSalvas.length > 0) {
+                        pastasSalvas.forEach(p => {
+                            htmlMusicas += `<option value="${p.nome}">📁 ${p.nome}</option>`;
+                        });
+                    }
+                    htmlMusicas += `</select>`;
+
+                    htmlMusicas += `<label style="font-size:0.85rem; color:#93c5fd; display:block; margin-bottom:5px;"><b>2. Escolher Ficheiro de Áudio:</b></label>`;
+                    htmlMusicas += `<input type="file" id="ficheiroMusica" accept="audio/*" onchange="guardarMusicaDB(event)" style="margin-bottom:0;">`;
+                    htmlMusicas += `</div>`;
+
+                    htmlMusicas += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
+
+                    // Juntar pastas criadas pelo utilizador + pastas padrão que já tenham músicas
+                    let todasAsPastasObj = { "Geral": [] };
+                    if (pastasSalvas) {
+                        pastasSalvas.forEach(p => { todasAsPastasObj[p.nome] = []; });
+                    }
+
                     musicasSalvas.forEach((musica) => {
-                        let artista = musica.autor || "Desconhecido";
-                        if (!albuns[artista]) {
-                            albuns[artista] = [];
+                        let pUtilizador = musica.pasta || "Geral";
+                        if (!todasAsPastasObj[pUtilizador]) {
+                            todasAsPastasObj[pUtilizador] = [];
                         }
-                        albuns[artista].push(musica);
+                        todasAsPastasObj[pUtilizador].push(musica);
                     });
 
-                    for (let autor in albuns) {
+                    for (let nomePasta in todasAsPastasObj) {
+                        let listaNestaPasta = todasAsPastasObj[nomePasta];
                         htmlMusicas += `<div style="background:#090d16; border:1px solid #1e3a8a; border-radius:8px; padding:10px; margin-bottom:10px;">`;
-                        htmlMusicas += `<h3 style="color:#93c5fd; margin:0 0 8px 0; font-size:0.95rem;">🎤 ${autor} (${albuns[autor].length})</h3>`;
-                        
-                        albuns[autor].forEach((musica) => {
-                            htmlMusicas += `<div style="background:#020617; padding:6px 8px; margin-bottom:5px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-                                <span style="font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;">🎶 ${musica.nome}</span>
-                                <div>
-                                    <button onclick='reproduzirMusicaDB(${musica.id})' style="padding:3px 6px; margin:0; font-size:0.75rem; width:auto; background:#059669;" title="Ouvir">▶</button>
-                                    <button onclick='apagarMusicaDB(${musica.id})' style="padding:3px 6px; margin:0; font-size:0.75rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
-                                </div>
-                            </div>`;
-                        });
+                        htmlMusicas += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">`;
+                        htmlMusicas += `<h3 style="color:#93c5fd; margin:0; font-size:0.95rem;">📁 Pasta: ${nomePasta} (${listaNestaPasta.length})</h3>`;
+                        if (nomePasta !== "Geral") {
+                            htmlMusicas += `<button onclick='apagarPasta("${nomePasta}")' style="padding:2px 6px; margin:0; font-size:0.7rem; width:auto; background:#dc2626;" title="Apagar Pasta">Apagar</button>`;
+                        }
+                        htmlMusicas += `</div>`;
+
+                        if (listaNestaPasta.length === 0) {
+                            htmlMusicas += `<p style="font-size:0.75rem; color:#94a3b8; margin:4px 0;">Pasta vazia.</p>`;
+                        } else {
+                            listaNestaPasta.forEach((musica) => {
+                                htmlMusicas += `<div style="background:#020617; padding:6px 8px; margin-bottom:5px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;" title="${musica.nome}">🎶 ${musica.nome}</span>
+                                    <div>
+                                        <button onclick='reproduzirMusicaDB(${musica.id})' style="padding:3px 6px; margin:0; font-size:0.75rem; width:auto; background:#059669;" title="Ouvir">▶</button>
+                                        <button onclick='apagarMusicaDB(${musica.id})' style="padding:3px 6px; margin:0; font-size:0.75rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                                    </div>
+                                </div>`;
+                            });
+                        }
                         htmlMusicas += `</div>`;
                     }
-                }
-                htmlMusicas += `</div>`;
-                htmlMusicas += `<audio id="audioPlayer" controls style="width:100%; margin-top:10px; display:none;"></audio>`;
-                htmlMusicas += `<br><button onclick="fecharJanelaModal()" class="secondary-btn">Fechar e Voltar</button>`;
-                
-                abrirJanelaFixa(htmlMusicas);
+                    htmlMusicas += `</div>`;
+                    htmlMusicas += `<audio id="audioPlayer" controls style="width:100%; margin-top:10px; display:none;"></audio>`;
+                    htmlMusicas += `<br><button onclick="fecharJanelaModal()" class="secondary-btn">Fechar e Voltar</button>`;
+                    
+                    abrirJanelaFixa(htmlMusicas);
+                };
+            };
+        }
+
+        function criarNovaPasta() {
+            let nomePasta = prompt("Digite o nome para a nova pasta de música (Ex: Kizomba, Remisturas, Semba):");
+            if (!nomePasta || nomePasta.trim() === "") return;
+
+            nomePasta = nomePasta.trim();
+
+            let transaction = db.transaction(["pastas"], "readwrite");
+            let store = transaction.objectStore("pastas");
+            let request = store.add({ nome: nomePasta });
+
+            request.onsuccess = function() {
+                alert(`Pasta "${nomePasta}" criada com sucesso!`);
+                abrirLeitorMusica();
+            };
+
+            request.onerror = function() {
+                alert("Erro ao criar a pasta. O nome já pode existir.");
             };
         }
 
@@ -436,22 +497,22 @@
             const ficheiro = event.target.files[0];
             if (!ficheiro) return;
 
-            let autor = prompt("Introduza o nome do Autor / Artista:", "Desconhecido");
-            if (!autor) autor = "Desconhecido";
+            const selectPasta = document.getElementById("selectPastaDestino");
+            let pastaEscolhida = selectPasta ? selectPasta.value : "Geral";
 
             let transaction = db.transaction(["musicas"], "readwrite");
             let store = transaction.objectStore("musicas");
             
             let novaMusica = {
                 nome: ficheiro.name,
-                autor: autor.trim(),
+                pasta: pastaEscolhida,
                 blob: ficheiro
             };
 
             let request = store.add(novaMusica);
 
             request.onsuccess = function() {
-                alert("Música guardada permanentemente no álbum do autor!");
+                alert(`Música guardada com sucesso na pasta "${pastaEscolhida}"!`);
                 abrirLeitorMusica();
             };
 
@@ -485,6 +546,29 @@
             request.onsuccess = function() {
                 abrirLeitorMusica();
             };
+        }
+
+        function apagarPasta(nomePasta) {
+            if (confirm(`Pretende apagar a pasta "${nomePasta}"? As músicas associadas ficarão sem pasta atribuída.`)) {
+                let transaction = db.transaction(["pastas"], "readwrite");
+                let store = transaction.objectStore("pastas");
+                // Como chave é autoIncrement, procuramos por index ou limpamos recorrendo à listagem
+                let req = store.openCursor();
+                req.onsuccess = function(e) {
+                    let cursor = e.target.result;
+                    if (cursor) {
+                        if (cursor.value.nome === nomePasta) {
+                            store.delete(cursor.primaryKey);
+                        } else {
+                            cursor.continue();
+                        }
+                    }
+                };
+                transaction.oncomplete = function() {
+                    alert("Pasta removida!");
+                    abrirLeitorMusica();
+                };
+            }
         }
         // --------------------------------------------------------
 
@@ -650,7 +734,7 @@
                 <h2>❓ Ajuda e Feedback</h2>
                 <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.4;">
                     <b>Como usar a app:</b><br>
-                    - As músicas e imagens adicionadas ficam guardadas de forma segura e permanente no telemóvel.<br>
+                    - Crie pastas personalizadas com o botão de criar pasta e adicione as suas músicas lá dentro.<br>
                 </p>
                 <hr>
                 <p style="font-size: 0.9rem; color: #cbd5e1;">Deixe aqui o seu comentário ou sugestão:</p>
