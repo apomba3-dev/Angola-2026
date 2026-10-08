@@ -67,6 +67,36 @@
         .danger-btn { background: #dc2626 !important; }
         .secondary-btn { background: #334155 !important; color: #f8fafc !important; }
         
+        /* Estilo para a notificação flutuante (Toast) */
+        #toastNotificacao {
+            visibility: hidden;
+            min-width: 220px;
+            background-color: #1e293b;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 12px;
+            position: fixed;
+            z-index: 10000;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            border: 1px solid #3b82f6;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        #toastNotificacao.mostrar {
+            visibility: visible;
+            animation: fadeInOut 2.5s ease-in-out;
+        }
+        @keyframes fadeInOut {
+            0% { bottom: 0px; opacity: 0; }
+            15% { bottom: 30px; opacity: 1; }
+            85% { bottom: 30px; opacity: 1; }
+            100% { bottom: 0px; opacity: 0; }
+        }
+
         .chat-box { background: #020617; border-radius: 8px; height: 180px; overflow-y: auto; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #1e3a8a; }
         .msg-user { background: #1d4ed8; color: white; align-self: flex-end; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 0.9rem; word-break: break-word; }
         .msg-dev { background: #1e293b; color: #f8fafc; align-self: flex-start; padding: 8px 12px; border-radius: 8px; max-width: 80%; font-size: 0.9rem; border: 1px solid #334155; word-break: break-word; }
@@ -105,6 +135,9 @@
         <ul id="listaArtigos"></ul>
     </div>
 
+    <!-- Div do Pop-up Flutuante Não Intrusivo -->
+    <div id="toastNotificacao">Mensagem de aviso</div>
+
     <div id="modal" class="modal">
         <div class="modal-content" id="modalConteudo"></div>
     </div>
@@ -118,6 +151,16 @@
         const MEU_TELEFONE = "+244 944 048 287";
 
         let listaFiltrada = [];
+
+        // Função para mostrar aviso flutuante elegante que desaparece sozinho
+        function mostrarToast(mensagem) {
+            const toast = document.getElementById("toastNotificacao");
+            toast.innerText = mensagem;
+            toast.className = "mostrar";
+            setTimeout(() => {
+                toast.className = toast.className.replace("mostrar", "");
+            }, 2500);
+        }
 
         let db;
         const requestDB = indexedDB.open("AngolaAppDB", 3);
@@ -238,11 +281,7 @@
             localStorage.setItem("angola_acessos_log", JSON.stringify(acessos));
 
             fecharJanela();
-
-            if (confirm("Pretende notificar o criador (Artur) sobre o seu registo via WhatsApp?")) {
-                let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, registei-me na app Angola 2026.\nNome: ${nome}\nContacto: ${contacto}`);
-                window.open(urlZap, '_blank');
-            }
+            mostrarToast("Conta criada com sucesso!");
         }
 
         function mostrarEcraLogin() {
@@ -262,15 +301,16 @@
             const senhaSalva = localStorage.getItem("utilizador_senha");
 
             if (!senhaDigitada) {
-                alert("Por favor, digite a senha.");
+                mostrarToast("Digite a senha!");
                 return;
             }
 
             if (senhaDigitada === senhaSalva) {
                 localStorage.setItem("sessao_ativa", "true");
                 fecharJanela();
+                mostrarToast("Sessão iniciada!");
             } else {
-                alert("Senha incorreta! Tente novamente.");
+                mostrarToast("Senha incorreta!");
             }
         }
 
@@ -369,7 +409,7 @@
             `);
         }
 
-        // --- MÓDULO DE MÚSICA (COMPLETO E SEM CAIXA DE CONFIRMAÇÃO) ---
+        // --- MÓDULO DE MÚSICA COM TOAST NÃO INTRUSIVO ---
         function abrirLeitorMusica(pastaAbertaNome = null) {
             if (!db) {
                 setTimeout(() => abrirLeitorMusica(pastaAbertaNome), 500);
@@ -473,7 +513,7 @@
         function copiarMusicaParaOutraPasta(idMusica, pastaAtual, todasAsPastas) {
             let pastasDisponiveis = todasAsPastas.filter(p => p !== pastaAtual);
             if (pastasDisponiveis.length === 0) {
-                alert("Não existem outras pastas criadas para copiar esta música.");
+                mostrarToast("Não há outras pastas para copiar.");
                 return;
             }
 
@@ -482,7 +522,7 @@
                 textoOpcoes += `${index + 1} - ${p}\n`;
             });
 
-            let escolha = prompt(textoOpcoes + "\nDigite o número ou o nome exato da pasta de destino:");
+            let escolha = prompt(textoOpcoes + "\nDigite o número ou o nome exato:");
             if (!escolha) return;
 
             let pastaDestino = escolha.trim();
@@ -491,7 +531,7 @@
             }
 
             if (!todasAsPastas.includes(pastaDestino)) {
-                alert("Pasta inválida.");
+                mostrarToast("Pasta inválida!");
                 return;
             }
 
@@ -501,10 +541,7 @@
 
             reqGet.onsuccess = function(e) {
                 let musicaOriginal = e.target.result;
-                if (!musicaOriginal) {
-                    alert("Música não encontrada.");
-                    return;
-                }
+                if (!musicaOriginal) return;
 
                 let novaCopia = {
                     nome: musicaOriginal.nome,
@@ -514,7 +551,7 @@
 
                 let reqAdd = store.add(novaCopia);
                 reqAdd.onsuccess = function() {
-                    alert(`Música copiada com sucesso para a pasta "${pastaDestino}"!`);
+                    mostrarToast(`Música copiada para "${pastaDestino}"!`);
                     abrirLeitorMusica(pastaAtual);
                 };
             };
@@ -531,12 +568,12 @@
             let request = store.add({ nome: nomePasta });
 
             request.onsuccess = function() {
-                alert(`Pasta "${nomePasta}" criada com sucesso!`);
+                mostrarToast(`Pasta "${nomePasta}" criada!`);
                 abrirLeitorMusica(nomePasta);
             };
 
             request.onerror = function() {
-                alert("Erro ao criar a pasta. O nome já pode existir.");
+                mostrarToast("Erro: A pasta já existe.");
             };
         }
 
@@ -559,12 +596,12 @@
             let request = store.add(novaMusica);
 
             request.onsuccess = function() {
-                alert(`Música guardada com sucesso na pasta "${pastaEscolhida}"!`);
+                mostrarToast(`Música guardada em "${pastaEscolhida}"!`);
                 abrirLeitorMusica(pastaEscolhida);
             };
 
             request.onerror = function() {
-                alert("Erro ao guardar o ficheiro de áudio.");
+                mostrarToast("Erro ao guardar o áudio.");
             };
         }
 
@@ -591,35 +628,34 @@
             let request = store.delete(id);
 
             request.onsuccess = function() {
+                mostrarToast("Música eliminada!");
                 abrirLeitorMusica(pastaNome);
             };
         }
 
         function apagarPasta(nomePasta) {
-            if (confirm(`Pretende apagar a pasta "${nomePasta}"? As músicas associadas ficarão sem pasta atribuída.`)) {
-                let transaction = db.transaction(["pastas"], "readwrite");
-                let store = transaction.objectStore("pastas");
-                let req = store.openCursor();
-                req.onsuccess = function(e) {
-                    let cursor = e.target.result;
-                    if (cursor) {
-                        let pNome = cursor.value.nome || cursor.value;
-                        if (pNome === nomePasta) {
-                            store.delete(cursor.primaryKey);
-                        } else {
-                            cursor.continue();
-                        }
+            let transaction = db.transaction(["pastas"], "readwrite");
+            let store = transaction.objectStore("pastas");
+            let req = store.openCursor();
+            req.onsuccess = function(e) {
+                let cursor = e.target.result;
+                if (cursor) {
+                    let pNome = cursor.value.nome || cursor.value;
+                    if (pNome === nomePasta) {
+                        store.delete(cursor.primaryKey);
+                    } else {
+                        cursor.continue();
                     }
-                };
-                transaction.oncomplete = function() {
-                    alert("Pasta removida!");
-                    abrirLeitorMusica();
-                };
-            }
+                }
+            };
+            transaction.oncomplete = function() {
+                mostrarToast(`Pasta "${nomePasta}" removida!`);
+                abrirLeitorMusica();
+            };
         }
         // --------------------------------------------------------
 
-        // --- MÓDULO DE IMAGENS (COMPLETO E SEM CAIXA DE CONFIRMAÇÃO) ---
+        // --- MÓDULO DE IMAGENS COM TOAST ---
         function abrirGaleriaImagens() {
             if (!db) {
                 setTimeout(abrirGaleriaImagens, 500);
@@ -634,7 +670,7 @@
                 let imagensSalvas = event.target.result;
                 
                 let htmlImagens = `<h2>🖼️ Galeria de Imagens</h2>`;
-                htmlImagens += `<p style="font-size: 0.85rem; color: #cbd5e1;">Adicione fotografias ou imagens do telemóvel (Guardado permanentemente):</p>`;
+                htmlImagens += `<p style="font-size: 0.85rem; color: #cbd5e1;">Adicione fotografias ou imagens do telemóvel:</p>`;
                 htmlImagens += `<button onclick="document.getElementById('ficheiroImagem').click()" style="background:#059669; font-size:1rem; margin-bottom:10px; padding:12px;">📂 Selecionar Imagem</button>`;
                 htmlImagens += `<input type="file" id="ficheiroImagem" accept="image/*" onchange="guardarImagemDB(event)" style="display:none;">`;
                 htmlImagens += `<hr><div style="max-height: 240px; overflow-y: auto;">`;
@@ -681,12 +717,12 @@
             let request = store.add(novaImagem);
 
             request.onsuccess = function() {
-                alert("Imagem guardada permanentemente com sucesso!");
+                mostrarToast("Imagem guardada com sucesso!");
                 abrirGaleriaImagens();
             };
 
             request.onerror = function() {
-                alert("Erro ao guardar o ficheiro de imagem.");
+                mostrarToast("Erro ao guardar imagem.");
             };
         }
 
@@ -707,6 +743,7 @@
             let request = store.delete(id);
 
             request.onsuccess = function() {
+                mostrarToast("Imagem eliminada!");
                 abrirGaleriaImagens();
             };
         }
@@ -727,10 +764,9 @@
         }
 
         function limparLogs() {
-            if (confirm("Pretende limpar os registos?")) {
-                localStorage.removeItem("angola_acessos_log");
-                abrirEstatisticasAcessos();
-            }
+            localStorage.removeItem("angola_acessos_log");
+            mostrarToast("Registos limpos!");
+            abrirEstatisticasAcessos();
         }
 
         function abrirMenu() {
@@ -770,9 +806,7 @@
             } else {
                 let textoPartilha = "Confere a aplicação Angola 2026: " + window.location.href;
                 navigator.clipboard.writeText(textoPartilha).then(() => {
-                    alert("Link copiado para a área de transferência!");
-                }).catch(() => {
-                    alert("Não foi possível partilhar automaticamente.");
+                    mostrarToast("Link copiado!");
                 });
             }
         }
@@ -782,7 +816,7 @@
                 <h2>❓ Ajuda e Feedback</h2>
                 <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.4;">
                     <b>Como usar a app:</b><br>
-                    - Selecione a pasta no topo, escolha o ficheiro e gerencie as suas músicas com total liberdade e sem caixas de confirmação.<br>
+                    - As ações de eliminar e copiar agora mostram notificações discretas no fundo do ecrã que desaparecem sozinhas.<br>
                 </p>
                 <hr>
                 <p style="font-size: 0.9rem; color: #cbd5e1;">Deixe aqui o seu comentário ou sugestão:</p>
@@ -796,7 +830,7 @@
         function enviarFeedback() {
             const texto = document.getElementById("textoFeedback").value.trim();
             if (texto === "") {
-                alert("Por favor, escreva alguma mensagem antes de enviar.");
+                mostrarToast("Escreva uma mensagem!");
                 return;
             }
             let nomeUtilizador = localStorage.getItem("utilizador_nome") || "Utilizador";
@@ -882,7 +916,7 @@
                 res += `<br><button onclick="calcMed()">Novo</button><button onclick="abrirSubmenuSaude()" class="secondary-btn">Voltar às Opções</button>`;
                 abrirJanelaFixa(res);
             } else {
-                alert("Preencha valores válidos.");
+                mostrarToast("Preencha valores válidos!");
             }
         }
 
@@ -909,7 +943,7 @@
             if (localStorage.getItem("utilizador_cadastrado") === "true" && localStorage.getItem("sessao_ativa") === "true") {
                 document.getElementById("modal").style.display = "none";
             } else {
-                alert("Por favor, preencha o seu cadastro primeiro para entrar.");
+                mostrarToast("Preencha o cadastro primeiro!");
             }
         }
     </script>
