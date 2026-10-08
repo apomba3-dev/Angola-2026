@@ -369,7 +369,7 @@
             `);
         }
 
-        // --- MÓDULO DE MÚSICA COM SELEÇÃO DE PASTA ANTES DE CARREGAR ---
+        // --- MÓDULO DE MÚSICA COM FUNÇÃO DE COPIAR ENTRE PASTAS ---
         function abrirLeitorMusica(pastaAbertaNome = null) {
             if (!db) {
                 setTimeout(() => abrirLeitorMusica(pastaAbertaNome), 500);
@@ -391,15 +391,16 @@
 
                     let htmlMusicas = `<h2>🎵 Gestor de Músicas e Pastas</h2>`;
                     
-                    // Caixa de destaque interativa para escolher onde guardar
                     htmlMusicas += `<div style="background:#020617; padding:12px; border-radius:8px; border:2px solid #3b82f6; margin-bottom:15px;">`;
                     htmlMusicas += `<label style="font-size:0.9rem; color:#93c5fd; display:block; margin-bottom:6px;"><b>📂 ESCOLHA ONDE GUARDAR A MÚSICA:</b></label>`;
                     htmlMusicas += `<select id="selectPastaDestino" style="width:100%; padding:12px; border-radius:6px; background:#151c2f; color:#fff; border:1px solid #60a5fa; font-size:1rem; margin-bottom:10px;">`;
                     htmlMusicas += `<option value="Geral">📁 Geral (Padrão)</option>`;
                     
+                    let listaNomesPastas = ["Geral"];
                     if (pastasSalvas && pastasSalvas.length > 0) {
                         pastasSalvas.forEach(p => {
                             let nomeP = p.nome || p;
+                            listaNomesPastas.push(nomeP);
                             htmlMusicas += `<option value="${nomeP}">📁 ${nomeP}</option>`;
                         });
                     }
@@ -448,10 +449,11 @@
                             } else {
                                 listaNestaPasta.forEach((musica) => {
                                     htmlMusicas += `<div style="background:#020617; padding:6px 8px; margin-bottom:5px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-                                        <span style="font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;" title="${musica.nome}">🎶 ${musica.nome}</span>
-                                        <div style="display: flex; gap: 4px;">
-                                            <button onclick='reproduzirMusicaDB(${musica.id}, "${nomePasta}")' style="padding:3px 8px; margin:0; font-size:0.75rem; width:auto; background:#059669;" title="Ouvir">▶</button>
-                                            <button onclick='apagarMusicaDB(${musica.id}, "${nomePasta}")' style="padding:3px 6px; margin:0; font-size:0.75rem; width:auto; background:transparent; border:1px solid #475569; color:#94a3b8;" title="Apagar">✕</button>
+                                        <span style="font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px;" title="${musica.nome}">🎶 ${musica.nome}</span>
+                                        <div style="display: flex; gap: 3px;">
+                                            <button onclick='reproduzirMusicaDB(${musica.id}, "${nomePasta}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#059669;" title="Ouvir">▶</button>
+                                            <button onclick='copiarMusicaParaOutraPasta(${musica.id}, "${nomePasta}", ${JSON.stringify(listaNomesPastas)})' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#0284c7;" title="Copiar para outra pasta">📋</button>
+                                            <button onclick='apagarMusicaDB(${musica.id}, "${nomePasta}")' style="padding:3px 5px; margin:0; font-size:0.7rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                                         </div>
                                     </div>`;
                                 });
@@ -464,6 +466,57 @@
                     htmlMusicas += `<br><button onclick="fecharJanelaModal()" class="secondary-btn">Fechar e Voltar</button>`;
                     
                     abrirJanelaFixa(htmlMusicas);
+                };
+            };
+        }
+
+        function copiarMusicaParaOutraPasta(idMusica, pastaAtual, todasAsPastas) {
+            let pastasDisponiveis = todasAsPastas.filter(p => p !== pastaAtual);
+            if (pastasDisponiveis.length === 0) {
+                alert("Não existem outras pastas criadas para copiar esta música.");
+                return;
+            }
+
+            let textoOpcoes = "Escolha a pasta de destino para copiar:\n";
+            pastasDisponiveis.forEach((p, index) => {
+                textoOpcoes += `${index + 1} - ${p}\n`;
+            });
+
+            let escolha = prompt(textoOpcoes + "\nDigite o número ou o nome exato da pasta de destino:");
+            if (!escolha) return;
+
+            let pastaDestino = escolha.trim();
+            // Se o utilizador digitou um número
+            if (!isNaN(pastaDestino) && pastaDestino > 0 && pastaDestino <= pastasDisponiveis.length) {
+                pastaDestino = pastasDisponiveis[pastaDestino - 1];
+            }
+
+            if (!todasAsPastas.includes(pastaDestino)) {
+                alert("Pasta inválida.");
+                return;
+            }
+
+            let transaction = db.transaction(["musicas"], "readwrite");
+            let store = transaction.objectStore("musicas");
+            let reqGet = store.get(idMusica);
+
+            reqGet.onsuccess = function(e) {
+                let musicaOriginal = e.target.result;
+                if (!musicaOriginal) {
+                    alert("Música não encontrada.");
+                    return;
+                }
+
+                let novaCopia = {
+                    nome: musicaOriginal.nome,
+                    pasta: pastaDestino,
+                    blob: musicaOriginal.blob
+                };
+
+                let reqAdd = store.add(novaCopia);
+                reqAdd.onsuccess = function() {
+                    alert(`Música copiada com sucesso para a pasta "${pastaDestino}"!`);
+                    abrirLeitorMusica(pastaAtual);
                 };
             };
         }
@@ -534,15 +587,13 @@
         }
 
         function apagarMusicaDB(id, pastaNome) {
-            if (confirm("Tens a certeza de que pretendes apagar esta música permanentemente?")) {
-                let transaction = db.transaction(["musicas"], "readwrite");
-                let store = transaction.objectStore("musicas");
-                let request = store.delete(id);
+            let transaction = db.transaction(["musicas"], "readwrite");
+            let store = transaction.objectStore("musicas");
+            let request = store.delete(id);
 
-                request.onsuccess = function() {
-                    abrirLeitorMusica(pastaNome);
-                };
-            }
+            request.onsuccess = function() {
+                abrirLeitorMusica(pastaNome);
+            };
         }
 
         function apagarPasta(nomePasta) {
@@ -729,7 +780,7 @@
                 <h2>❓ Ajuda e Feedback</h2>
                 <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.4;">
                     <b>Como usar a app:</b><br>
-                    - Selecione a pasta desejada na caixa azul no topo antes de adicionar a música.<br>
+                    - Clique no botão azul <b>📋</b> ao lado de qualquer música para copiá-la para outra pasta.<br>
                 </p>
                 <hr>
                 <p style="font-size: 0.9rem; color: #cbd5e1;">Deixe aqui o seu comentário ou sugestão:</p>
