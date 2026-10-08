@@ -445,7 +445,7 @@
                         htmlMusicas += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">`;
                         htmlMusicas += `<h3 style="color:#93c5fd; margin:0; font-size:0.95rem;">📁 Pasta: ${nomePasta} (${listaNestaPasta.length})</h3>`;
                         if (nomePasta !== "Geral") {
-                            htmlMusicas += `<button onclick='apagarPasta("${nomePasta}")' style="padding:2px 6px; margin:0; font-size:0.7rem; width:auto; background:#dc2626;" title="Apagar Pasta">Apagar</button>`;
+                            htmlMusicas += `<button onclick='apagarPasta("${nomePasta}")' style="padding:2px 6px; margin:0; font-size:0.7rem; width:auto; background:#475569;" title="Apagar Pasta">Apagar</button>`;
                         }
                         htmlMusicas += `</div>`;
 
@@ -455,9 +455,9 @@
                             listaNestaPasta.forEach((musica) => {
                                 htmlMusicas += `<div style="background:#020617; padding:6px 8px; margin-bottom:5px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
                                     <span style="font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;" title="${musica.nome}">🎶 ${musica.nome}</span>
-                                    <div>
-                                        <button onclick='reproduzirMusicaDB(${musica.id})' style="padding:3px 6px; margin:0; font-size:0.75rem; width:auto; background:#059669;" title="Ouvir">▶</button>
-                                        <button onclick='apagarMusicaDB(${musica.id})' style="padding:3px 6px; margin:0; font-size:0.75rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                                    <div style="display: flex; gap: 4px;">
+                                        <button onclick='reproduzirMusicaDB(${musica.id})' style="padding:3px 8px; margin:0; font-size:0.75rem; width:auto; background:#059669;" title="Ouvir">▶</button>
+                                        <button onclick='apagarMusicaDB(${musica.id})' style="padding:3px 6px; margin:0; font-size:0.75rem; width:auto; background:transparent; border:1px solid #475569; color:#94a3b8;" title="Apagar">✕</button>
                                     </div>
                                 </div>`;
                             });
@@ -539,20 +539,21 @@
         }
 
         function apagarMusicaDB(id) {
-            let transaction = db.transaction(["musicas"], "readwrite");
-            let store = transaction.objectStore("musicas");
-            let request = store.delete(id);
+            if (confirm("Tens a certeza de que pretendes apagar esta música permanentemente?")) {
+                let transaction = db.transaction(["musicas"], "readwrite");
+                let store = transaction.objectStore("musicas");
+                let request = store.delete(id);
 
-            request.onsuccess = function() {
-                abrirLeitorMusica();
-            };
+                request.onsuccess = function() {
+                    abrirLeitorMusica();
+                };
+            }
         }
 
         function apagarPasta(nomePasta) {
             if (confirm(`Pretende apagar a pasta "${nomePasta}"? As músicas associadas ficarão sem pasta atribuída.`)) {
                 let transaction = db.transaction(["pastas"], "readwrite");
                 let store = transaction.objectStore("pastas");
-                // Como chave é autoIncrement, procuramos por index ou limpamos recorrendo à listagem
                 let req = store.openCursor();
                 req.onsuccess = function(e) {
                     let cursor = e.target.result;
