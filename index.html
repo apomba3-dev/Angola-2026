@@ -37,7 +37,7 @@
         .search-action-btn { width: auto; padding: 0 16px; margin-bottom: 0; background: #1d4ed8; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; border: none; color: white; }
         .search-action-btn:active { background: #1e3a8a; }
 
-        input[type="password"], input[type="number"], input[type="file"], textarea, button { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #3b82f6; border-radius: 8px; box-sizing: border-box; font-size: 1rem; background: #151c2f; color: #ffffff; }
+        input[type="password"], input[type="number"], input[type="file"], select, textarea, button { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #3b82f6; border-radius: 8px; box-sizing: border-box; font-size: 1rem; background: #151c2f; color: #ffffff; }
         input::placeholder, textarea::placeholder { color: #94a3b8; }
         textarea { resize: vertical; height: 100px; font-family: inherit; }
         button { background: #1d4ed8; color: white; border: none; font-weight: bold; cursor: pointer; }
@@ -45,7 +45,6 @@
         
         .tabs-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; white-space: nowrap; -webkit-overflow-scrolling: touch; }
         
-        /* Abas com efeito de destaque e transição */
         .tab-btn { 
             background: #151c2f; 
             color: #93c5fd; 
@@ -67,15 +66,21 @@
             box-shadow: 0 0 12px rgba(59, 130, 246, 0.9);
         }
 
-        /* Transição suave de desvanecimento para a lista */
         #listaArtigos {
             opacity: 1;
             transition: opacity 0.3s ease-in-out;
             list-style: none; 
             padding: 0;
         }
-        .fade-out {
+        .fade-out { opacity: 0; }
+
+        /* Animação suave para o bloco especial da imagem e legenda */
+        .fade-imagem-container {
             opacity: 0;
+            transition: opacity 0.4s ease-in-out;
+        }
+        .fade-imagem-container.visivel {
+            opacity: 1;
         }
 
         li { background: #151c2f; color: #ffffff; padding: 15px; margin-bottom: 8px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.4); cursor: pointer; border: 1px solid #1e3a8a; }
@@ -87,7 +92,6 @@
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 9999; justify-content: center; align-items: center; margin: 0; padding: 15px; box-sizing: border-box; }
         
-        /* Pop-up transparente e translúcido */
         .modal-content { background: rgba(255, 255, 255, 0.90); color: #1e293b; padding: 20px 15px; border-radius: 10px; width: 100%; max-width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: left; box-sizing: border-box; max-height: 85vh; overflow-y: auto; border: 1px solid rgba(203, 213, 225, 0.9); backdrop-filter: blur(5px); }
         .modal-content h2 { color: #1e3a8a; font-size: 1.15rem; margin-top: 0; }
         .modal-content hr { border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0; }
@@ -132,7 +136,6 @@
             100% { bottom: 0px; opacity: 0; }
         }
 
-        .chat-box { background: #020617; border-radius: 8px; height: 180px; overflow-y: auto; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #1e3a8a; }
         .log-box { background: #020617; border: 1px solid #1e3a8a; padding: 8px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 5px; font-family: monospace; color: #e2e8f0; }
     </style>
 </head>
@@ -140,18 +143,18 @@
 
     <header>
         <div class="header-left">
-            <button class="menu-btn" onclick="abrirMenu()">☰ Menu</button>
+            <button class="menu-btn" onclick="reproduzirSomAbrir(); abrirSubmenuDireito()">☰ Menu</button>
         </div>
         <h1>🇦🇴 Angola 2026</h1>
         <div class="header-right">
-            <button class="submenu-right-btn" onclick="abrirSubmenuDireito()">⚙️ Opções</button>
+            <button class="submenu-right-btn" onclick="reproduzirSomAbrir(); abrirFormularioAdicionar()">➕ Adicionar</button>
         </div>
     </header>
 
     <div class="container">
         <div class="search-box-container">
             <input type="text" id="inputPesquisa" placeholder="Pesquisar artigos ou pesquisar na web..." oninput="filtrar()" onkeypress="pesquisarWeb(event)">
-            <button class="search-action-btn" onclick="executarPesquisaBotao()" title="Pesquisar na Web">🔎</button>
+            <button class="search-action-btn" onclick="reproduzirSomClique(); executarPesquisaBotao()" title="Pesquisar na Web">🔎</button>
         </div>
         
         <div class="tabs-container">
@@ -188,6 +191,126 @@
         let estadoTodasOculto = false;
         let temporizadorInatividade;
         const TEMPO_LIMITE_MINUTOS = 3;
+
+        // ------------------------------------------
+        // SISTEMA COMPLETO DE ÁUDIO (Web Audio API)
+        // ------------------------------------------
+        function reproduzirSomClique() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.05);
+            } catch (e) { console.log("Áudio não suportado."); }
+        }
+
+        function reproduzirSomEspecial() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } catch (e) { console.log("Áudio não suportado."); }
+        }
+
+        function reproduzirSomAbrir() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(500, audioCtx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.08);
+            } catch (e) { console.log("Áudio não suportado."); }
+        }
+
+        function reproduzirSomFechar() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.08);
+            } catch (e) { console.log("Áudio não suportado."); }
+        }
+
+        function reproduzirSomSucesso() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioCtx.currentTime;
+                const osc1 = audioCtx.createOscillator();
+                const gain1 = audioCtx.createGain();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(523.25, now);
+                gain1.gain.setValueAtTime(0.15, now);
+                gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc1.connect(gain1);
+                gain1.connect(audioCtx.destination);
+                osc1.start(now);
+                osc1.stop(now + 0.1);
+
+                const osc2 = audioCtx.createOscillator();
+                const gain2 = audioCtx.createGain();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(783.99, now + 0.1);
+                gain2.gain.setValueAtTime(0.15, now + 0.1);
+                gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc2.connect(gain2);
+                gain2.connect(audioCtx.destination);
+                osc2.start(now + 0.1);
+                osc2.stop(now + 0.25);
+            } catch (e) { console.log("Áudio não suportado."); }
+        }
+
+        function reproduzirSomErro() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const now = audioCtx.currentTime;
+                const criarTomAlerta = (tempoInicio, frequencia) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(frequencia, tempoInicio);
+                    gain.gain.setValueAtTime(0.12, tempoInicio);
+                    gain.gain.exponentialRampToValueAtTime(0.01, tempoInicio + 0.08);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(tempoInicio);
+                    osc.stop(tempoInicio + 0.08);
+                };
+                criarTomAlerta(now, 180);
+                criarTomAlerta(now + 0.1, 140);
+            } catch (e) { console.log("Áudio não suportado."); }
+        }
 
         function reiniciarTemporizadorInatividade() {
             clearTimeout(temporizadorInatividade);
@@ -226,6 +349,7 @@
 
         requestDB.onsuccess = function(event) {
             db = event.target.result;
+            carregarArtigosExtras();
         };
 
         requestDB.onupgradeneeded = function(event) {
@@ -239,59 +363,89 @@
             if (!dbConnection.objectStoreNames.contains("imagens")) {
                 dbConnection.createObjectStore("imagens", { keyPath: "id", autoIncrement: true });
             }
+            if (!dbConnection.objectStoreNames.contains("artigos_extras")) {
+                dbConnection.createObjectStore("artigos_extras", { keyPath: "id", autoIncrement: true });
+            }
         };
 
         window.addEventListener('DOMContentLoaded', () => {
-            if (typeof dados !== 'undefined') {
-                const jaTemPolitica = dados.some(d => d.titulo.includes("Política Geral"));
-                if (!jaTemPolitica) {
-                    dados.push({
-                        titulo: "Política Geral em Angola: Funcionamento e Organização",
-                        categoria: "Instituições",
-                        conteudo: "A política geral de Angola rege-se pelos princípios do Estado Democrático e de Direito, consagrados na Constituição. O sistema político é de cariz presidencialista, onde o Presidente da República assume cumulativamente as funções de Chefe de Estado, Chefe do Executivo e Comandante-em-Chef das Forças Armadas. O Poder Legislativo é exercido pela Assembleia Nacional, um parlamento unicameral encarregue de legislar, aprovar o Orçamento Geral do Estado e fiscalizar a governação. A organização política baseia-se ainda na administração descentralizada através dos governos provinciais e das administrações municipais e locais, promovendo a participação cidadã e o desenvolvimento regional."
-                    });
-                }
-                const jaTemMinint = dados.some(d => d.titulo.includes("MININT"));
-                if (!jaTemMinint) {
-                    dados.push({
-                        titulo: "Como Funciona o MININT (Ministério do Interior)",
-                        categoria: "Minint",
-                        conteudo: "O Ministério do Interior (MININT) é o departamento ministerial auxiliar do Presidente da República encarregue de garantir a segurança pública, a ordem interna, a tranquilidade e a proteção das fronteiras nacionais. O seu funcionamento articula-se através de vários órgãos executivos centrais fundamentais, destacando-se: a Polícia Nacional de Angola (PNA), responsável pela manutenção da ordem pública; o Serviço de Investigação Criminal (SIC), focado no combate à criminalidade e investigação de delitos; o Serviço de Migração e Estrangeiros (SME), que controla o movimento migratório e fronteiriço; e o Serviço Penitenciário, responsável pela gestão e reinserção social nas unidades prisionais. O MININT coordena ainda a vertente da Proteção Civil e Bombeiros, atuando na prevenção e socorro em situações de calamidades."
-                    });
-                }
-
-                const jaTemMusicaApp = dados.some(d => d.categoria === "Música");
-                if (!jaTemMusicaApp) {
-                    dados.push({
-                        titulo: "Módulo de Músicas Pessoais",
-                        categoria: "Música",
-                        conteudo: "Crie pastas personalizadas, organize e reproduza as suas músicas favoritas de forma permanente no seu dispositivo.",
-                        isPlayerModulo: true
-                    });
-                }
-
-                const jaTemImagensApp = dados.some(d => d.categoria === "Imagens");
-                if (!jaTemImagensApp) {
-                    dados.push({
-                        titulo: "Módulo de Imagens Pessoais",
-                        categoria: "Imagens",
-                        conteudo: "Guarde e visualize as suas fotografias e imagens favoritas de forma permanente no seu telemóvel.",
-                        isGaleriaModulo: true
-                    });
-                }
-
-                listaFiltrada = [...dados];
-                carregarLista(listaFiltrada);
-            }
+            inicializarDadosBase();
             verificarSessaoUtilizador();
             configurarBotaoTodasDuploClique();
         });
 
+        function inicializarDadosBase() {
+            if (typeof dados === 'undefined') {
+                window.dados = [];
+            }
+            const jaTemPolitica = dados.some(d => d.titulo.includes("Política Geral"));
+            if (!jaTemPolitica) {
+                dados.push({
+                    titulo: "Política Geral em Angola: Funcionamento e Organização",
+                    categoria: "Instituições",
+                    conteudo: "A política geral de Angola rege-se pelos princípios do Estado Democrático e de Direito, consagrados na Constituição. O sistema político é de cariz presidencialista, onde o Presidente da República assume cumulativamente as funções de Chefe de Estado, Chefe do Executivo e Comandante-em-Chef das Forças Armadas. O Poder Legislativo é exercido pela Assembleia Nacional, um parlamento unicameral encarregue de legislar, aprovar o Orçamento Geral do Estado e fiscalizar a governação. A organização política baseia-se ainda na administração descentralizada através dos governos provinciais e das administrações municipais e locais, promovendo a participação cidadã e o desenvolvimento regional."
+                });
+            }
+            const jaTemMinint = dados.some(d => d.titulo.includes("MININT"));
+            if (!jaTemMinint) {
+                dados.push({
+                    titulo: "Como Funciona o MININT (Ministério do Interior)",
+                    categoria: "Minint",
+                    conteudo: "O Ministério do Interior (MININT) é o departamento ministerial auxiliar do Presidente da República encarregue de garantir a segurança pública, a ordem interna, a tranquilidade e a proteção das fronteiras nacionais. O seu funcionamento articula-se através de vários órgãos executivos centrais fundamentais, destacando-se: a Polícia Nacional de Angola (PNA), responsável pela manutenção da ordem pública; o Serviço de Investigação Criminal (SIC), focado no combate à criminalidade e investigação de delitos; o Serviço de Migração e Estrangeiros (SME), que controla o movimento migratório e fronteiriço; e o Serviço Penitenciário, responsável pela gestão e reinserção social nas unidades prisionais. O MININT coordena ainda a vertente da Proteção Civil e Bombeiros, atuando na prevenção e socorro em situações de calamidades."
+                });
+            }
+
+            const jaTemMusicaApp = dados.some(d => d.categoria === "Música");
+            if (!jaTemMusicaApp) {
+                dados.push({
+                    titulo: "Módulo de Músicas Pessoais",
+                    categoria: "Música",
+                    conteudo: "Crie pastas personalizadas, organize e reproduza as suas músicas favoritas de forma permanente no seu dispositivo.",
+                    isPlayerModulo: true
+                });
+            }
+
+            const jaTemImagensApp = dados.some(d => d.categoria === "Imagens");
+            if (!jaTemImagensApp) {
+                dados.push({
+                    titulo: "Módulo de Imagens Pessoais",
+                    categoria: "Imagens",
+                    conteudo: "Guarde e visualize as suas fotografias e imagens favoritas de forma permanente no seu telemóvel.",
+                    isGaleriaModulo: true
+                });
+            }
+
+            listaFiltrada = [...dados];
+            carregarLista(listaFiltrada);
+        }
+
+        function carregarArtigosExtras() {
+            if (!db) return;
+            let transaction = db.transaction(["artigos_extras"], "readonly");
+            let store = transaction.objectStore("artigos_extras");
+            let req = store.getAll();
+            req.onsuccess = function(e) {
+                let extras = e.target.result;
+                if (extras && extras.length > 0) {
+                    extras.forEach(artigo => {
+                        if (!dados.some(d => d.titulo === artigo.titulo)) {
+                            dados.push(artigo);
+                        }
+                    });
+                    listaFiltrada = [...dados];
+                    carregarLista(listaFiltrada);
+                }
+            };
+        }
+
+        // --- LÓGICA DO BOTÃO "TODAS" (Com imagem, margens zero, legenda com sombra e transição) ---
         function configurarBotaoTodasDuploClique() {
             const botoesAba = document.querySelectorAll('.tab-btn');
             botoesAba.forEach(btn => {
                 if (btn.innerText.includes("Todas")) {
                     btn.onclick = () => {
+                        reproduzirSomEspecial();
+
                         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                         btn.classList.add('active');
                         document.getElementById("inputPesquisa").value = "";
@@ -301,9 +455,27 @@
 
                         setTimeout(() => {
                             if (!estadoTodasOculto) {
-                                ul.innerHTML = "<li style='text-align:center; color:#cbd5e1;'>Frases ocultadas. Clica novamente no botão 'Todas' para voltar a mostrar.</li>";
-                                mostrarToast("Frases ocultadas!");
+                                ul.innerHTML = `
+                                    <li style='text-align:center; background:transparent; border:none; box-shadow:none; padding: 0; margin-left: -15px; margin-right: -15px; width: calc(100% + 30px);'>
+                                        <div id="blocoImagemEspecial" class="fade-imagem-container">
+                                            <p style='color:#cbd5e1; margin-bottom:10px; padding: 0 15px;'>Frases ocultadas.</p>
+                                            <div style='padding: 0 15px;'>
+                                                <img src='7415.png' alt='Imagem Oculta' style='max-width:100%; max-height:200px; border-radius:8px; border:1px solid #3b82f6;'>
+                                            </div>
+                                            <div style='background: rgba(15, 23, 42, 0.95); border-top: 1px solid #3b82f6; border-bottom: 1px solid #3b82f6; padding: 12px 20px; margin-top: 12px; width: 100%; box-sizing: border-box; text-align: left;'>
+                                                <p style='color: #facc15; font-size: 0.9rem; font-weight: bold; margin: 0; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);'>Legenda a tocar nas bordas do ecrã</p>
+                                            </div>
+                                        </div>
+                                    </li>`;
+                                
+                                mostrarToast("Frases ocultadas e imagem exibida!");
                                 estadoTodasOculto = true;
+
+                                setTimeout(() => {
+                                    const blocoEspecial = document.getElementById("blocoImagemEspecial");
+                                    if (blocoEspecial) blocoEspecial.classList.add("visivel");
+                                }, 50);
+
                             } else {
                                 listaFiltrada = [...dados];
                                 carregarLista(listaFiltrada);
@@ -337,7 +509,7 @@
                 <input type="text" id="nomeRegisto" placeholder="O seu Nome Completo">
                 <input type="text" id="contactoRegisto" placeholder="O seu Número / WhatsApp">
                 <input type="password" id="senhaRegisto" placeholder="Crie uma Senha (Mínimo 6)">
-                <button onclick="concluirCadastro()" style="margin-top: 5px;">Criar Conta</button>
+                <button onclick="reproduzirSomSucesso(); concluirCadastro()" style="margin-top: 5px;">Criar Conta</button>
             `);
         }
 
@@ -347,11 +519,13 @@
             const senha = document.getElementById("senhaRegisto").value.trim();
 
             if (nome === "" || contacto === "" || senha === "") {
+                reproduzirSomErro();
                 mostrarToast("Preencha todos os campos!");
                 return;
             }
 
             if (senha.length < 6) {
+                reproduzirSomErro();
                 mostrarToast("A senha deve ter 6+ carateres.");
                 return;
             }
@@ -377,8 +551,8 @@
                 <hr>
                 <p style="font-size: 0.9rem; margin-bottom: 12px;">Insira a sua senha de acesso:</p>
                 <input type="password" id="senhaLogin" placeholder="Digite a sua senha">
-                <button onclick="validarLogin()" style="margin-top: 5px;">Entrar</button>
-                <button onclick="esqueciMinhaSenha()" class="whatsapp-btn" style="margin-top: 5px;">💬 Esqueci-me da Senha</button>
+                <button onclick="reproduzirSomClique(); validarLogin()" style="margin-top: 5px;">Entrar</button>
+                <button onclick="reproduzirSomClique(); esqueciMinhaSenha()" class="whatsapp-btn" style="margin-top: 5px;">💬 Esqueci-me da Senha</button>
             `);
         }
 
@@ -387,29 +561,35 @@
             const senhaSalva = localStorage.getItem("utilizador_senha");
 
             if (!senhaDigitada) {
+                reproduzirSomErro();
                 mostrarToast("Digite a senha!");
                 return;
             }
 
             if (senhaDigitada === senhaSalva) {
+                reproduzirSomSucesso();
                 localStorage.setItem("sessao_ativa", "true");
                 fecharJanela();
                 mostrarToast("Sessão iniciada!");
             } else {
+                reproduzirSomErro();
                 mostrarToast("Senha incorreta!");
             }
         }
 
         function fecharJanela() {
+            reproduzirSomFechar();
             adminAutenticado = false;
             document.getElementById("modal").style.display = "none";
         }
 
         function fecharJanelaModal() {
+            reproduzirSomFechar();
             adminAutenticado = false;
             if (localStorage.getItem("utilizador_cadastrado") === "true" && localStorage.getItem("sessao_ativa") === "true") {
                 document.getElementById("modal").style.display = "none";
             } else {
+                reproduzirSomErro();
                 mostrarToast("Preencha o cadastro primeiro!");
             }
         }
@@ -422,6 +602,7 @@
         }
 
         function abrirJanelaFixa(html) {
+            reproduzirSomAbrir();
             document.getElementById("modalConteudo").innerHTML = html;
             document.getElementById("modal").style.display = "flex";
         }
@@ -438,7 +619,7 @@
                     itens.forEach((item) => {
                         const li = document.createElement("li");
                         li.innerHTML = `<strong>${item.titulo}</strong><br><span class="badge">${item.categoria}</span>`;
-                        li.onclick = () => mostrarDetalhes(item);
+                        li.onclick = () => { reproduzirSomClique(); mostrarDetalhes(item); };
                         ul.appendChild(li);
                     });
                 }
@@ -463,6 +644,7 @@
         }
 
         function filtrarPorAba(categoriaFiltro, elementoBotao) {
+            reproduzirSomClique();
             if (categoriaFiltro === 'Todas' && estadoTodasOculto) {
                 return;
             }
@@ -490,7 +672,6 @@
         function executarPesquisaBotao() {
             const termo = document.getElementById("inputPesquisa").value.trim();
             if (!termo) return;
-
             const urlPesquisa = "https://www.google.com/search?q=" + encodeURIComponent(termo);
             window.open(urlPesquisa, '_blank');
         }
@@ -515,7 +696,7 @@
             `);
         }
 
-        // --- PAINEL DE ADMINISTRADOR CENTRALIZADO ---
+        // --- PAINEL DE ADMINISTRADOR ---
         function abrirPainelAdmin(callbackSucesso) {
             if (adminAutenticado) {
                 callbackSucesso();
@@ -527,23 +708,74 @@
                 <p style="font-size: 0.9rem; margin-bottom: 12px;">Introduz a senha de administrador para autorizar esta ação:</p>
                 <input type="password" id="senhaPainelAdmin" placeholder="Senha do Administrador" style="padding:10px; font-size:0.9rem; margin-bottom:10px;">
                 <button onclick="verificarLoginAdmin(${callbackSucesso.name})" style="background:#059669; padding:10px; margin-bottom:6px;">Autenticar</button>
-                <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding: 10px;">Voltar</button>
+                <button onclick="fecharJanelaModal()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
             `);
         }
 
         function verificarLoginAdmin(funcaoDestino) {
             const senhaDigitada = document.getElementById("senhaPainelAdmin").value.trim();
             if (senhaDigitada === SENHA_ADMIN_OFICIAL) {
+                reproduzirSomSucesso();
                 adminAutenticado = true;
                 mostrarToast("Administrador autenticado!");
                 if (typeof funcaoDestino === "function") {
                     funcaoDestino();
-                } else {
-                    abrirLeitorMusica();
                 }
             } else {
+                reproduzirSomErro();
                 mostrarToast("Senha de administrador incorreta!");
             }
+        }
+
+        // --- ADICIONAR NOVO ARTIGO / CONTEÚDO ---
+        function abrirFormularioAdicionar() {
+            abrirPainelAdmin(function executarFormularioAdicionar() {
+                abrirJanelaFixa(`
+                    <h2>➕ Adicionar Novo Artigo</h2>
+                    <hr>
+                    <input type="text" id="novoTitulo" placeholder="Título do Artigo">
+                    <select id="novaCategoria" style="padding:14px; margin-bottom:12px; border:1px solid #3b82f6; border-radius:8px; box-sizing:border-box; font-size:1rem; background:#151c2f; color:#ffffff;">
+                        <option value="História">📜 História</option>
+                        <option value="Cidadania">🇦🇴 Patriotismo</option>
+                        <option value="Instituições">🏛️ Política</option>
+                        <option value="Administração">📋 Administração Pública</option>
+                        <option value="Minint">🛡️ MININT</option>
+                    </select>
+                    <textarea id="novoConteudo" placeholder="Conteúdo completo do artigo..."></textarea>
+                    <button onclick="reproduzirSomSucesso(); guardarNovoArtigo()" style="background:#059669; margin-top:5px;">💾 Guardar Artigo</button>
+                    <button onclick="fecharJanelaModal()" class="secondary-btn" style="margin-top:5px;">Cancelar</button>
+                `);
+            });
+        }
+
+        function guardarNovoArtigo() {
+            const titulo = document.getElementById("novoTitulo").value.trim();
+            const categoria = document.getElementById("novaCategoria").value;
+            const conteudo = document.getElementById("novoConteudo").value.trim();
+
+            if (!titulo || !conteudo) {
+                reproduzirSomErro();
+                mostrarToast("Preencha o título e o conteúdo!");
+                return;
+            }
+
+            let novoArtigo = { titulo, categoria, conteudo };
+
+            let transaction = db.transaction(["artigos_extras"], "readwrite");
+            let store = transaction.objectStore("artigos_extras");
+            let req = store.add(novoArtigo);
+
+            req.onsuccess = function() {
+                dados.push(novoArtigo);
+                listaFiltrada = [...dados];
+                carregarLista(listaFiltrada);
+                mostrarToast("Artigo adicionado com sucesso!");
+                fecharJanelaModal();
+            };
+            req.onerror = function() {
+                reproduzirSomErro();
+                mostrarToast("Erro ao guardar o artigo na base de dados.");
+            };
         }
 
         // --- MÓDULO DE MÚSICA ---
@@ -574,7 +806,6 @@
                     htmlMusicas += `</div>`;
                     htmlMusicas += `<hr>`;
 
-                    // Se estivermos a visualizar uma pasta específica
                     if (pastaAbertaNome) {
                         htmlMusicas += `<button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding:8px; margin-bottom:8px;">⬅️ Voltar às Pastas</button>`;
                         htmlMusicas += `<h3>📁 ${pastaAbertaNome}</h3>`;
@@ -593,7 +824,6 @@
                             });
                         }
                     } else {
-                        // Vista geral (Pastas + Músicas sem pasta)
                         htmlMusicas += `<p style="font-size:0.85rem; color:#475569;">As tuas pastas e músicas guardadas:</p>`;
                         
                         if (pastasSalvas.length > 0) {
@@ -647,11 +877,9 @@
                         let req = store.add({ nome: file.name, dados: base64Data, pasta: null });
 
                         req.onsuccess = function() {
+                            reproduzirSomSucesso();
                             mostrarToast("Música adicionada com sucesso!");
                             abrirLeitorMusica();
-                        };
-                        req.onerror = function() {
-                            mostrarToast("Erro ao guardar a música na base de dados.");
                         };
                     };
                     reader.readAsDataURL(file);
@@ -670,11 +898,9 @@
                 let req = store.add({ nome: nomePasta.trim() });
 
                 req.onsuccess = function() {
+                    reproduzirSomSucesso();
                     mostrarToast("Pasta criada com sucesso!");
                     abrirLeitorMusica();
-                };
-                req.onerror = function() {
-                    mostrarToast("Erro ao criar a pasta.");
                 };
             });
         }
@@ -684,6 +910,7 @@
             let store = transaction.objectStore("musicas");
             let req = store.delete(id);
             req.onsuccess = function() {
+                reproduzirSomSucesso();
                 mostrarToast("Música eliminada!");
                 abrirLeitorMusica();
             };
@@ -694,6 +921,7 @@
             let store = transaction.objectStore("pastas");
             let req = store.delete(id);
             req.onsuccess = function() {
+                reproduzirSomSucesso();
                 mostrarToast("Pasta eliminada!");
                 abrirLeitorMusica();
             };
@@ -710,7 +938,8 @@
             audioAtual.play().then(() => {
                 mostrarToast(`A reproduzir: ${nome}`);
             }).catch(err => {
-                mostrarToast("Erro ao reproduzir o aúdio.");
+                reproduzirSomErro();
+                mostrarToast("Erro ao reproduzir o áudio.");
             });
         }
 
@@ -766,6 +995,7 @@
                         let req = store.add({ nome: file.name, dados: base64Data });
 
                         req.onsuccess = function() {
+                            reproduzirSomSucesso();
                             mostrarToast("Imagem guardada com sucesso!");
                             abrirGaleriaImagens();
                         };
@@ -791,12 +1021,13 @@
             let store = transaction.objectStore("imagens");
             let req = store.delete(id);
             req.onsuccess = function() {
+                reproduzirSomSucesso();
                 mostrarToast("Imagem eliminada!");
                 abrirGaleriaImagens();
             };
         }
 
-        // --- SUBMENU DIREITO (AJUDAS E DEFINIÇÕES) ---
+        // --- SUBMENU DIREITO (MENU / OPÇÕES) ---
         function abrirSubmenuDireito() {
             let nomeUtilizador = localStorage.getItem("utilizador_nome") || "Não registado";
             let contactoUtilizador = localStorage.getItem("utilizador_contacto") || "Sem contacto";
@@ -818,7 +1049,7 @@
             abrirJanelaFixa(`
                 <h2>ℹ️ Sobre o Angola 2026</h2>
                 <hr>
-                <p style="font-size:0.9rem; line-height:1.4;">Aplicação desenvolvida para consulta de conteúdos históricos, cívicos, institucionais e gestão multimédia pessoal (Músicas e Imagens).</p>
+                <p style="font-size:0.9rem; line-height:1.4;">Aplicação desenvolvida para consulta de conteúdos históricos, cívicos, institucionais e gestão multimédia pessoal.</p>
                 <p style="font-size:0.9rem;"><strong>Criador:</strong> ${MEU_TITULAR}</p>
                 <p style="font-size:0.9rem;"><strong>Contacto:</strong> ${MEU_TELEFONE}</p>
                 <br>
@@ -842,14 +1073,10 @@
             abrirJanelaFixa(`
                 <h2>📜 Termos de Uso</h2>
                 <hr>
-                <p style="font-size:0.85rem; line-height:1.4;">Esta aplicação armazena dados localmente no seu dispositivo utilizando IndexedDB e LocalStorage. Os conteúdos multimédia adicionados são da inteira responsabilidade do utilizador.</p>
+                <p style="font-size:0.85rem; line-height:1.4;">Esta aplicação armazena dados localmente no seu dispositivo utilizando IndexedDB e LocalStorage.</p>
                 <br>
                 <button onclick="abrirSubmenuDireito()" class="secondary-btn">Voltar</button>
             `);
-        }
-
-        function abrirMenu() {
-            abrirSubmenuDireito();
         }
     </script>
 </body>
