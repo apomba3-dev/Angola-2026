@@ -37,7 +37,7 @@
         .search-action-btn { width: auto; padding: 0 16px; margin-bottom: 0; background: #1d4ed8; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; border: none; color: white; }
         .search-action-btn:active { background: #1e3a8a; }
 
-        input[type="password"], input[type="number"], input[type="file"], textarea, button { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #3b82f6; border-radius: 8px; box-sizing: border-box; font-size: 1rem; background: #151c2f; color: #ffffff; }
+        input[type="password"], input[type="number"], textarea, button { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #3b82f6; border-radius: 8px; box-sizing: border-box; font-size: 1rem; background: #151c2f; color: #ffffff; }
         input::placeholder, textarea::placeholder { color: #94a3b8; }
         textarea { resize: vertical; height: 100px; font-family: inherit; }
         button { background: #1d4ed8; color: white; border: none; font-weight: bold; cursor: pointer; }
@@ -161,7 +161,6 @@
             <button class="search-action-btn" onclick="executarPesquisaBotao()" title="Pesquisar na Web">🔎</button>
         </div>
         
-        <!-- Abas com todas as categorias -->
         <div class="tabs-container">
             <button class="tab-btn active" onclick="filtrarPorAba('Todas', this)">🔄 Todas</button>
             <button class="tab-btn" onclick="filtrarPorAba('História', this)">📜 História</button>
@@ -174,7 +173,6 @@
 
         <ul id="listaArtigos"></ul>
 
-        <!-- Container da imagem fo.png ocupando o ecrã completo com botão de download -->
         <div id="containerImagemOculta" style="display: none; text-align: center; margin-top: 5px;">
             <img id="imagemFundoPrincipal" src="fo.png" alt="Imagem Oculta" style="width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px; border: 1px solid rgba(203, 213, 225, 0.9); box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: block; margin: 0 auto;">
             <p style="margin-top: 15px; font-size: 1.25rem; font-weight: bold; color: #93c5fd; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">📚 Continua a estudar</p>
@@ -187,6 +185,11 @@
     <div id="modal" class="modal">
         <div class="modal-content" id="modalConteudo"></div>
     </div>
+
+    <!-- Inputs ocultos para abrir diretamente o gestor de ficheiros (Files) do telemóvel -->
+    <input type="file" id="inputFicheiroMusica" accept="audio/*" style="display:none;" onchange="guardarMusicaSelecionada(event)">
+    <input type="file" id="inputFicheiroVideo" accept="video/*" style="display:none;" onchange="guardarVideoSelecionado(event)">
+    <input type="file" id="inputFicheiroImagem" accept="image/*" style="display:none;" onchange="guardarImagemSelecionada(event)">
 
     <script>
         const MEU_TITULAR = "Artur Jamba Pomba";
@@ -201,8 +204,8 @@
         let deferredPrompt = null;
         let temporizadorInatividade;
         const TEMPO_LIMITE_MINUTOS = 3;
+        let pastaSelecionadaAtual = "Geral";
 
-        // Registo automático do Service Worker para funcionamento Offline
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
@@ -211,14 +214,12 @@
             });
         }
 
-        // Capturar o evento de instalação do PWA
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
             mostrarToast("App pronto para instalar!");
         });
 
-        // Base de dados interna completa
         let dados = [
             {
                 titulo: "História de Angola: Da Resistência à Independência",
@@ -233,7 +234,7 @@
             {
                 titulo: "Instituições da República de Angola",
                 categoria: "Instituições",
-                conteudo: "As instituições da República de Angola fundamentam-se no respeito pela Constituição e pela lei, estruturando-se com base no princípio da separação de poderes e interdependência de funções. Os órgãos de soberania são o Presidente da República, a Assembleia Nacional e os Tribunais. O Presidente da República é o Chefe de Estado, Titular do Poder Executivo e Comandante-em-Chefe das Forças Armadas Angolanas (FAA). A Assembleia Nacional constitui o parlamento unicameral, responsável pela função legislativa, aprovação do Orçamento Geral do Estado e fiscalização política da governação. Os Tribunais administram a justiça em nome do povo, destacando-se o Tribunal Supremo, o Tribunal Constitucional e o Tribunal de Contas."
+                conteudo: "As instituições da República de Angola fundamentam-se no respeito pela Constituição e pela lei, estruturando-se com base no princípio da separação de poderes e interdependência de funções. Os órgãos de soberania são o Presidente da República, a Assembleia Nacional e os Tribunais. O Presidente da República é o Chefe de Estado, Titular do Poder Executivo e Comandante-em-Chef das Forças Armadas Angolanas (FAA). A Assembleia Nacional constitui o parlamento unicameral, responsável pela função legislativa, aprovação do Orçamento Geral do Estado e fiscalização política da governação. Os Tribunais administram a justiça em nome do povo, destacando-se o Tribunal Supremo, o Tribunal Constitucional e o Tribunal de Contas."
             },
             {
                 titulo: "Organização do Estado Angolano",
@@ -703,38 +704,42 @@
                     <h2>📤 Enviar Música</h2>
                     <hr>
                     <label style="font-size:0.85rem; color:#1e3a8a; display:block; margin-bottom:4px;"><b>PASTA DE DESTINO:</b></label>
-                    <select id="selectPastaUpload" style="width:100%; padding:10px; border-radius:6px; background:rgba(248, 250, 252, 0.9); color:#0f172a; border:1px solid #cbd5e1; font-size:0.95rem; margin-bottom:8px;">
+                    <select id="selectPastaUpload" style="width:100%; padding:10px; border-radius:6px; background:rgba(248, 250, 252, 0.9); color:#0f172a; border:1px solid #cbd5e1; font-size:0.95rem; margin-bottom:12px;">
                         ${htmlPastas}
                     </select>
-                    <input type="file" id="ficheiroMusica" accept="audio/*" style="margin-bottom:8px; font-size:0.9rem;">
-                    <button onclick="guardarMusicaDB()" style="background:#059669; padding:10px; margin-bottom:6px;">Confirmar Envio</button>
+                    <button onclick="dispararSeletorMusica()" style="background:#059669; padding:12px; margin-bottom:6px;">📁 Escolher Ficheiro (Files)</button>
                     <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding:10px;">Cancelar</button>
                 `);
             };
         }
 
-        function guardarMusicaDB() {
-            const ficheiro = document.getElementById("ficheiroMusica").files[0];
-            if (!ficheiro) {
-                mostrarToast("Selecione um ficheiro de áudio!");
-                return;
-            }
+        function dispararSeletorMusica() {
             const selectPasta = document.getElementById("selectPastaUpload");
-            let pastaEscolhida = selectPasta ? selectPasta.value : "Geral";
+            if (selectPasta) {
+                pastaSelecionadaAtual = selectPasta.value;
+            }
+            fecharJanelaModal();
+            document.getElementById("inputFicheiroMusica").click();
+        }
+
+        function guardarMusicaSelecionada(event) {
+            const ficheiro = event.target.files[0];
+            if (!ficheiro) return;
 
             let transaction = db.transaction(["musicas"], "readwrite");
             let store = transaction.objectStore("musicas");
             
             let novaMusica = {
                 nome: ficheiro.name,
-                pasta: pastaEscolhida,
+                pasta: pastaSelecionadaAtual,
                 blob: ficheiro
             };
 
             let request = store.add(novaMusica);
             request.onsuccess = function() {
-                mostrarToast(`Guardado em "${pastaEscolhida}"!`);
-                abrirLeitorMusica(pastaEscolhida);
+                mostrarToast(`Guardado em "${pastaSelecionadaAtual}"!`);
+                event.target.value = ""; // Limpa o input
+                abrirLeitorMusica(pastaSelecionadaAtual);
             };
         }
 
@@ -914,28 +919,19 @@
                 abrirPainelAdmin(tentarFazerUploadVideo);
                 return;
             }
-            abrirJanelaFixa(`
-                <h2>📤 Enviar Vídeo</h2>
-                <hr>
-                <input type="text" id="tituloVideo" placeholder="Título do vídeo" style="padding:10px; font-size:0.9rem; margin-bottom:8px;">
-                <input type="file" id="ficheiroVideo" accept="video/*" style="margin-bottom:8px; font-size:0.9rem;">
-                <button onclick="guardarVideoDB()" style="background:#059669; padding:10px; margin-bottom:6px;">Confirmar Envio</button>
-                <button onclick="abrirGestorVideos()" class="secondary-btn" style="padding:10px;">Cancelar</button>
-            `);
+            fecharJanelaModal();
+            document.getElementById("inputFicheiroVideo").click();
         }
 
-        function guardarVideoDB() {
-            const ficheiro = document.getElementById("ficheiroVideo").files[0];
-            if (!ficheiro) {
-                mostrarToast("Selecione um ficheiro de vídeo!");
-                return;
-            }
-            let titulo = document.getElementById("tituloVideo").value.trim();
-            if (!titulo) titulo = ficheiro.name;
+        function guardarVideoSelecionado(event) {
+            const ficheiro = event.target.files[0];
+            if (!ficheiro) return;
 
+            let titulo = ficheiro.name;
             let transaction = db.transaction(["videos"], "readwrite");
             transaction.objectStore("videos").add({ titulo: titulo, blob: ficheiro }).onsuccess = function() {
                 mostrarToast("Vídeo guardado!");
+                event.target.value = "";
                 abrirGestorVideos();
             };
         }
@@ -1018,28 +1014,19 @@
                 abrirPainelAdmin(tentarFazerUploadImagem);
                 return;
             }
-            abrirJanelaFixa(`
-                <h2>📤 Enviar Imagem</h2>
-                <hr>
-                <input type="text" id="tituloImagem" placeholder="Título da imagem" style="padding:10px; font-size:0.9rem; margin-bottom:8px;">
-                <input type="file" id="ficheiroImagem" accept="image/*" style="margin-bottom:8px; font-size:0.9rem;">
-                <button onclick="guardarImagemDB()" style="background:#059669; padding:10px; margin-bottom:6px;">Confirmar Envio</button>
-                <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding:10px;">Cancelar</button>
-            `);
+            fecharJanelaModal();
+            document.getElementById("inputFicheiroImagem").click();
         }
 
-        function guardarImagemDB() {
-            const ficheiro = document.getElementById("ficheiroImagem").files[0];
-            if (!ficheiro) {
-                mostrarToast("Selecione um ficheiro de imagem!");
-                return;
-            }
-            let titulo = document.getElementById("tituloImagem").value.trim();
-            if (!titulo) titulo = ficheiro.name;
+        function guardarImagemSelecionada(event) {
+            const ficheiro = event.target.files[0];
+            if (!ficheiro) return;
 
+            let titulo = ficheiro.name;
             let transaction = db.transaction(["imagens"], "readwrite");
             transaction.objectStore("imagens").add({ titulo: titulo, blob: ficheiro }).onsuccess = function() {
                 mostrarToast("Imagem guardada!");
+                event.target.value = "";
                 abrirGaleriaImagens();
             };
         }
