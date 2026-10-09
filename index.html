@@ -173,6 +173,7 @@
             <button class="tab-btn" onclick="filtrarPorAba('Administração', this)">📋 Adm. Pública</button>
             <button class="tab-btn" onclick="filtrarPorAba('Minint', this)">🛡️ MININT</button>
             <button class="tab-btn" onclick="filtrarPorAba('Música', this)">🎵 Músicas</button>
+            <button class="tab-btn" onclick="filtrarPorAba('Vídeos', this)">🎥 Vídeos</button>
             <button class="tab-btn" onclick="filtrarPorAba('Imagens', this)">🖼️ Imagens</button>
         </div>
 
@@ -234,7 +235,7 @@
         }
 
         let db;
-        const requestDB = indexedDB.open("AngolaAppDB", 3);
+        const requestDB = indexedDB.open("AngolaAppDB", 4); // Versão incrementada para 4 para criar o store de vídeos
 
         requestDB.onerror = function(event) {
             console.log("Erro ao abrir a base de dados IndexedDB");
@@ -254,6 +255,9 @@
             }
             if (!dbConnection.objectStoreNames.contains("imagens")) {
                 dbConnection.createObjectStore("imagens", { keyPath: "id", autoIncrement: true });
+            }
+            if (!dbConnection.objectStoreNames.contains("videos")) {
+                dbConnection.createObjectStore("videos", { keyPath: "id", autoIncrement: true });
             }
         };
 
@@ -283,6 +287,16 @@
                         categoria: "Música",
                         conteudo: "Crie pastas personalizadas, organize e reproduza as suas músicas favoritas de forma permanente no seu dispositivo.",
                         isPlayerModulo: true
+                    });
+                }
+
+                const jaTemVideosApp = dados.some(d => d.categoria === "Vídeos");
+                if (!jaTemVideosApp) {
+                    dados.push({
+                        titulo: "Módulo de Vídeos Pessoais",
+                        categoria: "Vídeos",
+                        conteudo: "Guarde, organize e reproduza os seus vídeos favoritos de forma permanente no seu telemóvel.",
+                        isVideoModulo: true
                     });
                 }
 
@@ -521,6 +535,10 @@
                 abrirLeitorMusica();
                 return;
             }
+            if (item.isVideoModulo) {
+                abrirGestorVideos();
+                return;
+            }
             if (item.isGaleriaModulo) {
                 abrirGaleriaImagens();
                 return;
@@ -548,7 +566,7 @@
                 <p style="font-size: 0.9rem; margin-bottom: 12px;">Introduz a senha de administrador para autorizar esta ação:</p>
                 <input type="password" id="senhaPainelAdmin" placeholder="Senha do Administrador" style="padding:10px; font-size:0.9rem; margin-bottom:10px;">
                 <button onclick="verificarLoginAdmin(${callbackSucesso.name})" style="background:#059669; padding:10px; margin-bottom:6px;">Autenticar</button>
-                <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding: 10px;">Voltar</button>
+                <button onclick="fecharJanelaModal()" class="secondary-btn" style="padding: 10px;">Voltar</button>
             `);
         }
 
@@ -560,7 +578,7 @@
                 if (typeof funcaoDestino === "function") {
                     funcaoDestino();
                 } else {
-                    abrirLeitorMusica();
+                    fecharJanelaModal();
                 }
             } else {
                 mostrarToast("Senha de administrador incorreta!");
@@ -844,6 +862,107 @@
             };
         }
 
+        // --- MÓDULO DE VÍDEOS ---
+        function abrirGestorVideos() {
+            if (!db) {
+                setTimeout(abrirGestorVideos, 500);
+                return;
+            }
+
+            let transaction = db.transaction(["videos"], "readonly");
+            transaction.objectStore("videos").getAll().onsuccess = function(event) {
+                let videosSalvos = event.target.result;
+                
+                let htmlVideos = `<h2>🎥 Gestor de Vídeos</h2>`;
+                htmlVideos += `<button onclick="tentarFazerUploadVideo()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar Vídeo</button>`;
+                htmlVideos += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
+
+                if (videosSalvos.length === 0) {
+                    htmlVideos += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem vídeos guardados.</p>`;
+                } else {
+                    videosSalvos.forEach((videoItem) => {
+                        let urlVid = URL.createObjectURL(videoItem.blob);
+                        htmlVideos += `<div style="background:rgba(248, 250, 252, 0.9); border:1px solid #cbd5e1; padding:6px; margin-bottom:6px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px;" title="${videoItem.titulo}">🎬 ${videoItem.titulo}</span>
+                            <div>
+                                <button onclick='reproduzirVideoCompleta("${urlVid}", "${videoItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#059669;" title="Ver">▶</button>
+                                <button onclick='tentarApagarVideo(${videoItem.id}, "${videoItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+                htmlVideos += `</div>`;
+                htmlVideos += `<br><button onclick="fecharJanelaModal()" class="secondary-btn" style="padding:10px;">Fechar</button>`;
+                
+                abrirJanelaFixa(htmlVideos);
+            };
+        }
+
+        function tentarFazerUploadVideo() {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(tentarFazerUploadVideo);
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>📤 Enviar Vídeo</h2>
+                <hr>
+                <input type="text" id="tituloVideo" placeholder="Título do vídeo" style="padding:10px; font-size:0.9rem; margin-bottom:8px;">
+                <input type="file" id="ficheiroVideo" accept="video/*" style="margin-bottom:8px; font-size:0.9rem;">
+                <button onclick="guardarVideoDB()" style="background:#059669; padding:10px; margin-bottom:6px;">Confirmar Envio</button>
+                <button onclick="abrirGestorVideos()" class="secondary-btn" style="padding:10px;">Cancelar</button>
+            `);
+        }
+
+        function guardarVideoDB() {
+            const ficheiro = document.getElementById("ficheiroVideo").files[0];
+            if (!ficheiro) {
+                mostrarToast("Selecione um ficheiro de vídeo!");
+                return;
+            }
+            let titulo = document.getElementById("tituloVideo").value.trim();
+            if (!titulo) titulo = ficheiro.name;
+
+            let transaction = db.transaction(["videos"], "readwrite");
+            transaction.objectStore("videos").add({ titulo: titulo, blob: ficheiro }).onsuccess = function() {
+                mostrarToast("Vídeo guardado!");
+                abrirGestorVideos();
+            };
+        }
+
+        function tentarApagarVideo(id, tituloVid) {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(() => tentarApagarVideo(id, tituloVid));
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>⚠️ Eliminar Vídeo</h2>
+                <hr>
+                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar:</p>
+                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; word-break: break-all;">🎬 ${tituloVid}</p>
+                <button onclick="apagarVideoDB(${id})" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Eliminar</button>
+                <button onclick="abrirGestorVideos()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
+            `);
+        }
+
+        function apagarVideoDB(id) {
+            let transaction = db.transaction(["videos"], "readwrite");
+            transaction.objectStore("videos").delete(id).onsuccess = function() {
+                mostrarToast("Vídeo eliminado!");
+                abrirGestorVideos();
+            };
+        }
+
+        function reproduzirVideoCompleta(url, titulo) {
+            abrirJanelaFixa(`
+                <h2>🎬 ${titulo}</h2>
+                <hr>
+                <div style="text-align:center; margin-bottom:10px;">
+                    <video src="${url}" controls autoplay style="width:100%; max-height:220px; border-radius:6px; background:#000;" alt="Vídeo"></video>
+                </div>
+                <button onclick="abrirGestorVideos()" class="secondary-btn" style="padding: 10px;">⬅ Voltar</button>
+            `);
+        }
+
         // --- MÓDULO DE IMAGENS ---
         function abrirGaleriaImagens() {
             if (!db) {
@@ -975,6 +1094,7 @@
                 <hr>
                 <button onclick="abrirSubmenuSaude()" style="padding:10px;">🩺 Saúde</button>
                 <button onclick="abrirLeitorMusica()" style="padding:10px;">🎵 Músicas</button>
+                <button onclick="abrirGestorVideos()" style="padding:10px;">🎥 Vídeos</button>
                 <button onclick="abrirGaleriaImagens()" style="padding:10px;">🖼️ Imagens</button>
                 <button onclick="abrirChat()" style="padding:10px;">💬 Chat Dev</button>
                 <br>
@@ -1015,7 +1135,7 @@
             abrirJanelaFixa(`
                 <h2>❓ Ajuda</h2>
                 <hr>
-                <p style="font-size: 0.85rem; margin-bottom: 10px;">Use o menu para gerir músicas, imagens e ferramentas.</p>
+                <p style="font-size: 0.85rem; margin-bottom: 10px;">Use o menu para gerir músicas, vídeos, imagens e ferramentas.</p>
                 <textarea id="textoFeedback" placeholder="Deixe a sua mensagem..." style="font-size:0.9rem; height:80px;"></textarea>
                 <button onclick="enviarFeedback()" class="whatsapp-btn" style="padding:10px;">💬 Enviar WhatsApp</button>
                 <br>
