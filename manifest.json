@@ -1,9 +1,21 @@
 {
   "name": "Angola 2026",
-  "short_name": "Angola2026",
+  "short_name": "Angola 2026",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f5f5f7",
-  "theme_color": "#004d40",
-  "icons": []
+  "background_color": "#2c0505",
+  "theme_color": "#090d16",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "fo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "fo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
