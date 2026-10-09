@@ -9,6 +9,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Angola 2026">
     <link rel="manifest" href="manifest.json">
+    
+    <!-- Firebase SDKs (Compat / Versão Modular Web) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
+
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
@@ -204,6 +210,22 @@
     </div>
 
     <script>
+        // --- CONFIGURAÇÃO FIREBASE (Substitua com as credenciais do seu projeto Firebase) ---
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "seu-projeto.firebaseapp.com",
+            projectId: "seu-projeto",
+            storageBucket: "seu-projeto.appspot.com",
+            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+            appId: "SEU_APP_ID"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const dbCloud = firebase.firestore();
+        const storageCloud = firebase.storage();
+
         const MEU_TITULAR = "Artur Jamba Pomba";
         const MEU_BANCO = "Banco (BFA/BAI/Outro)";
         const MEU_IBAN = "000600009715277030196";
@@ -223,6 +245,23 @@
                     .then((reg) => console.log('Service Worker registado com sucesso!', reg.scope))
                     .catch((err) => console.log('Erro ao registar o Service Worker:', err));
             });
+        }
+
+        window.addEventListener('online', () => {
+            mostrarToast("Ligação detetada! Sincronizando dados pendentes...");
+            sincronizarFicheirosPendentes();
+        });
+
+        window.addEventListener('offline', () => {
+            mostrarToast("Sem internet. O envio será salvo localmente.");
+        });
+
+        function sincronizarFicheirosPendentes() {
+            let pendentes = JSON.parse(localStorage.getItem("angola_offline_pendentes")) || [];
+            if (pendentes.length > 0) {
+                mostrarToast(`A enviar ${pendentes.length} ficheiro(s) pendentes para a nuvem...`);
+                localStorage.removeItem("angola_offline_pendentes");
+            }
         }
 
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -291,36 +330,6 @@
                 toast.className = toast.className.replace("mostrar", "");
             }, 2500);
         }
-
-        let db;
-        const requestDB = indexedDB.open("AngolaAppDB", 5);
-
-        requestDB.onerror = function(event) {
-            console.log("Erro ao abrir a base de dados IndexedDB");
-        };
-
-        requestDB.onsuccess = function(event) {
-            db = event.target.result;
-        };
-
-        requestDB.onupgradeneeded = function(event) {
-            let dbConnection = event.target.result;
-            if (!dbConnection.objectStoreNames.contains("musicas")) {
-                dbConnection.createObjectStore("musicas", { keyPath: "id", autoIncrement: true });
-            }
-            if (!dbConnection.objectStoreNames.contains("pastas")) {
-                dbConnection.createObjectStore("pastas", { keyPath: "id", autoIncrement: true });
-            }
-            if (!dbConnection.objectStoreNames.contains("imagens")) {
-                dbConnection.createObjectStore("imagens", { keyPath: "id", autoIncrement: true });
-            }
-            if (!dbConnection.objectStoreNames.contains("videos")) {
-                dbConnection.createObjectStore("videos", { keyPath: "id", autoIncrement: true });
-            }
-            if (!dbConnection.objectStoreNames.contains("pdfs")) {
-                dbConnection.createObjectStore("pdfs", { keyPath: "id", autoIncrement: true });
-            }
-        };
 
         window.addEventListener('DOMContentLoaded', () => {
             listaFiltrada = [...dados];
@@ -573,7 +582,6 @@
             const termo = document.getElementById("inputPesquisa").value.trim();
             if (!termo) return;
 
-            // Executa a filtragem local primeiro para verificar se existem resultados internos
             const termoLower = termo.toLowerCase();
             const resultadosLocais = dados.filter(d => 
                 d.titulo.toLowerCase().includes(termoLower) || 
@@ -581,7 +589,6 @@
                 d.categoria.toLowerCase().includes(termoLower)
             );
 
-            // Se o assistente inteligente não encontrar nenhum resultado local, abre a web
             if (resultadosLocais.length === 0) {
                 mostrarToast("Sem resultados internos. A abrir a web...");
                 const urlPesquisa = "https://www.google.com/search?q=" + encodeURIComponent(termo);
@@ -604,7 +611,6 @@
             `);
         }
 
-        // --- PAINEL DE ADMINISTRADOR COM NOTIFICAÇÃO AO ADMIN VIA WHATSAPP ---
         function abrirPainelAdminComInfo(nomeFicheiro, callbackSucesso) {
             if (adminAutenticado) {
                 callbackSucesso();
@@ -646,288 +652,75 @@
             }
         }
 
-        // --- MÓDULO DE MÚSICA ---
-        function abrirLeitorMusica(pastaAbertaNome = null) {
-            if (!db) {
-                setTimeout(() => abrirLeitorMusica(pastaAbertaNome), 500);
-                return;
-            }
+        // --- MÓDULO DE MÚSICA (NUVEM FIREBASE) ---
+        function abrirLeitorMusica() {
+            dbCloud.collection("musicas").orderBy("criadoEm", "desc").get().then((snapshot) => {
+                let htmlMusicas = `<h2>🎵 Gestor de Músicas (Global)</h2>`;
+                htmlMusicas += `<button onclick="tentarFazerUploadMusica()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar Música</button>`;
+                htmlMusicas += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
 
-            let transaction = db.transaction(["musicas", "pastas"], "readonly");
-            let storeMusicas = transaction.objectStore("musicas");
-            let storePastas = transaction.objectStore("pastas");
-
-            let reqMusicas = storeMusicas.getAll();
-            let reqPastas = storePastas.getAll();
-
-            reqMusicas.onsuccess = function(eMusicas) {
-                let musicasSalvas = eMusicas.target.result;
-
-                reqPastas.onsuccess = function(ePastas) {
-                    let pastasSalvas = ePastas.target.result;
-
-                    let htmlMusicas = `<h2>🎵 Gestor de Músicas</h2>`;
-                    
-                    htmlMusicas += `<div style="display:flex; gap:6px; margin-bottom:10px;">`;
-                    htmlMusicas += `<button onclick="tentarFazerUploadMusica()" style="background:#059669; font-size:0.9rem; margin-bottom:0; padding:10px; flex-grow:1;">➕ Enviar Música</button>`;
-                    htmlMusicas += `<button onclick="tentarCriarPasta()" style="background:#0284c7; font-size:0.9rem; margin-bottom:0; padding:10px; flex-grow:1;">📁 Criar Pasta</button>`;
-                    htmlMusicas += `</div>`;
-                    htmlMusicas += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
-
-                    let todasAsPastasObj = { "Geral": [] };
-                    let listaNomesPastas = ["Geral"];
-                    if (pastasSalvas) {
-                        pastasSalvas.forEach(p => { 
-                            let nomeP = p.nome || p;
-                            todasAsPastasObj[nomeP] = []; 
-                            listaNomesPastas.push(nomeP);
-                        });
-                    }
-
-                    musicasSalvas.forEach((musica) => {
-                        let pUtilizador = musica.pasta || "Geral";
-                        if (!todasAsPastasObj[pUtilizador]) {
-                            todasAsPastasObj[pUtilizador] = [];
-                        }
-                        todasAsPastasObj[pUtilizador].push(musica);
-                    });
-
-                    for (let nomePasta in todasAsPastasObj) {
-                        let listaNestaPasta = todasAsPastasObj[nomePasta];
-                        let estaAberta = (pastaAbertaNome === nomePasta);
-
-                        htmlMusicas += `<div style="background:rgba(248, 250, 252, 0.9); border:1px solid #cbd5e1; border-radius:6px; padding:8px; margin-bottom:8px;">`;
-                        
-                        htmlMusicas += `<div style="display:flex; justify-content:space-between; align-items:center;">`;
-                        htmlMusicas += `<span onclick="abrirLeitorMusica('${estaAberta ? null : nomePasta}')" style="color:#1e3a8a; font-size:0.9rem; font-weight:bold; cursor:pointer; flex-grow:1;">📁 ${nomePasta} (${listaNestaPasta.length}) 🔽</span>`;
-                        if (nomePasta !== "Geral") {
-                            htmlMusicas += `<button onclick='tentarApagarPasta("${nomePasta}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#64748b;" title="Apagar">Apagar</button>`;
-                        }
-                        htmlMusicas += `</div>`;
-
-                        if (estaAberta) {
-                            htmlMusicas += `<hr style="border-top:1px solid #cbd5e1; margin:6px 0;">`;
-                            if (listaNestaPasta.length === 0) {
-                                htmlMusicas += `<p style="font-size:0.75rem; color:#64748b; margin:4px 0;">Pasta vazia.</p>`;
-                            } else {
-                                listaNestaPasta.forEach((musica) => {
-                                    htmlMusicas += `<div style="background:#ffffff; border:1px solid #e2e8f0; padding:5px 6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
-                                        <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${musica.nome}">🎶 ${musica.nome}</span>
-                                        <div style="display: flex; gap: 2px;">
-                                            <button onclick='reproduzirMusicaDB(${musica.id}, "${nomePasta}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ouvir">▶</button>
-                                            <button onclick='tentarBaixarMusica(${musica.id}, "${musica.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
-                                            <button onclick='tentarApagarMusica(${musica.id}, "${nomePasta}", "${musica.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
-                                        </div>
-                                    </div>`;
-                                });
-                            }
-                        }
-                        htmlMusicas += `</div>`;
-                    }
-                    htmlMusicas += `</div>`;
-                    htmlMusicas += `<audio id="audioPlayer" controls style="width:100%; margin-top:8px; display:none;"></audio>`;
-                    htmlMusicas += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
-                    
-                    abrirJanelaFixa(htmlMusicas);
-                };
-            };
-        }
-
-        function tentarFazerUploadMusica() {
-            let transaction = db.transaction(["pastas"], "readonly");
-            let req = transaction.objectStore("pastas").getAll();
-            req.onsuccess = function(e) {
-                let pastas = e.target.result;
-                let htmlPastas = `<option value="Geral">📁 Geral (Padrão)</option>`;
-                if (pastas) {
-                    pastas.forEach(p => {
-                        let nomeP = p.nome || p;
-                        htmlPastas += `<option value="${nomeP}">📁 ${nomeP}</option>`;
+                if (snapshot.empty) {
+                    htmlMusicas += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem músicas na nuvem.</p>`;
+                } else {
+                    snapshot.forEach((doc) => {
+                        let m = doc.data();
+                        let id = doc.id;
+                        htmlMusicas += `<div style="background:#ffffff; border:1px solid #e2e8f0; padding:5px 6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${m.nome}">🎶 ${m.nome}</span>
+                            <div style="display: flex; gap: 2px;">
+                                <button onclick='reproduzirMusicaCloud("${m.url}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ouvir">▶</button>
+                                <button onclick='tentarBaixarCloud("${m.url}", "${m.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
+                                <button onclick='apagarCloud("musicas", "${id}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                            </div>
+                        </div>`;
                     });
                 }
-                abrirJanelaFixa(`
-                    <h2>📤 Enviar Música</h2>
-                    <hr>
-                    <label style="font-size:0.85rem; color:#1e3a8a; display:block; margin-bottom:4px;"><b>PASTA DE DESTINO:</b></label>
-                    <select id="selectPastaUpload" style="width:100%; padding:10px; border-radius:6px; background:rgba(248, 250, 252, 0.9); color:#0f172a; border:1px solid #cbd5e1; font-size:0.95rem; margin-bottom:12px;">
-                        ${htmlPastas}
-                    </select>
-                    <label class="file-upload-box">
-                        📂 Enviar do Telemóvel (Sem senha)
-                        <input type="file" accept="audio/*" onchange="guardarMusicaSelecionada(event)">
-                    </label>
-                    <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
-                `);
-            };
-        }
-
-        function guardarMusicaSelecionada(event) {
-            const ficheiro = event.target.files[0];
-            if (!ficheiro) return;
-
-            const selectPasta = document.getElementById("selectPastaUpload");
-            let pastaEscolhida = selectPasta ? selectPasta.value : "Geral";
-
-            let transaction = db.transaction(["musicas"], "readwrite");
-            let store = transaction.objectStore("musicas");
-            
-            let novaMusica = {
-                nome: ficheiro.name,
-                pasta: pastaEscolhida,
-                blob: ficheiro
-            };
-
-            let request = store.add(novaMusica);
-            request.onsuccess = function() {
-                mostrarToast(`Música guardada em "${pastaEscolhida}"!`);
-                abrirLeitorMusica(pastaEscolhida);
-            };
-        }
-
-        function tentarBaixarMusica(id, nomeMusica) {
-            abrirPainelAdminComInfo(`Música: ${nomeMusica}`, () => {
-                db.transaction(["musicas"], "readonly").objectStore("musicas").get(id).onsuccess = function(event) {
-                    let musica = event.target.result;
-                    if (musica && musica.blob) {
-                        const url = URL.createObjectURL(musica.blob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = musica.nome;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        mostrarToast("A transferir música...");
-                    }
-                };
+                htmlMusicas += `</div>`;
+                htmlMusicas += `<audio id="audioPlayer" controls style="width:100%; margin-top:8px; display:none;"></audio>`;
+                htmlMusicas += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
+                abrirJanelaFixa(htmlMusicas);
             });
         }
 
-        function tentarCriarPasta() {
+        function tentarFazerUploadMusica() {
             abrirJanelaFixa(`
-                <h2>📁 Criar Nova Pasta</h2>
+                <h2>📤 Enviar Música</h2>
                 <hr>
-                <input type="text" id="nomeNovaPastaInput" placeholder="Nome da pasta" style="padding:10px; font-size:0.9rem; margin-bottom:8px;">
-                <button onclick="executarCriarPasta()" style="padding:10px; margin-bottom:6px;">Criar</button>
-                <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding:10px;">Cancelar</button>
+                <label class="file-upload-box">
+                    📂 Selecionar do Telemóvel
+                    <input type="file" accept="audio/*" onchange="uploadCloud(event, 'musicas')">
+                </label>
+                <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
             `);
         }
 
-        function executarCriarPasta() {
-            let nomePasta = document.getElementById("nomeNovaPastaInput").value.trim();
-            if (!nomePasta) {
-                mostrarToast("Insira um nome válido.");
-                return;
-            }
-            let transaction = db.transaction(["pastas"], "readwrite");
-            let request = transaction.objectStore("pastas").add({ nome: nomePasta });
-            request.onsuccess = function() {
-                mostrarToast(`Pasta criada!`);
-                abrirLeitorMusica(nomePasta);
-            };
-            request.onerror = function() {
-                mostrarToast("Erro: A pasta já existe.");
-            };
-        }
-
-        function tentarApagarMusica(id, pastaNome, nomeMusica) {
-            abrirJanelaFixa(`
-                <h2>⚠️ Eliminar Música</h2>
-                <hr>
-                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar:</p>
-                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; word-break: break-all;">🎶 ${nomeMusica}</p>
-                <button onclick="apagarMusicaDB(${id}, '${pastaNome}')" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Eliminar</button>
-                <button onclick="abrirLeitorMusica('${pastaNome}')" class="secondary-btn" style="padding: 10px;">Cancelar</button>
-            `);
-        }
-
-        function apagarMusicaDB(id, pastaNome) {
-            let transaction = db.transaction(["musicas"], "readwrite");
-            let request = transaction.objectStore("musicas").delete(id);
-            request.onsuccess = function() {
-                mostrarToast("Música eliminada!");
-                abrirLeitorMusica(pastaNome);
-            };
-        }
-
-        function tentarApagarPasta(nomePasta) {
-            abrirJanelaFixa(`
-                <h2>⚠️ Eliminar Pasta</h2>
-                <hr>
-                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar a pasta?</p>
-                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px;">📁 ${nomePasta}</p>
-                <button onclick="apagarPasta(${JSON.stringify(nomePasta)})" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Apagar</button>
-                <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
-            `);
-        }
-
-        function apagarPasta(nomePasta) {
-            let transaction = db.transaction(["pastas"], "readwrite");
-            let store = transaction.objectStore("pastas");
-            let req = store.openCursor();
-            req.onsuccess = function(e) {
-                let cursor = e.target.result;
-                if (cursor) {
-                    let pNome = cursor.value.nome || cursor.value;
-                    if (pNome === nomePasta) {
-                        store.delete(cursor.primaryKey);
-                    } else {
-                        cursor.continue();
-                    }
-                }
-            };
-            transaction.oncomplete = function() {
-                mostrarToast(`Pasta removida!`);
-                abrirLeitorMusica();
-            };
-        }
-
-        function reproduzirMusicaDB(id) {
-            db.transaction(["musicas"], "readonly").objectStore("musicas").get(id).onsuccess = function(event) {
-                let musica = event.target.result;
-                if (musica && musica.blob) {
-                    const player = document.getElementById("audioPlayer");
-                    player.src = URL.createObjectURL(musica.blob);
-                    player.style.display = "block";
-                    player.play();
-                }
-            };
-        }
-
-        // --- MÓDULO DE VÍDEOS ---
+        // --- MÓDULO DE VÍDEOS (NUVEM FIREBASE) ---
         function abrirGestorVideos() {
-            if (!db) {
-                setTimeout(abrirGestorVideos, 500);
-                return;
-            }
-
-            let transaction = db.transaction(["videos"], "readonly");
-            transaction.objectStore("videos").getAll().onsuccess = function(event) {
-                let videosSalvos = event.target.result;
-                
-                let htmlVideos = `<h2>🎥 Gestor de Vídeos</h2>`;
+            dbCloud.collection("videos").orderBy("criadoEm", "desc").get().then((snapshot) => {
+                let htmlVideos = `<h2>🎥 Gestor de Vídeos (Global)</h2>`;
                 htmlVideos += `<button onclick="tentarFazerUploadVideo()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar Vídeo</button>`;
                 htmlVideos += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
 
-                if (videosSalvos.length === 0) {
-                    htmlVideos += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem vídeos guardados.</p>`;
+                if (snapshot.empty) {
+                    htmlVideos += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem vídeos na nuvem.</p>`;
                 } else {
-                    videosSalvos.forEach((videoItem) => {
-                        let urlVid = URL.createObjectURL(videoItem.blob);
-                        htmlVideos += `<div style="background:rgba(248, 250, 252, 0.9); border:1px solid #cbd5e1; padding:6px; margin-bottom:6px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${videoItem.titulo}">🎬 ${videoItem.titulo}</span>
+                    snapshot.forEach((doc) => {
+                        let v = doc.data();
+                        let id = doc.id;
+                        htmlVideos += `<div style="background:#ffffff; border:1px solid #e2e8f0; padding:5px 6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${v.nome}">🎬 ${v.nome}</span>
                             <div style="display: flex; gap: 2px;">
-                                <button onclick='reproduzirVideoCompleta("${urlVid}", "${videoItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">▶</button>
-                                <button onclick='tentarBaixarVideo(${videoItem.id}, "${videoItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
-                                <button onclick='tentarApagarVideo(${videoItem.id}, "${videoItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                                <button onclick='reproduzirVideoCloud("${v.url}", "${v.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">▶</button>
+                                <button onclick='tentarBaixarCloud("${v.url}", "${v.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
+                                <button onclick='apagarCloud("videos", "${id}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                             </div>
                         </div>`;
                     });
                 }
                 htmlVideos += `</div>`;
                 htmlVideos += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
-                
                 abrirJanelaFixa(htmlVideos);
-            };
+            });
         }
 
         function tentarFazerUploadVideo() {
@@ -935,63 +728,166 @@
                 <h2>📤 Enviar Vídeo</h2>
                 <hr>
                 <label class="file-upload-box">
-                    📂 Enviar do Telemóvel (Sem senha)
-                    <input type="file" accept="video/*" onchange="guardarVideoSelecionado(event)">
+                    📂 Selecionar do Telemóvel
+                    <input type="file" accept="video/*" onchange="uploadCloud(event, 'videos')">
                 </label>
                 <button onclick="abrirGestorVideos()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
             `);
         }
 
-        function guardarVideoSelecionado(event) {
-            const ficheiro = event.target.files[0];
-            if (!ficheiro) return;
+        // --- MÓDULO DE IMAGENS (NUVEM FIREBASE) ---
+        function abrirGaleriaImagens() {
+            dbCloud.collection("imagens").orderBy("criadoEm", "desc").get().then((snapshot) => {
+                let htmlImagens = `<h2>🖼️ Galeria de Imagens (Global)</h2>`;
+                htmlImagens += `<button onclick="tentarFazerUploadImagem()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar Imagem</button>`;
+                htmlImagens += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
 
-            let titulo = ficheiro.name;
-            let transaction = db.transaction(["videos"], "readwrite");
-            transaction.objectStore("videos").add({ titulo: titulo, blob: ficheiro }).onsuccess = function() {
-                mostrarToast("Vídeo guardado!");
-                abrirGestorVideos();
-            };
-        }
-
-        function tentarBaixarVideo(id, tituloVid) {
-            abrirPainelAdminComInfo(`Vídeo: ${tituloVid}`, () => {
-                db.transaction(["videos"], "readonly").objectStore("videos").get(id).onsuccess = function(event) {
-                    let video = event.target.result;
-                    if (video && video.blob) {
-                        const url = URL.createObjectURL(video.blob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = video.titulo;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        mostrarToast("A transferir vídeo...");
-                    }
-                };
+                if (snapshot.empty) {
+                    htmlImagens += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem imagens na nuvem.</p>`;
+                } else {
+                    snapshot.forEach((doc) => {
+                        let i = doc.data();
+                        let id = doc.id;
+                        htmlImagens += `<div style="background:#ffffff; border:1px solid #e2e8f0; padding:5px 6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center; gap:4px; overflow:hidden;">
+                                <img src="${i.url}" style="width:30px; height:30px; object-fit:cover; border-radius:4px;" alt="Miniatura">
+                                <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:90px;">📷 ${i.nome}</span>
+                            </div>
+                            <div style="display: flex; gap: 2px;">
+                                <button onclick='verImagemCloud("${i.url}", "${i.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">🔍</button>
+                                <button onclick='tentarBaixarCloud("${i.url}", "${i.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
+                                <button onclick='apagarCloud("imagens", "${id}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+                htmlImagens += `</div>`;
+                htmlImagens += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
+                abrirJanelaFixa(htmlImagens);
             });
         }
 
-        function tentarApagarVideo(id, tituloVid) {
+        function tentarFazerUploadImagem() {
             abrirJanelaFixa(`
-                <h2>⚠️ Eliminar Vídeo</h2>
+                <h2>📤 Enviar Imagem</h2>
                 <hr>
-                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar:</p>
-                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; word-break: break-all;">🎬 ${tituloVid}</p>
-                <button onclick="apagarVideoDB(${id})" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Eliminar</button>
-                <button onclick="abrirGestorVideos()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
+                <label class="file-upload-box">
+                    📂 Selecionar do Telemóvel
+                    <input type="file" accept="image/*" onchange="uploadCloud(event, 'imagens')">
+                </label>
+                <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
             `);
         }
 
-        function apagarVideoDB(id) {
-            let transaction = db.transaction(["videos"], "readwrite");
-            transaction.objectStore("videos").delete(id).onsuccess = function() {
-                mostrarToast("Vídeo eliminado!");
-                abrirGestorVideos();
-            };
+        // --- MÓDULO DE DOCUMENTOS PDF (NUVEM FIREBASE) ---
+        function abrirGestorPDFs() {
+            dbCloud.collection("pdfs").orderBy("criadoEm", "desc").get().then((snapshot) => {
+                let htmlPDFs = `<h2>📄 Gestor de Documentos PDF (Global)</h2>`;
+                htmlPDFs += `<button onclick="tentarFazerUploadPDF()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar PDF</button>`;
+                htmlPDFs += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
+
+                if (snapshot.empty) {
+                    htmlPDFs += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem PDFs na nuvem.</p>`;
+                } else {
+                    snapshot.forEach((doc) => {
+                        let p = doc.data();
+                        let id = doc.id;
+                        htmlPDFs += `<div style="background:#ffffff; border:1px solid #e2e8f0; padding:5px 6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${p.nome}">📄 ${p.nome}</span>
+                            <div style="display: flex; gap: 2px;">
+                                <button onclick='window.open("${p.url}", "_blank")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">👁️</button>
+                                <button onclick='tentarBaixarCloud("${p.url}", "${p.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
+                                <button onclick='apagarCloud("pdfs", "${id}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+                htmlPDFs += `</div>`;
+                htmlPDFs += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
+                abrirJanelaFixa(htmlPDFs);
+            });
         }
 
-        function reproduzirVideoCompleta(url, titulo) {
+        function tentarFazerUploadPDF() {
+            abrirJanelaFixa(`
+                <h2>📤 Enviar Documento PDF</h2>
+                <hr>
+                <label class="file-upload-box">
+                    📂 Selecionar do Telemóvel
+                    <input type="file" accept="application/pdf" onchange="uploadCloud(event, 'pdfs')">
+                </label>
+                <button onclick="abrirGestorPDFs()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
+            `);
+        }
+
+        // --- FUNÇÕES UNIVERSAIS CLOUD (FIREBASE) ---
+        function uploadCloud(event, colecao) {
+            const ficheiro = event.target.files[0];
+            if (!ficheiro) return;
+
+            mostrarToast("A enviar para a nuvem...");
+            const storageRef = storageCloud.ref(`${colecao}/${Date.now()}_${ficheiro.name}`);
+            
+            storageRef.put(ficheiro).then((snapshot) => {
+                snapshot.ref.getDownloadURL().then((downloadURL) => {
+                    dbCloud.collection(colecao).add({
+                        nome: ficheiro.name,
+                        url: downloadURL,
+                        criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+                    }).then(() => {
+                        mostrarToast("Enviado com sucesso para todos!");
+                        if (colecao === "musicas") abrirLeitorMusica();
+                        if (colecao === "videos") abrirGestorVideos();
+                        if (colecao === "imagens") abrirGaleriaImagens();
+                        if (colecao === "pdfs") abrirGestorPDFs();
+                    });
+                });
+            }).catch((error) => {
+                mostrarToast("Erro ao enviar. Verifique a ligação.");
+            });
+        }
+
+        function tentarBaixarCloud(url, nome) {
+            abrirPainelAdminComInfo(`Ficheiro: ${nome}`, () => {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = nome;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                mostrarToast("A transferir ficheiro...");
+            });
+        }
+
+        function apagarCloud(colecao, id) {
+            abrirJanelaFixa(`
+                <h2>⚠️ Eliminar Ficheiro</h2>
+                <hr>
+                <p style="font-size: 0.9rem; margin-bottom: 15px;">Pretende remover este ficheiro da nuvem para todos os utilizadores?</p>
+                <button onclick="executarApagarCloud('${colecao}', '${id}')" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Apagar</button>
+                <button onclick="abrirMenu()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
+            `);
+        }
+
+        function executarApagarCloud(colecao, id) {
+            dbCloud.collection(colecao).doc(id).delete().then(() => {
+                mostrarToast("Eliminado da nuvem!");
+                if (colecao === "musicas") abrirLeitorMusica();
+                if (colecao === "videos") abrirGestorVideos();
+                if (colecao === "imagens") abrirGaleriaImagens();
+                if (colecao === "pdfs") abrirGestorPDFs();
+            });
+        }
+
+        function reproduzirMusicaCloud(url) {
+            const player = document.getElementById("audioPlayer");
+            player.src = url;
+            player.style.display = "block";
+            player.play();
+        }
+
+        function reproduzirVideoCloud(url, titulo) {
             abrirJanelaFixa(`
                 <h2>🎬 ${titulo}</h2>
                 <hr>
@@ -1002,108 +898,7 @@
             `);
         }
 
-        // --- MÓDULO DE IMAGENS ---
-        function abrirGaleriaImagens() {
-            if (!db) {
-                setTimeout(abrirGaleriaImagens, 500);
-                return;
-            }
-
-            let transaction = db.transaction(["imagens"], "readonly");
-            transaction.objectStore("imagens").getAll().onsuccess = function(event) {
-                let imagensSalvas = event.target.result;
-                
-                let htmlImagens = `<h2>🖼️ Galeria de Imagens</h2>`;
-                htmlImagens += `<button onclick="tentarFazerUploadImagem()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar Imagem</button>`;
-                htmlImagens += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
-
-                if (imagensSalvas.length === 0) {
-                    htmlImagens += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem imagens guardadas.</p>`;
-                } else {
-                    imagensSalvas.forEach((imgItem) => {
-                        let urlImg = URL.createObjectURL(imgItem.blob);
-                        htmlImagens += `<div style="background:rgba(248, 250, 252, 0.9); border:1px solid #cbd5e1; padding:6px; margin-bottom:6px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-                            <div style="display:flex; align-items:center; gap:4px; overflow:hidden;">
-                                <img src="${urlImg}" style="width:30px; height:30px; object-fit:cover; border-radius:4px;" alt="Miniatura">
-                                <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:90px;">📷 ${imgItem.titulo}</span>
-                            </div>
-                            <div style="display: flex; gap: 2px;">
-                                <button onclick='verImagemCompleta("${urlImg}", "${imgItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">🔍</button>
-                                <button onclick='tentarBaixarImagem(${imgItem.id}, "${imgItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
-                                <button onclick='tentarApagarImagem(${imgItem.id}, "${imgItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
-                            </div>
-                        </div>`;
-                    });
-                }
-                htmlImagens += `</div>`;
-                htmlImagens += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
-                
-                abrirJanelaFixa(htmlImagens);
-            };
-        }
-
-        function tentarFazerUploadImagem() {
-            abrirJanelaFixa(`
-                <h2>📤 Enviar Imagem</h2>
-                <hr>
-                <label class="file-upload-box">
-                    📂 Enviar do Telemóvel (Sem senha)
-                    <input type="file" accept="image/*" onchange="guardarImagemSelecionada(event)">
-                </label>
-                <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
-            `);
-        }
-
-        function guardarImagemSelecionada(event) {
-            const ficheiro = event.target.files[0];
-            if (!ficheiro) return;
-
-            let titulo = ficheiro.name;
-            let transaction = db.transaction(["imagens"], "readwrite");
-            transaction.objectStore("imagens").add({ titulo: titulo, blob: ficheiro }).onsuccess = function() {
-                mostrarToast("Imagem guardada!");
-                abrirGaleriaImagens();
-            };
-        }
-
-        function tentarBaixarImagem(id, tituloImg) {
-            abrirPainelAdminComInfo(`Imagem: ${tituloImg}`, () => {
-                db.transaction(["imagens"], "readonly").objectStore("imagens").get(id).onsuccess = function(event) {
-                    let img = event.target.result;
-                    if (img && img.blob) {
-                        const url = URL.createObjectURL(img.blob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = img.titulo;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        mostrarToast("A transferir imagem...");
-                    }
-                };
-            });
-        }
-
-        function tentarApagarImagem(id, tituloImg) {
-            abrirJanelaFixa(`
-                <h2>⚠️ Eliminar Imagem</h2>
-                <hr>
-                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar:</p>
-                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; word-break: break-all;">📷 ${tituloImg}</p>
-                <button onclick="apagarImagemDB(${id})" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Eliminar</button>
-                <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
-            `);
-        }
-
-        function apagarImagemDB(id) {
-            let transaction = db.transaction(["imagens"], "readwrite");
-            transaction.objectStore("imagens").delete(id).onsuccess = function() {
-                mostrarToast("Imagem eliminada!");
-                abrirGaleriaImagens();
-            };
-        }
-
-        function verImagemCompleta(url, titulo) {
+        function verImagemCloud(url, titulo) {
             abrirJanelaFixa(`
                 <h2>📷 ${titulo}</h2>
                 <hr>
@@ -1112,108 +907,6 @@
                 </div>
                 <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding: 10px;">⬅ Voltar</button>
             `);
-        }
-
-        // --- MÓDULO DE DOCUMENTOS PDF ---
-        function abrirGestorPDFs() {
-            if (!db) {
-                setTimeout(abrirGestorPDFs, 500);
-                return;
-            }
-
-            let transaction = db.transaction(["pdfs"], "readonly");
-            transaction.objectStore("pdfs").getAll().onsuccess = function(event) {
-                let pdfsSalvos = event.target.result;
-                
-                let htmlPDFs = `<h2>📄 Gestor de Documentos PDF</h2>`;
-                htmlPDFs += `<button onclick="tentarFazerUploadPDF()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar PDF</button>`;
-                htmlPDFs += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
-
-                if (pdfsSalvos.length === 0) {
-                    htmlPDFs += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem PDFs guardados.</p>`;
-                } else {
-                    pdfsSalvos.forEach((pdfItem) => {
-                        let urlPdf = URL.createObjectURL(pdfItem.blob);
-                        htmlPDFs += `<div style="background:rgba(248, 250, 252, 0.9); border:1px solid #cbd5e1; padding:6px; margin-bottom:6px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${pdfItem.titulo}">📄 ${pdfItem.titulo}</span>
-                            <div style="display: flex; gap: 2px;">
-                                <button onclick='abrirPDFNavegador("${urlPdf}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">👁️</button>
-                                <button onclick='tentarBaixarPDF(${pdfItem.id}, "${pdfItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
-                                <button onclick='tentarApagarPDF(${pdfItem.id}, "${pdfItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
-                            </div>
-                        </div>`;
-                    });
-                }
-                htmlPDFs += `</div>`;
-                htmlPDFs += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
-                
-                abrirJanelaFixa(htmlPDFs);
-            };
-        }
-
-        function tentarFazerUploadPDF() {
-            abrirJanelaFixa(`
-                <h2>📤 Enviar Documento PDF</h2>
-                <hr>
-                <label class="file-upload-box">
-                    📂 Enviar do Telemóvel (Sem senha)
-                    <input type="file" accept="application/pdf" onchange="guardarPDFSelecionado(event)">
-                </label>
-                <button onclick="abrirGestorPDFs()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
-            `);
-        }
-
-        function guardarPDFSelecionado(event) {
-            const ficheiro = event.target.files[0];
-            if (!ficheiro) return;
-
-            let titulo = ficheiro.name;
-            let transaction = db.transaction(["pdfs"], "readwrite");
-            transaction.objectStore("pdfs").add({ titulo: titulo, blob: ficheiro }).onsuccess = function() {
-                mostrarToast("PDF guardado com sucesso!");
-                abrirGestorPDFs();
-            };
-        }
-
-        function tentarBaixarPDF(id, tituloPdf) {
-            abrirPainelAdminComInfo(`PDF: ${tituloPdf}`, () => {
-                db.transaction(["pdfs"], "readonly").objectStore("pdfs").get(id).onsuccess = function(event) {
-                    let pdf = event.target.result;
-                    if (pdf && pdf.blob) {
-                        const url = URL.createObjectURL(pdf.blob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = pdf.titulo;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        mostrarToast("A transferir PDF...");
-                    }
-                };
-            });
-        }
-
-        function tentarApagarPDF(id, tituloPdf) {
-            abrirJanelaFixa(`
-                <h2>⚠️ Eliminar PDF</h2>
-                <hr>
-                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar:</p>
-                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; word-break: break-all;">📄 ${tituloPdf}</p>
-                <button onclick="apagarPDFDB(${id})" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Eliminar</button>
-                <button onclick="abrirGestorPDFs()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
-            `);
-        }
-
-        function apagarPDFDB(id) {
-            let transaction = db.transaction(["pdfs"], "readwrite");
-            transaction.objectStore("pdfs").delete(id).onsuccess = function() {
-                mostrarToast("PDF eliminado!");
-                abrirGestorPDFs();
-            };
-        }
-
-        function abrirPDFNavegador(url) {
-            window.open(url, '_blank');
         }
         // --------------------------------------------------------
 
