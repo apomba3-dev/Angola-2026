@@ -193,7 +193,7 @@
         <div id="containerImagemOculta" style="display: none; text-align: center; margin-top: 5px;">
             <img id="imagemFundoPrincipal" src="fo.png" alt="Imagem Oculta" style="width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px; border: 1px solid rgba(203, 213, 225, 0.9); box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: block; margin: 0 auto;">
             <p style="margin-top: 15px; font-size: 1.25rem; font-weight: bold; color: #93c5fd; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">📚 Continua a estudar</p>
-            <button onclick="tentarBaixarImagemPrincipal()" style="margin-top: 10px; background: #059669; padding: 12px; font-size: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">📥 Baixar Imagem (Admin)</button>
+            <button onclick="tentarBaixarImagemPrincipal()" style="margin-top: 10px; background: #059669; padding: 12px; font-size: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">📥 Baixar Imagem (Admin IBAN)</button>
         </div>
     </div>
 
@@ -245,7 +245,7 @@
             {
                 titulo: "Instituições da República de Angola",
                 categoria: "Instituições",
-                conteudo: "As instituições da República de Angola fundamentam-se no respeito pela Constituição e pela lei, estruturando-se com base no princípio da separação de poderes e interdependência de funções. Os órgãos de soberania são o Presidente da República, a Assembleia Nacional e os Tribunais. O Presidente da República é o Chefe de Estado, Titular do Poder Executivo e Comandante-em-Chef das Forças Armadas Angolanas (FAA). A Assembleia Nacional constitui o parlamento unicameral, responsável pela função legislativa, aprovação do Orçamento Geral do Estado e fiscalização política da governação. Os Tribunais administram a justiça em nome do povo, destacando-se o Tribunal Supremo, o Tribunal Constitucional e o Tribunal de Contas."
+                conteudo: "As instituições da República de Angola fundamentam-se no respeito pela Constituição e pela lei, estruturando-se com base no princípio da separação de poderes e interdependência de funções. Os órgãos de soberania são o Presidente da República, a Assembleia Nacional e os Tribunais. O Presidente da República é o Chefe de Estado, Titular do Poder Executivo e Comandante-em-Chefe das Forças Armadas Angolanas (FAA). A Assembleia Nacional constitui o parlamento unicameral, responsável pela função legislativa, aprovação do Orçamento Geral do Estado e fiscalização política da governação. Os Tribunais administram a justiça em nome do povo, destacando-se o Tribunal Supremo, o Tribunal Constitucional e o Tribunal de Contas."
             },
             {
                 titulo: "Organização do Estado Angolano",
@@ -364,17 +364,15 @@
         }
 
         function tentarBaixarImagemPrincipal() {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(tentarBaixarImagemPrincipal);
-                return;
-            }
-            const link = document.createElement('a');
-            link.href = 'fo.png';
-            link.download = 'fo.png';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            mostrarToast("A transferir imagem...");
+            abrirPainelAdminComInfo(() => {
+                const link = document.createElement('a');
+                link.href = 'fo.png';
+                link.download = 'fo.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                mostrarToast("A transferir imagem...");
+            });
         }
 
         function instalarAplicativo() {
@@ -590,27 +588,28 @@
             `);
         }
 
-        // --- PAINEL DE ADMINISTRADOR CENTRALIZADO ---
-        function abrirPainelAdmin(callbackSucesso) {
+        // --- PAINEL DE ADMINISTRADOR COM AVISO DE IBAN ---
+        function abrirPainelAdminComInfo(callbackSucesso) {
             if (adminAutenticado) {
                 callbackSucesso();
                 return;
             }
             abrirJanelaFixa(`
-                <h2>🔒 Painel de Administrador</h2>
+                <h2>🔒 Baixar Ficheiro (Admin)</h2>
                 <hr>
-                <p style="font-size: 0.9rem; margin-bottom: 12px;">Introduz a senha de administrador para autorizar esta ação:</p>
-                <input type="password" id="senhaPainelAdmin" placeholder="Senha do Administrador" style="padding:10px; font-size:0.9rem; margin-bottom:10px;">
-                <button onclick="verificarLoginAdmin(${callbackSucesso.name})" style="background:#059669; padding:10px; margin-bottom:6px;">Autenticar</button>
+                <p style="font-size: 0.85rem; margin-bottom: 8px;">Para efetuar o download, é necessária transferência via IBAN e autorização do Administrador.</p>
+                <div class="iban-box" style="font-size:0.8rem; margin:6px 0;">${MEU_IBAN}</div>
+                <input type="password" id="senhaPainelAdmin" placeholder="Senha do Administrador" style="padding:10px; font-size:0.9rem; margin-bottom:10px; margin-top:8px;">
+                <button onclick="verificarLoginAdminComSucesso(${callbackSucesso.name})" style="background:#059669; padding:10px; margin-bottom:6px;">Confirmar e Baixar</button>
                 <button onclick="fecharJanelaModal()" class="secondary-btn" style="padding: 10px;">Voltar</button>
             `);
         }
 
-        function verificarLoginAdmin(funcaoDestino) {
+        function verificarLoginAdminComSucesso(funcaoDestino) {
             const senhaDigitada = document.getElementById("senhaPainelAdmin").value.trim();
             if (senhaDigitada === SENHA_ADMIN_OFICIAL) {
                 adminAutenticado = true;
-                mostrarToast("Administrador autenticado!");
+                mostrarToast("Autorizado com sucesso!");
                 if (typeof funcaoDestino === "function") {
                     funcaoDestino();
                 } else {
@@ -690,7 +689,7 @@
                                         <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${musica.nome}">🎶 ${musica.nome}</span>
                                         <div style="display: flex; gap: 2px;">
                                             <button onclick='reproduzirMusicaDB(${musica.id}, "${nomePasta}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ouvir">▶</button>
-                                            <button onclick='tentarBaixarMusica(${musica.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin)">📥</button>
+                                            <button onclick='tentarBaixarMusica(${musica.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin/IBAN)">📥</button>
                                             <button onclick='tentarApagarMusica(${musica.id}, "${nomePasta}", "${musica.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                                         </div>
                                     </div>`;
@@ -728,7 +727,7 @@
                         ${htmlPastas}
                     </select>
                     <label class="file-upload-box">
-                        📂 Abrir Gestor de Ficheiros (Files)
+                        📂 Enviar do Telemóvel (Sem senha)
                         <input type="file" accept="audio/*" onchange="guardarMusicaSelecionada(event)">
                     </label>
                     <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
@@ -754,36 +753,30 @@
 
             let request = store.add(novaMusica);
             request.onsuccess = function() {
-                mostrarToast(`Guardado em "${pastaEscolhida}"!`);
+                mostrarToast(`Música guardada em "${pastaEscolhida}"!`);
                 abrirLeitorMusica(pastaEscolhida);
             };
         }
 
         function tentarBaixarMusica(id) {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(() => tentarBaixarMusica(id));
-                return;
-            }
-            db.transaction(["musicas"], "readonly").objectStore("musicas").get(id).onsuccess = function(event) {
-                let musica = event.target.result;
-                if (musica && musica.blob) {
-                    const url = URL.createObjectURL(musica.blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = musica.nome;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    mostrarToast("A transferir música...");
-                }
-            };
+            abrirPainelAdminComInfo(() => {
+                db.transaction(["musicas"], "readonly").objectStore("musicas").get(id).onsuccess = function(event) {
+                    let musica = event.target.result;
+                    if (musica && musica.blob) {
+                        const url = URL.createObjectURL(musica.blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = musica.nome;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        mostrarToast("A transferir música...");
+                    }
+                };
+            });
         }
 
         function tentarCriarPasta() {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(tentarCriarPasta);
-                return;
-            }
             abrirJanelaFixa(`
                 <h2>📁 Criar Nova Pasta</h2>
                 <hr>
@@ -811,10 +804,6 @@
         }
 
         function tentarApagarMusica(id, pastaNome, nomeMusica) {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(() => tentarApagarMusica(id, pastaNome, nomeMusica));
-                return;
-            }
             abrirJanelaFixa(`
                 <h2>⚠️ Eliminar Música</h2>
                 <hr>
@@ -835,10 +824,6 @@
         }
 
         function tentarApagarPasta(nomePasta) {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(() => tentarApagarPasta(nomePasta));
-                return;
-            }
             abrirJanelaFixa(`
                 <h2>⚠️ Eliminar Pasta</h2>
                 <hr>
@@ -906,7 +891,7 @@
                             <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${videoItem.titulo}">🎬 ${videoItem.titulo}</span>
                             <div style="display: flex; gap: 2px;">
                                 <button onclick='reproduzirVideoCompleta("${urlVid}", "${videoItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">▶</button>
-                                <button onclick='tentarBaixarVideo(${videoItem.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin)">📥</button>
+                                <button onclick='tentarBaixarVideo(${videoItem.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin/IBAN)">📥</button>
                                 <button onclick='tentarApagarVideo(${videoItem.id}, "${videoItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                             </div>
                         </div>`;
@@ -924,7 +909,7 @@
                 <h2>📤 Enviar Vídeo</h2>
                 <hr>
                 <label class="file-upload-box">
-                    📂 Abrir Gestor de Ficheiros (Files)
+                    📂 Enviar do Telemóvel (Sem senha)
                     <input type="file" accept="video/*" onchange="guardarVideoSelecionado(event)">
                 </label>
                 <button onclick="abrirGestorVideos()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
@@ -944,30 +929,24 @@
         }
 
         function tentarBaixarVideo(id) {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(() => tentarBaixarVideo(id));
-                return;
-            }
-            db.transaction(["videos"], "readonly").objectStore("videos").get(id).onsuccess = function(event) {
-                let video = event.target.result;
-                if (video && video.blob) {
-                    const url = URL.createObjectURL(video.blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = video.titulo;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    mostrarToast("A transferir vídeo...");
-                }
-            };
+            abrirPainelAdminComInfo(() => {
+                db.transaction(["videos"], "readonly").objectStore("videos").get(id).onsuccess = function(event) {
+                    let video = event.target.result;
+                    if (video && video.blob) {
+                        const url = URL.createObjectURL(video.blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = video.titulo;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        mostrarToast("A transferir vídeo...");
+                    }
+                };
+            });
         }
 
         function tentarApagarVideo(id, tituloVid) {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(() => tentarApagarVideo(id, tituloVid));
-                return;
-            }
             abrirJanelaFixa(`
                 <h2>⚠️ Eliminar Vídeo</h2>
                 <hr>
@@ -1024,7 +1003,7 @@
                             </div>
                             <div style="display: flex; gap: 2px;">
                                 <button onclick='verImagemCompleta("${urlImg}", "${imgItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">🔍</button>
-                                <button onclick='tentarBaixarImagem(${imgItem.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin)">📥</button>
+                                <button onclick='tentarBaixarImagem(${imgItem.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin/IBAN)">📥</button>
                                 <button onclick='tentarApagarImagem(${imgItem.id}, "${imgItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                             </div>
                         </div>`;
@@ -1042,7 +1021,7 @@
                 <h2>📤 Enviar Imagem</h2>
                 <hr>
                 <label class="file-upload-box">
-                    📂 Abrir Gestor de Ficheiros (Files)
+                    📂 Enviar do Telemóvel (Sem senha)
                     <input type="file" accept="image/*" onchange="guardarImagemSelecionada(event)">
                 </label>
                 <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
@@ -1062,30 +1041,24 @@
         }
 
         function tentarBaixarImagem(id) {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(() => tentarBaixarImagem(id));
-                return;
-            }
-            db.transaction(["imagens"], "readonly").objectStore("imagens").get(id).onsuccess = function(event) {
-                let img = event.target.result;
-                if (img && img.blob) {
-                    const url = URL.createObjectURL(img.blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = img.titulo;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    mostrarToast("A transferir imagem...");
-                }
-            };
+            abrirPainelAdminComInfo(() => {
+                db.transaction(["imagens"], "readonly").objectStore("imagens").get(id).onsuccess = function(event) {
+                    let img = event.target.result;
+                    if (img && img.blob) {
+                        const url = URL.createObjectURL(img.blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = img.titulo;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        mostrarToast("A transferir imagem...");
+                    }
+                };
+            });
         }
 
         function tentarApagarImagem(id, tituloImg) {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(() => tentarApagarImagem(id, tituloImg));
-                return;
-            }
             abrirJanelaFixa(`
                 <h2>⚠️ Eliminar Imagem</h2>
                 <hr>
@@ -1139,7 +1112,7 @@
                             <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${pdfItem.titulo}">📄 ${pdfItem.titulo}</span>
                             <div style="display: flex; gap: 2px;">
                                 <button onclick='abrirPDFNavegador("${urlPdf}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">👁️</button>
-                                <button onclick='tentarBaixarPDF(${pdfItem.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin)">📥</button>
+                                <button onclick='tentarBaixarPDF(${pdfItem.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin/IBAN)">📥</button>
                                 <button onclick='tentarApagarPDF(${pdfItem.id}, "${pdfItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                             </div>
                         </div>`;
@@ -1157,7 +1130,7 @@
                 <h2>📤 Enviar Documento PDF</h2>
                 <hr>
                 <label class="file-upload-box">
-                    📂 Escolher PDF (Files)
+                    📂 Enviar do Telemóvel (Sem senha)
                     <input type="file" accept="application/pdf" onchange="guardarPDFSelecionado(event)">
                 </label>
                 <button onclick="abrirGestorPDFs()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
@@ -1177,30 +1150,24 @@
         }
 
         function tentarBaixarPDF(id) {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(() => tentarBaixarPDF(id));
-                return;
-            }
-            db.transaction(["pdfs"], "readonly").objectStore("pdfs").get(id).onsuccess = function(event) {
-                let pdf = event.target.result;
-                if (pdf && pdf.blob) {
-                    const url = URL.createObjectURL(pdf.blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = pdf.titulo;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    mostrarToast("A transferir PDF...");
-                }
-            };
+            abrirPainelAdminComInfo(() => {
+                db.transaction(["pdfs"], "readonly").objectStore("pdfs").get(id).onsuccess = function(event) {
+                    let pdf = event.target.result;
+                    if (pdf && pdf.blob) {
+                        const url = URL.createObjectURL(pdf.blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = pdf.titulo;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        mostrarToast("A transferir PDF...");
+                    }
+                };
+            });
         }
 
         function tentarApagarPDF(id, tituloPdf) {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(() => tentarApagarPDF(id, tituloPdf));
-                return;
-            }
             abrirJanelaFixa(`
                 <h2>⚠️ Eliminar PDF</h2>
                 <hr>
