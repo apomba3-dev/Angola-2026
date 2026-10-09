@@ -43,26 +43,21 @@
         button { background: #1d4ed8; color: white; border: none; font-weight: bold; cursor: pointer; }
         button:active { background: #1e3a8a; }
         
-        /* Estilo essencial para abrir o Files do telemóvel ao primeiro toque */
-        .file-input-btn {
-            display: block;
-            width: 100%;
-            padding: 14px;
-            margin-bottom: 12px;
+        /* Botão nativo visível para abrir o Files do telemóvel sem bloqueios */
+        .file-upload-box {
             background: #059669;
             color: white;
+            padding: 14px;
             text-align: center;
             border-radius: 8px;
             font-weight: bold;
             font-size: 1rem;
             cursor: pointer;
-            box-sizing: border-box;
             border: 1px solid #34d399;
+            display: block;
+            margin-bottom: 12px;
         }
-        .file-input-btn:active {
-            background: #047857;
-        }
-        input[type="file"] {
+        .file-upload-box input[type="file"] {
             display: none;
         }
         
@@ -490,7 +485,7 @@
         function esqueciMinhaSenha() {
             let nomeSalvo = localStorage.getItem("utilizador_nome") || "Utilizador Desconhecido";
             let contactoSalvo = localStorage.getItem("utilizador_contacto") || "Sem contacto";
-            let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, esqueci-me da senha da app Angola 2026.\nO meu nome é: ${nomeSalvo}\nContacto:${contactoSalvo}`);
+            let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, esqueci-me da senha da app Angola 2026.\nO meu nome é: ${nomeSalvo}\nContacto: ${contactoSalvo}`);
             window.open(urlZap, '_blank');
         }
 
@@ -577,4 +572,707 @@
                 <h2>${item.titulo}</h2>
                 <p><span class="badge">${item.categoria}</span></p>
                 <hr>
-                <p style="
+                <p style="line-height: 1.5; font-size: 0.95rem;">${item.conteudo}</p>
+                <br>
+                <button onclick="fecharJanelaModal()">Fechar</button>
+            `);
+        }
+
+        // --- PAINEL DE ADMINISTRADOR CENTRALIZADO ---
+        function abrirPainelAdmin(callbackSucesso) {
+            if (adminAutenticado) {
+                callbackSucesso();
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>🔒 Painel de Administrador</h2>
+                <hr>
+                <p style="font-size: 0.9rem; margin-bottom: 12px;">Introduz a senha de administrador para autorizar esta ação:</p>
+                <input type="password" id="senhaPainelAdmin" placeholder="Senha do Administrador" style="padding:10px; font-size:0.9rem; margin-bottom:10px;">
+                <button onclick="verificarLoginAdmin(${callbackSucesso.name})" style="background:#059669; padding:10px; margin-bottom:6px;">Autenticar</button>
+                <button onclick="fecharJanelaModal()" class="secondary-btn" style="padding: 10px;">Voltar</button>
+            `);
+        }
+
+        function verificarLoginAdmin(funcaoDestino) {
+            const senhaDigitada = document.getElementById("senhaPainelAdmin").value.trim();
+            if (senhaDigitada === SENHA_ADMIN_OFICIAL) {
+                adminAutenticado = true;
+                mostrarToast("Administrador autenticado!");
+                if (typeof funcaoDestino === "function") {
+                    funcaoDestino();
+                } else {
+                    fecharJanelaModal();
+                }
+            } else {
+                mostrarToast("Senha de administrador incorreta!");
+            }
+        }
+
+        // --- MÓDULO DE MÚSICA ---
+        function abrirLeitorMusica(pastaAbertaNome = null) {
+            if (!db) {
+                setTimeout(() => abrirLeitorMusica(pastaAbertaNome), 500);
+                return;
+            }
+
+            let transaction = db.transaction(["musicas", "pastas"], "readonly");
+            let storeMusicas = transaction.objectStore("musicas");
+            let storePastas = transaction.objectStore("pastas");
+
+            let reqMusicas = storeMusicas.getAll();
+            let reqPastas = storePastas.getAll();
+
+            reqMusicas.onsuccess = function(eMusicas) {
+                let musicasSalvas = eMusicas.target.result;
+
+                reqPastas.onsuccess = function(ePastas) {
+                    let pastasSalvas = ePastas.target.result;
+
+                    let htmlMusicas = `<h2>🎵 Gestor de Músicas</h2>`;
+                    
+                    htmlMusicas += `<div style="display:flex; gap:6px; margin-bottom:10px;">`;
+                    htmlMusicas += `<button onclick="tentarFazerUploadMusica()" style="background:#059669; font-size:0.9rem; margin-bottom:0; padding:10px; flex-grow:1;">➕ Enviar Música</button>`;
+                    htmlMusicas += `<button onclick="tentarCriarPasta()" style="background:#0284c7; font-size:0.9rem; margin-bottom:0; padding:10px; flex-grow:1;">📁 Criar Pasta</button>`;
+                    htmlMusicas += `</div>`;
+                    htmlMusicas += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
+
+                    let todasAsPastasObj = { "Geral": [] };
+                    let listaNomesPastas = ["Geral"];
+                    if (pastasSalvas) {
+                        pastasSalvas.forEach(p => { 
+                            let nomeP = p.nome || p;
+                            todasAsPastasObj[nomeP] = []; 
+                            listaNomesPastas.push(nomeP);
+                        });
+                    }
+
+                    musicasSalvas.forEach((musica) => {
+                        let pUtilizador = musica.pasta || "Geral";
+                        if (!todasAsPastasObj[pUtilizador]) {
+                            todasAsPastasObj[pUtilizador] = [];
+                        }
+                        todasAsPastasObj[pUtilizador].push(musica);
+                    });
+
+                    for (let nomePasta in todasAsPastasObj) {
+                        let listaNestaPasta = todasAsPastasObj[nomePasta];
+                        let estaAberta = (pastaAbertaNome === nomePasta);
+
+                        htmlMusicas += `<div style="background:rgba(248, 250, 252, 0.9); border:1px solid #cbd5e1; border-radius:6px; padding:8px; margin-bottom:8px;">`;
+                        
+                        htmlMusicas += `<div style="display:flex; justify-content:space-between; align-items:center;">`;
+                        htmlMusicas += `<span onclick="abrirLeitorMusica('${estaAberta ? null : nomePasta}')" style="color:#1e3a8a; font-size:0.9rem; font-weight:bold; cursor:pointer; flex-grow:1;">📁 ${nomePasta} (${listaNestaPasta.length}) 🔽</span>`;
+                        if (nomePasta !== "Geral") {
+                            htmlMusicas += `<button onclick='tentarApagarPasta("${nomePasta}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#64748b;" title="Apagar">Apagar</button>`;
+                        }
+                        htmlMusicas += `</div>`;
+
+                        if (estaAberta) {
+                            htmlMusicas += `<hr style="border-top:1px solid #cbd5e1; margin:6px 0;">`;
+                            if (listaNestaPasta.length === 0) {
+                                htmlMusicas += `<p style="font-size:0.75rem; color:#64748b; margin:4px 0;">Pasta vazia.</p>`;
+                            } else {
+                                listaNestaPasta.forEach((musica) => {
+                                    htmlMusicas += `<div style="background:#ffffff; border:1px solid #e2e8f0; padding:5px 6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
+                                        <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:120px;" title="${musica.nome}">🎶 ${musica.nome}</span>
+                                        <div style="display: flex; gap: 3px;">
+                                            <button onclick='reproduzirMusicaDB(${musica.id}, "${nomePasta}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#059669;" title="Ouvir">▶</button>
+                                            <button onclick='tentarCopiarMusica(${musica.id}, "${nomePasta}", ${JSON.stringify(listaNomesPastas)})' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#0284c7;" title="Copiar">📋</button>
+                                            <button onclick='tentarApagarMusica(${musica.id}, "${nomePasta}", "${musica.nome}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                                        </div>
+                                    </div>`;
+                                });
+                            }
+                        }
+                        htmlMusicas += `</div>`;
+                    }
+                    htmlMusicas += `</div>`;
+                    htmlMusicas += `<audio id="audioPlayer" controls style="width:100%; margin-top:8px; display:none;"></audio>`;
+                    htmlMusicas += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
+                    
+                    abrirJanelaFixa(htmlMusicas);
+                };
+            };
+        }
+
+        function tentarFazerUploadMusica() {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(tentarFazerUploadMusica);
+                return;
+            }
+            let transaction = db.transaction(["pastas"], "readonly");
+            let req = transaction.objectStore("pastas").getAll();
+            req.onsuccess = function(e) {
+                let pastas = e.target.result;
+                let htmlPastas = `<option value="Geral">📁 Geral (Padrão)</option>`;
+                if (pastas) {
+                    pastas.forEach(p => {
+                        let nomeP = p.nome || p;
+                        htmlPastas += `<option value="${nomeP}">📁 ${nomeP}</option>`;
+                    });
+                }
+                abrirJanelaFixa(`
+                    <h2>📤 Enviar Música</h2>
+                    <hr>
+                    <label style="font-size:0.85rem; color:#1e3a8a; display:block; margin-bottom:4px;"><b>PASTA DE DESTINO:</b></label>
+                    <select id="selectPastaUpload" style="width:100%; padding:10px; border-radius:6px; background:rgba(248, 250, 252, 0.9); color:#0f172a; border:1px solid #cbd5e1; font-size:0.95rem; margin-bottom:12px;">
+                        ${htmlPastas}
+                    </select>
+                    <label class="file-upload-box">
+                        📂 Abrir Gestor de Ficheiros (Files)
+                        <input type="file" accept="audio/*" onchange="guardarMusicaSelecionada(event)">
+                    </label>
+                    <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
+                `);
+            };
+        }
+
+        function guardarMusicaSelecionada(event) {
+            const ficheiro = event.target.files[0];
+            if (!ficheiro) return;
+
+            const selectPasta = document.getElementById("selectPastaUpload");
+            let pastaEscolhida = selectPasta ? selectPasta.value : "Geral";
+
+            let transaction = db.transaction(["musicas"], "readwrite");
+            let store = transaction.objectStore("musicas");
+            
+            let novaMusica = {
+                nome: ficheiro.name,
+                pasta: pastaEscolhida,
+                blob: ficheiro
+            };
+
+            let request = store.add(novaMusica);
+            request.onsuccess = function() {
+                mostrarToast(`Guardado em "${pastaEscolhida}"!`);
+                abrirLeitorMusica(pastaEscolhida);
+            };
+        }
+
+        function tentarCriarPasta() {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(tentarCriarPasta);
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>📁 Criar Nova Pasta</h2>
+                <hr>
+                <input type="text" id="nomeNovaPastaInput" placeholder="Nome da pasta" style="padding:10px; font-size:0.9rem; margin-bottom:8px;">
+                <button onclick="executarCriarPasta()" style="padding:10px; margin-bottom:6px;">Criar</button>
+                <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding:10px;">Cancelar</button>
+            `);
+        }
+
+        function executarCriarPasta() {
+            let nomePasta = document.getElementById("nomeNovaPastaInput").value.trim();
+            if (!nomePasta) {
+                mostrarToast("Insira um nome válido.");
+                return;
+            }
+            let transaction = db.transaction(["pastas"], "readwrite");
+            let request = transaction.objectStore("pastas").add({ nome: nomePasta });
+            request.onsuccess = function() {
+                mostrarToast(`Pasta criada!`);
+                abrirLeitorMusica(nomePasta);
+            };
+            request.onerror = function() {
+                mostrarToast("Erro: A pasta já existe.");
+            };
+        }
+
+        function tentarApagarMusica(id, pastaNome, nomeMusica) {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(() => tentarApagarMusica(id, pastaNome, nomeMusica));
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>⚠️ Eliminar Música</h2>
+                <hr>
+                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar:</p>
+                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; word-break: break-all;">🎶 ${nomeMusica}</p>
+                <button onclick="apagarMusicaDB(${id}, '${pastaNome}')" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Eliminar</button>
+                <button onclick="abrirLeitorMusica('${pastaNome}')" class="secondary-btn" style="padding: 10px;">Cancelar</button>
+            `);
+        }
+
+        function apagarMusicaDB(id, pastaNome) {
+            let transaction = db.transaction(["musicas"], "readwrite");
+            let request = transaction.objectStore("musicas").delete(id);
+            request.onsuccess = function() {
+                mostrarToast("Música eliminada!");
+                abrirLeitorMusica(pastaNome);
+            };
+        }
+
+        function tentarApagarPasta(nomePasta) {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(() => tentarApagarPasta(nomePasta));
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>⚠️ Eliminar Pasta</h2>
+                <hr>
+                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar a pasta?</p>
+                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px;">📁 ${nomePasta}</p>
+                <button onclick="apagarPasta(${JSON.stringify(nomePasta)})" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Apagar</button>
+                <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
+            `);
+        }
+
+        function apagarPasta(nomePasta) {
+            let transaction = db.transaction(["pastas"], "readwrite");
+            let store = transaction.objectStore("pastas");
+            let req = store.openCursor();
+            req.onsuccess = function(e) {
+                let cursor = e.target.result;
+                if (cursor) {
+                    let pNome = cursor.value.nome || cursor.value;
+                    if (pNome === nomePasta) {
+                        store.delete(cursor.primaryKey);
+                    } else {
+                        cursor.continue();
+                    }
+                }
+            };
+            transaction.oncomplete = function() {
+                mostrarToast(`Pasta removida!`);
+                abrirLeitorMusica();
+            };
+        }
+
+        function tentarCopiarMusica(idMusica, pastaAtual, todasAsPastas) {
+            let pastasDisponiveis = todasAsPastas.filter(p => p !== pastaAtual);
+            if (pastasDisponiveis.length === 0) {
+                mostrarToast("Não há outras pastas.");
+                return;
+            }
+            let textoOpcoes = "Escolha a pasta de destino:\n";
+            pastasDisponiveis.forEach((p, index) => {
+                textoOpcoes += `${index + 1} - ${p}\n`;
+            });
+            let escolha = prompt(textoOpcoes + "\nDigite o número ou nome:");
+            if (!escolha) return;
+            let pastaDestino = escolha.trim();
+            if (!isNaN(pastaDestino) && pastaDestino > 0 && pastaDestino <= pastasDisponiveis.length) {
+                pastaDestino = pastasDisponiveis[pastaDestino - 1];
+            }
+            if (!todasAsPastas.includes(pastaDestino)) {
+                mostrarToast("Pasta inválida!");
+                return;
+            }
+            let transaction = db.transaction(["musicas"], "readwrite");
+            let store = transaction.objectStore("musicas");
+            store.get(idMusica).onsuccess = function(e) {
+                let musicaOriginal = e.target.result;
+                if (!musicaOriginal) return;
+                store.add({ nome: musicaOriginal.nome, pasta: pastaDestino, blob: musicaOriginal.blob }).onsuccess = function() {
+                    mostrarToast(`Copiado para "${pastaDestino}"!`);
+                    abrirLeitorMusica(pastaAtual);
+                };
+            };
+        }
+
+        function reproduzirMusicaDB(id) {
+            db.transaction(["musicas"], "readonly").objectStore("musicas").get(id).onsuccess = function(event) {
+                let musica = event.target.result;
+                if (musica && musica.blob) {
+                    const player = document.getElementById("audioPlayer");
+                    player.src = URL.createObjectURL(musica.blob);
+                    player.style.display = "block";
+                    player.play();
+                }
+            };
+        }
+
+        // --- MÓDULO DE VÍDEOS ---
+        function abrirGestorVideos() {
+            if (!db) {
+                setTimeout(abrirGestorVideos, 500);
+                return;
+            }
+
+            let transaction = db.transaction(["videos"], "readonly");
+            transaction.objectStore("videos").getAll().onsuccess = function(event) {
+                let videosSalvos = event.target.result;
+                
+                let htmlVideos = `<h2>🎥 Gestor de Vídeos</h2>`;
+                htmlVideos += `<button onclick="tentarFazerUploadVideo()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar Vídeo</button>`;
+                htmlVideos += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
+
+                if (videosSalvos.length === 0) {
+                    htmlVideos += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem vídeos guardados.</p>`;
+                } else {
+                    videosSalvos.forEach((videoItem) => {
+                        let urlVid = URL.createObjectURL(videoItem.blob);
+                        htmlVideos += `<div style="background:rgba(248, 250, 252, 0.9); border:1px solid #cbd5e1; padding:6px; margin-bottom:6px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px;" title="${videoItem.titulo}">🎬 ${videoItem.titulo}</span>
+                            <div>
+                                <button onclick='reproduzirVideoCompleta("${urlVid}", "${videoItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#059669;" title="Ver">▶</button>
+                                <button onclick='tentarApagarVideo(${videoItem.id}, "${videoItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+                htmlVideos += `</div>`;
+                htmlVideos += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
+                
+                abrirJanelaFixa(htmlVideos);
+            };
+        }
+
+        function tentarFazerUploadVideo() {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(tentarFazerUploadVideo);
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>📤 Enviar Vídeo</h2>
+                <hr>
+                <label class="file-upload-box">
+                    📂 Abrir Gestor de Ficheiros (Files)
+                    <input type="file" accept="video/*" onchange="guardarVideoSelecionado(event)">
+                </label>
+                <button onclick="abrirGestorVideos()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
+            `);
+        }
+
+        function guardarVideoSelecionado(event) {
+            const ficheiro = event.target.files[0];
+            if (!ficheiro) return;
+
+            let titulo = ficheiro.name;
+            let transaction = db.transaction(["videos"], "readwrite");
+            transaction.objectStore("videos").add({ titulo: titulo, blob: ficheiro }).onsuccess = function() {
+                mostrarToast("Vídeo guardado!");
+                abrirGestorVideos();
+            };
+        }
+
+        function tentarApagarVideo(id, tituloVid) {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(() => tentarApagarVideo(id, tituloVid));
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>⚠️ Eliminar Vídeo</h2>
+                <hr>
+                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar:</p>
+                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; word-break: break-all;">🎬 ${tituloVid}</p>
+                <button onclick="apagarVideoDB(${id})" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Eliminar</button>
+                <button onclick="abrirGestorVideos()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
+            `);
+        }
+
+        function apagarVideoDB(id) {
+            let transaction = db.transaction(["videos"], "readwrite");
+            transaction.objectStore("videos").delete(id).onsuccess = function() {
+                mostrarToast("Vídeo eliminado!");
+                abrirGestorVideos();
+            };
+        }
+
+        function reproduzirVideoCompleta(url, titulo) {
+            abrirJanelaFixa(`
+                <h2>🎬 ${titulo}</h2>
+                <hr>
+                <div style="text-align:center; margin-bottom:10px;">
+                    <video src="${url}" controls autoplay style="width:100%; max-height:220px; border-radius:6px; background:#000;" alt="Vídeo"></video>
+                </div>
+                <button onclick="abrirGestorVideos()" class="secondary-btn" style="padding: 10px;">⬅ Voltar</button>
+            `);
+        }
+
+        // --- MÓDULO DE IMAGENS ---
+        function abrirGaleriaImagens() {
+            if (!db) {
+                setTimeout(abrirGaleriaImagens, 500);
+                return;
+            }
+
+            let transaction = db.transaction(["imagens"], "readonly");
+            transaction.objectStore("imagens").getAll().onsuccess = function(event) {
+                let imagensSalvas = event.target.result;
+                
+                let htmlImagens = `<h2>🖼️ Galeria de Imagens</h2>`;
+                htmlImagens += `<button onclick="tentarFazerUploadImagem()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar Imagem</button>`;
+                htmlImagens += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
+
+                if (imagensSalvas.length === 0) {
+                    htmlImagens += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem imagens guardadas.</p>`;
+                } else {
+                    imagensSalvas.forEach((imgItem) => {
+                        let urlImg = URL.createObjectURL(imgItem.blob);
+                        htmlImagens += `<div style="background:rgba(248, 250, 252, 0.9); border:1px solid #cbd5e1; padding:6px; margin-bottom:6px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+                                <img src="${urlImg}" style="width:35px; height:35px; object-fit:cover; border-radius:4px;" alt="Miniatura">
+                                <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;">📷 ${imgItem.titulo}</span>
+                            </div>
+                            <div>
+                                <button onclick='verImagemCompleta("${urlImg}", "${imgItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#059669;" title="Ver">🔍</button>
+                                <button onclick='tentarApagarImagem(${imgItem.id}, "${imgItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+                htmlImagens += `</div>`;
+                htmlImagens += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
+                
+                abrirJanelaFixa(htmlImagens);
+            };
+        }
+
+        function tentarFazerUploadImagem() {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(tentarFazerUploadImagem);
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>📤 Enviar Imagem</h2>
+                <hr>
+                <label class="file-upload-box">
+                    📂 Abrir Gestor de Ficheiros (Files)
+                    <input type="file" accept="image/*" onchange="guardarImagemSelecionada(event)">
+                </label>
+                <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
+            `);
+        }
+
+        function guardarImagemSelecionada(event) {
+            const ficheiro = event.target.files[0];
+            if (!ficheiro) return;
+
+            let titulo = ficheiro.name;
+            let transaction = db.transaction(["imagens"], "readwrite");
+            transaction.objectStore("imagens").add({ titulo: titulo, blob: ficheiro }).onsuccess = function() {
+                mostrarToast("Imagem guardada!");
+                abrirGaleriaImagens();
+            };
+        }
+
+        function tentarApagarImagem(id, tituloImg) {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(() => tentarApagarImagem(id, tituloImg));
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>⚠️ Eliminar Imagem</h2>
+                <hr>
+                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar:</p>
+                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; word-break: break-all;">📷 ${tituloImg}</p>
+                <button onclick="apagarImagemDB(${id})" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Eliminar</button>
+                <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
+            `);
+        }
+
+        function apagarImagemDB(id) {
+            let transaction = db.transaction(["imagens"], "readwrite");
+            transaction.objectStore("imagens").delete(id).onsuccess = function() {
+                mostrarToast("Imagem eliminada!");
+                abrirGaleriaImagens();
+            };
+        }
+
+        function verImagemCompleta(url, titulo) {
+            abrirJanelaFixa(`
+                <h2>📷 ${titulo}</h2>
+                <hr>
+                <div style="text-align:center; margin-bottom:10px;">
+                    <img src="${url}" style="max-width:100%; max-height:240px; border-radius:6px; border:1px solid #cbd5e1;" alt="Imagem">
+                </div>
+                <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding: 10px;">⬅ Voltar</button>
+            `);
+        }
+        // --------------------------------------------------------
+
+        function abrirEstatisticasAcessos() {
+            let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
+            let htmlLogs = `<h2>📊 Utilizadores</h2><p style="font-size:0.8rem; color:#64748b;">Registos no dispositivo:</p><hr>`;
+            if (acessos.length === 0) {
+                htmlLogs += `<p style="font-size:0.85rem;">Sem registos.</p>`;
+            } else {
+                acessos.reverse().forEach((log, index) => {
+                    htmlLogs += `<div class="log-box" style="background:rgba(241, 245, 249, 0.9); color:#0f172a; border:1px solid #cbd5e1;"><b>#${acessos.length - index}</b> - ${log.perfil || 'Geral'} <br><small>${log.dataHora}</small></div>`;
+                });
+            }
+            htmlLogs += `<br><button onclick="limparLogs()" class="danger-btn" style="padding:10px;">Apagar Registos</button><button onclick="abrirSubmenuDireito()" class="secondary-btn" style="padding:10px;">Voltar</button>`;
+            abrirJanelaFixa(htmlLogs);
+        }
+
+        function limparLogs() {
+            localStorage.removeItem("angola_acessos_log");
+            mostrarToast("Registos limpos!");
+            abrirEstatisticasAcessos();
+        }
+
+        function abrirMenu() {
+            abrirJanelaFixa(`
+                <h2>☰ Menu</h2>
+                <hr>
+                <button onclick="abrirSubmenuSaude()" style="padding:10px;">🩺 Saúde</button>
+                <button onclick="abrirLeitorMusica()" style="padding:10px;">🎵 Músicas</button>
+                <button onclick="abrirGestorVideos()" style="padding:10px;">🎥 Vídeos</button>
+                <button onclick="abrirGaleriaImagens()" style="padding:10px;">🖼️ Imagens</button>
+                <button onclick="abrirChat()" style="padding:10px;">💬 Chat Dev</button>
+                <br>
+                <button onclick="fecharJanelaModal()" class="danger-btn" style="padding:10px;">Fechar</button>
+            `);
+        }
+
+        function abrirSubmenuDireito() {
+            abrirJanelaFixa(`
+                <h2>⚙️ Opções</h2>
+                <hr>
+                <button onclick="instalarAplicativo()" style="background:#059669; padding:10px;">📥 Instalar Aplicativo</button>
+                <button onclick="infoDev()" style="padding:10px;">ℹ Sobre</button>
+                <button onclick="infoIban()" style="padding:10px;">💳 IBAN</button>
+                <button onclick="abrirEstatisticasAcessos()" style="padding:10px;">📊 Utilizadores</button>
+                <button onclick="partilharApp()" class="whatsapp-btn" style="padding:10px;">🔗 Partilhar</button>
+                <button onclick="abrirAjudaFeedback()" style="padding:10px;">❓ Ajuda</button>
+                <br>
+                <button onclick="fecharJanelaModal()" class="danger-btn" style="padding:10px;">Fechar</button>
+            `);
+        }
+
+        function partilharApp() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Angola 2026',
+                    text: 'Confere a aplicação Angola 2026!',
+                    url: window.location.href
+                }).catch((error) => console.log('Erro ao partilhar:', error));
+            } else {
+                let textoPartilha = "Confere a aplicação Angola 2026: " + window.location.href;
+                navigator.clipboard.writeText(textoPartilha).then(() => {
+                    mostrarToast("Link copiado!");
+                });
+            }
+        }
+
+        function abrirAjudaFeedback() {
+            abrirJanelaFixa(`
+                <h2>❓ Ajuda</h2>
+                <hr>
+                <p style="font-size: 0.85rem; margin-bottom: 10px;">Consulte as informações institucionais e patrióticas.</p>
+                <textarea id="textoFeedback" placeholder="Deixe a sua mensagem..." style="font-size:0.9rem; height:80px;"></textarea>
+                <button onclick="enviarFeedback()" class="whatsapp-btn" style="padding:10px;">💬 Enviar WhatsApp</button>
+                <br>
+                <button onclick="abrirSubmenuDireito()" class="secondary-btn" style="padding:10px;">Voltar</button>
+            `);
+        }
+
+        function enviarFeedback() {
+            const texto = document.getElementById("textoFeedback").value.trim();
+            if (texto === "") {
+                mostrarToast("Escreva uma mensagem!");
+                return;
+            }
+            let nomeUtilizador = localStorage.getItem("utilizador_nome") || "Utilizador";
+            let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Feedback Angola 2026\nDe: ${nomeUtilizador}\n\nMensagem: ${texto}`);
+            window.open(urlZap, '_blank');
+        }
+
+        function abrirSubmenuSaude() {
+            abrirJanelaFixa(`
+                <h2>🩺 Saúde</h2>
+                <hr>
+                <button onclick="calcMed()" style="padding:10px;">💊 Dosagens</button>
+                <button onclick="infoSaude('🦟 Paludismo', 'Febre alta e calafrios. Use redes mosqueteiras.')" style="padding:10px;">🦟 Paludismo</button>
+                <button onclick="infoSaude('🎗 HIV/SIDA', 'Prevenção com preservativos e testagem regular.')" style="padding:10px;">🎗 HIV/SIDA</button>
+                <br>
+                <button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar</button>
+            `);
+        }
+
+        function abrirChat() {
+            abrirJanelaFixa(`
+                <h2>💬 Chat Dev</h2>
+                <div class="chat-box" id="chatHistorico" style="background:#f1f5f9; border:1px solid #cbd5e1;"></div>
+                <input type="text" id="mensagemInput" placeholder="Escreve..." style="font-size:0.9rem; padding:10px;">
+                <button onclick="enviarMensagemChat()" style="padding:10px;">Enviar</button>
+                <button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar</button>
+            `);
+            carregarConversasBD();
+        }
+
+        function carregarConversasBD() {
+            const historicoDiv = document.getElementById("chatHistorico");
+            if (!historicoDiv) return;
+            let conversas = JSON.parse(localStorage.getItem("angola_chat_db")) || [];
+            if (conversas.length === 0) {
+                historicoDiv.innerHTML = `<div style="color:#64748b; font-size:0.85rem;">Escreva uma mensagem.</div>`;
+                return;
+            }
+            historicoDiv.innerHTML = "";
+            conversas.forEach(msg => {
+                historicoDiv.innerHTML += `<div style="background:${msg.tipo === 'user' ? '#1d4ed8' : '#e2e8f0'}; color:${msg.tipo === 'user' ? '#fff' : '#0f172a'}; padding:6px 10px; border-radius:6px; font-size:0.85rem; margin-bottom:4px;">${msg.texto}</div>`;
+            });
+            historicoDiv.scrollTop = historicoDiv.scrollHeight;
+        }
+
+        function enviarMensagemChat() {
+            const input = document.getElementById("mensagemInput");
+            const texto = input.value.trim();
+            if (texto === "") return;
+            let conversas = JSON.parse(localStorage.getItem("angola_chat_db")) || [];
+            conversas.push({ tipo: "user", texto: texto });
+            conversas.push({ tipo: "dev", texto: "Mensagem guardada! Podes enviar para o WhatsApp." });
+            localStorage.setItem("angola_chat_db", JSON.stringify(conversas));
+            input.value = "";
+            carregarConversasBD();
+            let nomeUtilizador = localStorage.getItem("utilizador_nome") || "Utilizador";
+            let zapUrl = `https://wa.me/244944048287?text=` + encodeURIComponent(`Mensagem de ${nomeUtilizador}: ${texto}`);
+            const historicoDiv = document.getElementById("chatHistorico");
+            historicoDiv.innerHTML += `<button class="whatsapp-btn" onclick="window.open('${zapUrl}', '_blank')" style="padding:8px; font-size:0.8rem; margin-top:4px;">💬 Enviar para o WhatsApp</button>`;
+            historicoDiv.scrollTop = historicoDiv.scrollHeight;
+        }
+
+        function calcMed() {
+            abrirJanelaFixa(`
+                <h2>💊 Dosagens</h2>
+                <hr>
+                <input type="number" id="peso" placeholder="Peso (kg)" style="padding:10px; font-size:0.9rem;">
+                <input type="number" id="dose" placeholder="Dose (mg/kg)" style="padding:10px; font-size:0.9rem;">
+                <input type="number" id="conc" placeholder="Concentração (mg/ml)" style="padding:10px; font-size:0.9rem;">
+                <button onclick="executarCalculo()" style="padding:10px;">Calcular</button>
+                <button onclick="abrirSubmenuSaude()" class="secondary-btn" style="padding:10px;">Voltar</button>
+            `);
+        }
+
+        function executarCalculo() {
+            const peso = parseFloat(document.getElementById("peso").value);
+            const dose = parseFloat(document.getElementById("dose").value);
+            const conc = parseFloat(document.getElementById("conc").value);
+            if (!isNaN(peso) && !isNaN(dose)) {
+                let total = peso * dose;
+                let res = `<h2>📊 Resultado</h2><hr><p><b>Dose:</b> ${total.toFixed(2)} mg</p>`;
+                if (!isNaN(conc) && conc > 0) res += `<p><b>Volume:</b> ${(total/conc).toFixed(2)} ml</p>`;
+                res += `<br><button onclick="calcMed()" style="padding:10px;">Novo</button><button onclick="abrirSubmenuSaude()" class="secondary-btn" style="padding:10px;">Voltar</button>`;
+                abrirJanelaFixa(res);
+            } else {
+                mostrarToast("Preencha valores válidos!");
+            }
+        }
+
+        function infoSaude(titulo, msg) {
+            abrirJanelaFixa(`<h2>${titulo}</h2><hr><p style="font-size:0.9rem;">${msg}</p><br><button onclick="abrirSubmenuSaude()" class="secondary-btn" style="padding:10px;">Voltar</button>`);
+        }
+
+        function infoDev() {
+            let meuNomeCadastrado = localStorage.getItem("utilizador_nome") || "Utilizador";
+            abrirJanelaFixa(`
+                <h2>👨‍💻 Desenvolvedor</h2>
+                <hr><p style="font-size:0.9rem;"><b>Nome:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
+                <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, sou o/a ${meuNomeCadastrado}.`) + `', '_blank')" style="padding:10px;">💬 WhatsApp</button>
+                <button class="call-btn" onclick="window.location.href='tel:${MEU_TELEFONE}'" style="padding:10px;">📞 Ligar</button>
+                <br><br><button onclick="abrirSubmenuDireito()" class="secondary-btn" style="padding:10px;">Voltar</button>
+            `);
+        }
+
+        function infoIban() {
+            abrirJanelaFixa(`<h2>💳 IBAN</h2><hr><div class="iban-box" style="background:rgba(241, 245, 249, 0.9); color:#1e3a8a; border:1px dashed #cbd5e1;">${MEU_IBAN}</div><br><button onclick="abrirSubmenuDireito()" class="secondary-btn" style="padding:10px;">Voltar</button>`);
+        }
+    </script>
+</body>
+</html>
