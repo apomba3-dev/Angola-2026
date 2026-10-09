@@ -178,10 +178,11 @@
 
         <ul id="listaArtigos"></ul>
 
-        <!-- Container da imagem fo.png ocupando largura total e com a frase -->
-        <div id="containerImagemOculta" style="display: none; text-align: center; margin-top: 10px;">
-            <img src="fo.png" alt="Imagem Oculta" style="width: 100%; height: auto; border-radius: 8px; border: 1px solid rgba(203, 213, 225, 0.9); box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: block;">
-            <p style="margin-top: 15px; font-size: 1.2rem; font-weight: bold; color: #93c5fd; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">📚 Continua a estudar</p>
+        <!-- Container da imagem fo.png ocupando o ecrã completo com botão de download -->
+        <div id="containerImagemOculta" style="display: none; text-align: center; margin-top: 5px;">
+            <img id="imagemFundoPrincipal" src="fo.png" alt="Imagem Oculta" style="width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px; border: 1px solid rgba(203, 213, 225, 0.9); box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: block; margin: 0 auto;">
+            <p style="margin-top: 15px; font-size: 1.25rem; font-weight: bold; color: #93c5fd; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">📚 Continua a estudar</p>
+            <button onclick="baixarImagemAtual()" style="margin-top: 10px; background: #059669; padding: 12px; font-size: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">📥 Baixar Imagem</button>
         </div>
     </div>
 
@@ -201,8 +202,16 @@
         let listaFiltrada = [];
         let adminAutenticado = false;
         let estadoTodasOculto = false;
+        let deferredPrompt = null;
         let temporizadorInatividade;
         const TEMPO_LIMITE_MINUTOS = 3;
+
+        // Capturar o evento de instalação do PWA
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            mostrarToast("App pronto para instalar!");
+        });
 
         // Base de dados interna completa
         let dados = [
@@ -332,6 +341,30 @@
                     };
                 }
             });
+        }
+
+        function baixarImagemAtual() {
+            const link = document.createElement('a');
+            link.href = 'fo.png';
+            link.download = 'fo.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            mostrarToast("A transferir imagem...");
+        }
+
+        function instalarAplicativo() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        mostrarToast("A instalar o aplicativo...");
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                mostrarToast("O app já está instalado ou o navegador não suporta.");
+            }
         }
 
         function verificarSessaoUtilizador() {
@@ -1079,6 +1112,7 @@
             abrirJanelaFixa(`
                 <h2>⚙️ Opções</h2>
                 <hr>
+                <button onclick="instalarAplicativo()" style="background:#059669; padding:10px;">📥 Instalar Aplicativo</button>
                 <button onclick="infoDev()" style="padding:10px;">ℹ Sobre</button>
                 <button onclick="infoIban()" style="padding:10px;">💳 IBAN</button>
                 <button onclick="abrirEstatisticasAcessos()" style="padding:10px;">📊 Utilizadores</button>
