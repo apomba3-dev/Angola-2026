@@ -511,7 +511,7 @@
             setTimeout(() => {
                 ul.innerHTML = "";
                 if (!itens || itens.length === 0) {
-                    ul.innerHTML = "<li style='text-align:center; color:#1e293b; background: rgba(255, 255, 255, 0.90); border-radius: 10px;'>Nenhum resultado local encontrado. Escreve a tua pergunta na barra acima e clica em 🔎 para pesquisar na web!</li>";
+                    ul.innerHTML = "<li style='text-align:center; color:#1e293b; background: rgba(255, 255, 255, 0.90); border-radius: 10px;'>Nenhum resultado local encontrado. A redirecionar para a web...</li>";
                 } else {
                     itens.forEach((item) => {
                         const li = document.createElement("li");
@@ -573,8 +573,24 @@
             const termo = document.getElementById("inputPesquisa").value.trim();
             if (!termo) return;
 
-            const urlPesquisa = "https://www.google.com/search?q=" + encodeURIComponent(termo);
-            window.open(urlPesquisa, '_blank');
+            // Executa a filtragem local primeiro para verificar se existem resultados internos
+            const termoLower = termo.toLowerCase();
+            const resultadosLocais = dados.filter(d => 
+                d.titulo.toLowerCase().includes(termoLower) || 
+                d.conteudo.toLowerCase().includes(termoLower) || 
+                d.categoria.toLowerCase().includes(termoLower)
+            );
+
+            // Se o assistente inteligente não encontrar nenhum resultado local, abre a web
+            if (resultadosLocais.length === 0) {
+                mostrarToast("Sem resultados internos. A abrir a web...");
+                const urlPesquisa = "https://www.google.com/search?q=" + encodeURIComponent(termo);
+                window.open(urlPesquisa, '_blank');
+            } else {
+                listaFiltrada = resultadosLocais;
+                carregarLista(listaFiltrada);
+                mostrarToast("Resultados encontrados internamente!");
+            }
         }
 
         function mostrarDetalhes(item) {
