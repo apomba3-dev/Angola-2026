@@ -78,8 +78,19 @@
             opacity: 0;
         }
 
-        li { background: #151c2f; color: #ffffff; padding: 15px; margin-bottom: 8px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.4); cursor: pointer; border: 1px solid #1e3a8a; }
-        li strong { color: #ffffff; font-size: 1.05rem; }
+        /* Estilo idêntico ao .modal-content para a página principal */
+        li { 
+            background: rgba(255, 255, 255, 0.90); 
+            color: #1e293b; 
+            padding: 15px; 
+            margin-bottom: 10px; 
+            border-radius: 10px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+            cursor: pointer; 
+            border: 1px solid rgba(203, 213, 225, 0.9); 
+            backdrop-filter: blur(5px);
+        }
+        li strong { color: #1e3a8a; font-size: 1.05rem; }
         
         .menu-btn { background: #1d4ed8; border: 1px solid #60a5fa; color: white; font-size: 0.9rem; font-weight: bold; padding: 8px 10px; border-radius: 6px; width: auto; cursor: pointer; display: flex; align-items: center; gap: 4px; }
         .menu-btn:active { background: #1e3a8a; }
@@ -166,6 +177,11 @@
         </div>
 
         <ul id="listaArtigos"></ul>
+
+        <!-- Container da imagem que aparece quando a lista é ocultada -->
+        <div id="containerImagemOculta" style="display: none; text-align: center; margin-top: 20px;">
+            <img src="7415.png" alt="Imagem Oculta" style="max-width: 100%; border-radius: 10px; border: 1px solid rgba(203, 213, 225, 0.9); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        </div>
     </div>
 
     <div id="toastNotificacao">Mensagem de aviso</div>
@@ -297,16 +313,19 @@
                         document.getElementById("inputPesquisa").value = "";
 
                         const ul = document.getElementById("listaArtigos");
+                        const divImg = document.getElementById("containerImagemOculta");
                         ul.classList.add("fade-out");
 
                         setTimeout(() => {
                             if (!estadoTodasOculto) {
-                                ul.innerHTML = "<li style='text-align:center; color:#cbd5e1;'>Frases ocultadas. Clica novamente no botão 'Todas' para voltar a mostrar.</li>";
+                                ul.innerHTML = "<li style='text-align:center; color:#1e293b; background: rgba(255, 255, 255, 0.90); border-radius: 10px;'>Frases ocultadas. Clica novamente no botão 'Todas' para voltar a mostrar.</li>";
+                                divImg.style.display = "block"; // Mostra a imagem
                                 mostrarToast("Frases ocultadas!");
                                 estadoTodasOculto = true;
                             } else {
                                 listaFiltrada = [...dados];
                                 carregarLista(listaFiltrada);
+                                divImg.style.display = "none"; // Esconde a imagem
                                 mostrarToast("Frases restauradas!");
                                 estadoTodasOculto = false;
                             }
@@ -433,7 +452,7 @@
             setTimeout(() => {
                 ul.innerHTML = "";
                 if (!itens || itens.length === 0) {
-                    ul.innerHTML = "<li style='text-align:center; color:#cbd5e1;'>Nenhum resultado local encontrado. Escreve a tua pergunta na barra acima e clica em 🔎 para pesquisar na web!</li>";
+                    ul.innerHTML = "<li style='text-align:center; color:#1e293b; background: rgba(255, 255, 255, 0.90); border-radius: 10px;'>Nenhum resultado local encontrado. Escreve a tua pergunta na barra acima e clica em 🔎 para pesquisar na web!</li>";
                 } else {
                     itens.forEach((item) => {
                         const li = document.createElement("li");
@@ -449,6 +468,7 @@
         function filtrar() {
             if (typeof dados === 'undefined') return;
             estadoTodasOculto = false;
+            document.getElementById("containerImagemOculta").style.display = "none";
             const termo = document.getElementById("inputPesquisa").value.toLowerCase().trim();
             if (termo === "") {
                 listaFiltrada = [...dados];
@@ -467,6 +487,7 @@
                 return;
             }
             estadoTodasOculto = false;
+            document.getElementById("containerImagemOculta").style.display = "none";
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             elementoBotao.classList.add('active');
             document.getElementById("inputPesquisa").value = "";
