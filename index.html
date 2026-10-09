@@ -468,6 +468,12 @@
             }
         }
 
+        function sairDoApp() {
+            localStorage.setItem("sessao_ativa", "false");
+            mostrarToast("Sessão encerrada.");
+            verificarSessaoUtilizador();
+        }
+
         function fecharJanela() {
             adminAutenticado = false;
             document.getElementById("modal").style.display = "none";
@@ -1130,8 +1136,9 @@
                 <button onclick="abrirEstatisticasAcessos()" style="padding:10px;">📊 Utilizadores</button>
                 <button onclick="partilharApp()" class="whatsapp-btn" style="padding:10px;">🔗 Partilhar</button>
                 <button onclick="abrirAjudaFeedback()" style="padding:10px;">❓ Ajuda</button>
+                <button onclick="sairDoApp()" class="danger-btn" style="padding:10px;">🚪 Sair do App</button>
                 <br>
-                <button onclick="fecharJanelaModal()" class="danger-btn" style="padding:10px;">Fechar</button>
+                <button onclick="fecharJanelaModal()" class="secondary-btn" style="padding:10px;">Fechar</button>
             `);
         }
 
