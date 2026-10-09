@@ -43,7 +43,6 @@
         button { background: #1d4ed8; color: white; border: none; font-weight: bold; cursor: pointer; }
         button:active { background: #1e3a8a; }
         
-        /* Botão nativo visível para abrir o Files do telemóvel sem bloqueios */
         .file-upload-box {
             background: #059669;
             color: white;
@@ -194,7 +193,7 @@
         <div id="containerImagemOculta" style="display: none; text-align: center; margin-top: 5px;">
             <img id="imagemFundoPrincipal" src="fo.png" alt="Imagem Oculta" style="width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px; border: 1px solid rgba(203, 213, 225, 0.9); box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: block; margin: 0 auto;">
             <p style="margin-top: 15px; font-size: 1.25rem; font-weight: bold; color: #93c5fd; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">📚 Continua a estudar</p>
-            <button onclick="baixarImagemAtual()" style="margin-top: 10px; background: #059669; padding: 12px; font-size: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">📥 Baixar Imagem</button>
+            <button onclick="tentarBaixarImagemPrincipal()" style="margin-top: 10px; background: #059669; padding: 12px; font-size: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">📥 Baixar Imagem (Admin)</button>
         </div>
     </div>
 
@@ -246,7 +245,7 @@
             {
                 titulo: "Instituições da República de Angola",
                 categoria: "Instituições",
-                conteudo: "As instituições da República de Angola fundamentam-se no respeito pela Constituição e pela lei, estruturando-se com base no princípio da separação de poderes e interdependência de funções. Os órgãos de soberania são o Presidente da República, a Assembleia Nacional e os Tribunais. O Presidente da República é o Chefe de Estado, Titular do Poder Executivo e Comandante-em-Chefe das Forças Armadas Angolanas (FAA). A Assembleia Nacional constitui o parlamento unicameral, responsável pela função legislativa, aprovação do Orçamento Geral do Estado e fiscalização política da governação. Os Tribunais administram a justiça em nome do povo, destacando-se o Tribunal Supremo, o Tribunal Constitucional e o Tribunal de Contas."
+                conteudo: "As instituições da República de Angola fundamentam-se no respeito pela Constituição e pela lei, estruturando-se com base no princípio da separação de poderes e interdependência de funções. Os órgãos de soberania são o Presidente da República, a Assembleia Nacional e os Tribunais. O Presidente da República é o Chefe de Estado, Titular do Poder Executivo e Comandante-em-Chef das Forças Armadas Angolanas (FAA). A Assembleia Nacional constitui o parlamento unicameral, responsável pela função legislativa, aprovação do Orçamento Geral do Estado e fiscalização política da governação. Os Tribunais administram a justiça em nome do povo, destacando-se o Tribunal Supremo, o Tribunal Constitucional e o Tribunal de Contas."
             },
             {
                 titulo: "Organização do Estado Angolano",
@@ -364,7 +363,11 @@
             });
         }
 
-        function baixarImagemAtual() {
+        function tentarBaixarImagemPrincipal() {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(tentarBaixarImagemPrincipal);
+                return;
+            }
             const link = document.createElement('a');
             link.href = 'fo.png';
             link.download = 'fo.png';
@@ -684,11 +687,11 @@
                             } else {
                                 listaNestaPasta.forEach((musica) => {
                                     htmlMusicas += `<div style="background:#ffffff; border:1px solid #e2e8f0; padding:5px 6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
-                                        <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:120px;" title="${musica.nome}">🎶 ${musica.nome}</span>
-                                        <div style="display: flex; gap: 3px;">
-                                            <button onclick='reproduzirMusicaDB(${musica.id}, "${nomePasta}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#059669;" title="Ouvir">▶</button>
-                                            <button onclick='tentarCopiarMusica(${musica.id}, "${nomePasta}", ${JSON.stringify(listaNomesPastas)})' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#0284c7;" title="Copiar">📋</button>
-                                            <button onclick='tentarApagarMusica(${musica.id}, "${nomePasta}", "${musica.nome}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                                        <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${musica.nome}">🎶 ${musica.nome}</span>
+                                        <div style="display: flex; gap: 2px;">
+                                            <button onclick='reproduzirMusicaDB(${musica.id}, "${nomePasta}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ouvir">▶</button>
+                                            <button onclick='tentarBaixarMusica(${musica.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin)">📥</button>
+                                            <button onclick='tentarApagarMusica(${musica.id}, "${nomePasta}", "${musica.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                                         </div>
                                     </div>`;
                                 });
@@ -706,10 +709,6 @@
         }
 
         function tentarFazerUploadMusica() {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(tentarFazerUploadMusica);
-                return;
-            }
             let transaction = db.transaction(["pastas"], "readonly");
             let req = transaction.objectStore("pastas").getAll();
             req.onsuccess = function(e) {
@@ -757,6 +756,26 @@
             request.onsuccess = function() {
                 mostrarToast(`Guardado em "${pastaEscolhida}"!`);
                 abrirLeitorMusica(pastaEscolhida);
+            };
+        }
+
+        function tentarBaixarMusica(id) {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(() => tentarBaixarMusica(id));
+                return;
+            }
+            db.transaction(["musicas"], "readonly").objectStore("musicas").get(id).onsuccess = function(event) {
+                let musica = event.target.result;
+                if (musica && musica.blob) {
+                    const url = URL.createObjectURL(musica.blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = musica.nome;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    mostrarToast("A transferir música...");
+                }
             };
         }
 
@@ -851,38 +870,6 @@
             };
         }
 
-        function tentarCopiarMusica(idMusica, pastaAtual, todasAsPastas) {
-            let pastasDisponiveis = todasAsPastas.filter(p => p !== pastaAtual);
-            if (pastasDisponiveis.length === 0) {
-                mostrarToast("Não há outras pastas.");
-                return;
-            }
-            let textoOpcoes = "Escolha a pasta de destino:\n";
-            pastasDisponiveis.forEach((p, index) => {
-                textoOpcoes += `${index + 1} - ${p}\n`;
-            });
-            let escolha = prompt(textoOpcoes + "\nDigite o número ou nome:");
-            if (!escolha) return;
-            let pastaDestino = escolha.trim();
-            if (!isNaN(pastaDestino) && pastaDestino > 0 && pastaDestino <= pastasDisponiveis.length) {
-                pastaDestino = pastasDisponiveis[pastaDestino - 1];
-            }
-            if (!todasAsPastas.includes(pastaDestino)) {
-                mostrarToast("Pasta inválida!");
-                return;
-            }
-            let transaction = db.transaction(["musicas"], "readwrite");
-            let store = transaction.objectStore("musicas");
-            store.get(idMusica).onsuccess = function(e) {
-                let musicaOriginal = e.target.result;
-                if (!musicaOriginal) return;
-                store.add({ nome: musicaOriginal.nome, pasta: pastaDestino, blob: musicaOriginal.blob }).onsuccess = function() {
-                    mostrarToast(`Copiado para "${pastaDestino}"!`);
-                    abrirLeitorMusica(pastaAtual);
-                };
-            };
-        }
-
         function reproduzirMusicaDB(id) {
             db.transaction(["musicas"], "readonly").objectStore("musicas").get(id).onsuccess = function(event) {
                 let musica = event.target.result;
@@ -916,10 +903,11 @@
                     videosSalvos.forEach((videoItem) => {
                         let urlVid = URL.createObjectURL(videoItem.blob);
                         htmlVideos += `<div style="background:rgba(248, 250, 252, 0.9); border:1px solid #cbd5e1; padding:6px; margin-bottom:6px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px;" title="${videoItem.titulo}">🎬 ${videoItem.titulo}</span>
-                            <div>
-                                <button onclick='reproduzirVideoCompleta("${urlVid}", "${videoItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#059669;" title="Ver">▶</button>
-                                <button onclick='tentarApagarVideo(${videoItem.id}, "${videoItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${videoItem.titulo}">🎬 ${videoItem.titulo}</span>
+                            <div style="display: flex; gap: 2px;">
+                                <button onclick='reproduzirVideoCompleta("${urlVid}", "${videoItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">▶</button>
+                                <button onclick='tentarBaixarVideo(${videoItem.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin)">📥</button>
+                                <button onclick='tentarApagarVideo(${videoItem.id}, "${videoItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                             </div>
                         </div>`;
                     });
@@ -932,10 +920,6 @@
         }
 
         function tentarFazerUploadVideo() {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(tentarFazerUploadVideo);
-                return;
-            }
             abrirJanelaFixa(`
                 <h2>📤 Enviar Vídeo</h2>
                 <hr>
@@ -956,6 +940,26 @@
             transaction.objectStore("videos").add({ titulo: titulo, blob: ficheiro }).onsuccess = function() {
                 mostrarToast("Vídeo guardado!");
                 abrirGestorVideos();
+            };
+        }
+
+        function tentarBaixarVideo(id) {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(() => tentarBaixarVideo(id));
+                return;
+            }
+            db.transaction(["videos"], "readonly").objectStore("videos").get(id).onsuccess = function(event) {
+                let video = event.target.result;
+                if (video && video.blob) {
+                    const url = URL.createObjectURL(video.blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = video.titulo;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    mostrarToast("A transferir vídeo...");
+                }
             };
         }
 
@@ -1014,13 +1018,14 @@
                     imagensSalvas.forEach((imgItem) => {
                         let urlImg = URL.createObjectURL(imgItem.blob);
                         htmlImagens += `<div style="background:rgba(248, 250, 252, 0.9); border:1px solid #cbd5e1; padding:6px; margin-bottom:6px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-                            <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
-                                <img src="${urlImg}" style="width:35px; height:35px; object-fit:cover; border-radius:4px;" alt="Miniatura">
-                                <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;">📷 ${imgItem.titulo}</span>
+                            <div style="display:flex; align-items:center; gap:4px; overflow:hidden;">
+                                <img src="${urlImg}" style="width:30px; height:30px; object-fit:cover; border-radius:4px;" alt="Miniatura">
+                                <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:90px;">📷 ${imgItem.titulo}</span>
                             </div>
-                            <div>
-                                <button onclick='verImagemCompleta("${urlImg}", "${imgItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#059669;" title="Ver">🔍</button>
-                                <button onclick='tentarApagarImagem(${imgItem.id}, "${imgItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                            <div style="display: flex; gap: 2px;">
+                                <button onclick='verImagemCompleta("${urlImg}", "${imgItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">🔍</button>
+                                <button onclick='tentarBaixarImagem(${imgItem.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin)">📥</button>
+                                <button onclick='tentarApagarImagem(${imgItem.id}, "${imgItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                             </div>
                         </div>`;
                     });
@@ -1033,10 +1038,6 @@
         }
 
         function tentarFazerUploadImagem() {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(tentarFazerUploadImagem);
-                return;
-            }
             abrirJanelaFixa(`
                 <h2>📤 Enviar Imagem</h2>
                 <hr>
@@ -1057,6 +1058,26 @@
             transaction.objectStore("imagens").add({ titulo: titulo, blob: ficheiro }).onsuccess = function() {
                 mostrarToast("Imagem guardada!");
                 abrirGaleriaImagens();
+            };
+        }
+
+        function tentarBaixarImagem(id) {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(() => tentarBaixarImagem(id));
+                return;
+            }
+            db.transaction(["imagens"], "readonly").objectStore("imagens").get(id).onsuccess = function(event) {
+                let img = event.target.result;
+                if (img && img.blob) {
+                    const url = URL.createObjectURL(img.blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = img.titulo;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    mostrarToast("A transferir imagem...");
+                }
             };
         }
 
@@ -1115,10 +1136,11 @@
                     pdfsSalvos.forEach((pdfItem) => {
                         let urlPdf = URL.createObjectURL(pdfItem.blob);
                         htmlPDFs += `<div style="background:rgba(248, 250, 252, 0.9); border:1px solid #cbd5e1; padding:6px; margin-bottom:6px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px;" title="${pdfItem.titulo}">📄 ${pdfItem.titulo}</span>
-                            <div>
-                                <button onclick='abrirPDFNavegador("${urlPdf}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#059669;" title="Abrir PDF">👁️</button>
-                                <button onclick='tentarApagarPDF(${pdfItem.id}, "${pdfItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${pdfItem.titulo}">📄 ${pdfItem.titulo}</span>
+                            <div style="display: flex; gap: 2px;">
+                                <button onclick='abrirPDFNavegador("${urlPdf}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">👁️</button>
+                                <button onclick='tentarBaixarPDF(${pdfItem.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin)">📥</button>
+                                <button onclick='tentarApagarPDF(${pdfItem.id}, "${pdfItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                             </div>
                         </div>`;
                     });
@@ -1131,10 +1153,6 @@
         }
 
         function tentarFazerUploadPDF() {
-            if (!adminAutenticado) {
-                abrirPainelAdmin(tentarFazerUploadPDF);
-                return;
-            }
             abrirJanelaFixa(`
                 <h2>📤 Enviar Documento PDF</h2>
                 <hr>
@@ -1155,6 +1173,26 @@
             transaction.objectStore("pdfs").add({ titulo: titulo, blob: ficheiro }).onsuccess = function() {
                 mostrarToast("PDF guardado com sucesso!");
                 abrirGestorPDFs();
+            };
+        }
+
+        function tentarBaixarPDF(id) {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(() => tentarBaixarPDF(id));
+                return;
+            }
+            db.transaction(["pdfs"], "readonly").objectStore("pdfs").get(id).onsuccess = function(event) {
+                let pdf = event.target.result;
+                if (pdf && pdf.blob) {
+                    const url = URL.createObjectURL(pdf.blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = pdf.titulo;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    mostrarToast("A transferir PDF...");
+                }
             };
         }
 
