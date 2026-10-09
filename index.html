@@ -178,10 +178,10 @@
 
         <ul id="listaArtigos"></ul>
 
-        <!-- Container da imagem fo.png ocupando 100% da largura e altura fluida adaptada -->
-        <div id="containerImagemOculta" style="display: none; text-align: center; margin-top: 5px;">
-            <img src="fo.png" alt="Imagem Oculta" style="width: 100vw; max-width: 100%; height: 65vh; object-fit: cover; border-radius: 8px; border: 1px solid rgba(203, 213, 225, 0.9); box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: block;">
-            <p style="margin-top: 15px; font-size: 1.25rem; font-weight: bold; color: #93c5fd; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">📚 Continua a estudar</p>
+        <!-- Container da imagem fo.png ocupando largura total e com a frase -->
+        <div id="containerImagemOculta" style="display: none; text-align: center; margin-top: 10px;">
+            <img src="fo.png" alt="Imagem Oculta" style="width: 100%; height: auto; border-radius: 8px; border: 1px solid rgba(203, 213, 225, 0.9); box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: block;">
+            <p style="margin-top: 15px; font-size: 1.2rem; font-weight: bold; color: #93c5fd; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">📚 Continua a estudar</p>
         </div>
     </div>
 
@@ -991,4 +991,242 @@
         }
 
         function guardarImagemDB() {
-            const ficheiro = document.getElementById("ficheiro
+            const ficheiro = document.getElementById("ficheiroImagem").files[0];
+            if (!ficheiro) {
+                mostrarToast("Selecione um ficheiro de imagem!");
+                return;
+            }
+            let titulo = document.getElementById("tituloImagem").value.trim();
+            if (!titulo) titulo = ficheiro.name;
+
+            let transaction = db.transaction(["imagens"], "readwrite");
+            transaction.objectStore("imagens").add({ titulo: titulo, blob: ficheiro }).onsuccess = function() {
+                mostrarToast("Imagem guardada!");
+                abrirGaleriaImagens();
+            };
+        }
+
+        function tentarApagarImagem(id, tituloImg) {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(() => tentarApagarImagem(id, tituloImg));
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>⚠️ Eliminar Imagem</h2>
+                <hr>
+                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar:</p>
+                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; word-break: break-all;">📷 ${tituloImg}</p>
+                <button onclick="apagarImagemDB(${id})" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Eliminar</button>
+                <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
+            `);
+        }
+
+        function apagarImagemDB(id) {
+            let transaction = db.transaction(["imagens"], "readwrite");
+            transaction.objectStore("imagens").delete(id).onsuccess = function() {
+                mostrarToast("Imagem eliminada!");
+                abrirGaleriaImagens();
+            };
+        }
+
+        function verImagemCompleta(url, titulo) {
+            abrirJanelaFixa(`
+                <h2>📷 ${titulo}</h2>
+                <hr>
+                <div style="text-align:center; margin-bottom:10px;">
+                    <img src="${url}" style="max-width:100%; max-height:240px; border-radius:6px; border:1px solid #cbd5e1;" alt="Imagem">
+                </div>
+                <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding: 10px;">⬅ Voltar</button>
+            `);
+        }
+        // --------------------------------------------------------
+
+        function abrirEstatisticasAcessos() {
+            let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
+            let htmlLogs = `<h2>📊 Utilizadores</h2><p style="font-size:0.8rem; color:#64748b;">Registos no dispositivo:</p><hr>`;
+            if (acessos.length === 0) {
+                htmlLogs += `<p style="font-size:0.85rem;">Sem registos.</p>`;
+            } else {
+                acessos.reverse().forEach((log, index) => {
+                    htmlLogs += `<div class="log-box" style="background:rgba(241, 245, 249, 0.9); color:#0f172a; border:1px solid #cbd5e1;"><b>#${acessos.length - index}</b> - ${log.perfil || 'Geral'} <br><small>${log.dataHora}</small></div>`;
+                });
+            }
+            htmlLogs += `<br><button onclick="limparLogs()" class="danger-btn" style="padding:10px;">Apagar Registos</button><button onclick="abrirSubmenuDireito()" class="secondary-btn" style="padding:10px;">Voltar</button>`;
+            abrirJanelaFixa(htmlLogs);
+        }
+
+        function limparLogs() {
+            localStorage.removeItem("angola_acessos_log");
+            mostrarToast("Registos limpos!");
+            abrirEstatisticasAcessos();
+        }
+
+        function abrirMenu() {
+            abrirJanelaFixa(`
+                <h2>☰ Menu</h2>
+                <hr>
+                <button onclick="abrirSubmenuSaude()" style="padding:10px;">🩺 Saúde</button>
+                <button onclick="abrirLeitorMusica()" style="padding:10px;">🎵 Músicas</button>
+                <button onclick="abrirGestorVideos()" style="padding:10px;">🎥 Vídeos</button>
+                <button onclick="abrirGaleriaImagens()" style="padding:10px;">🖼️ Imagens</button>
+                <button onclick="abrirChat()" style="padding:10px;">💬 Chat Dev</button>
+                <br>
+                <button onclick="fecharJanelaModal()" class="danger-btn" style="padding:10px;">Fechar</button>
+            `);
+        }
+
+        function abrirSubmenuDireito() {
+            abrirJanelaFixa(`
+                <h2>⚙️ Opções</h2>
+                <hr>
+                <button onclick="infoDev()" style="padding:10px;">ℹ Sobre</button>
+                <button onclick="infoIban()" style="padding:10px;">💳 IBAN</button>
+                <button onclick="abrirEstatisticasAcessos()" style="padding:10px;">📊 Utilizadores</button>
+                <button onclick="partilharApp()" class="whatsapp-btn" style="padding:10px;">🔗 Partilhar</button>
+                <button onclick="abrirAjudaFeedback()" style="padding:10px;">❓ Ajuda</button>
+                <br>
+                <button onclick="fecharJanelaModal()" class="danger-btn" style="padding:10px;">Fechar</button>
+            `);
+        }
+
+        function partilharApp() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Angola 2026',
+                    text: 'Confere a aplicação Angola 2026!',
+                    url: window.location.href
+                }).catch((error) => console.log('Erro ao partilhar:', error));
+            } else {
+                let textoPartilha = "Confere a aplicação Angola 2026: " + window.location.href;
+                navigator.clipboard.writeText(textoPartilha).then(() => {
+                    mostrarToast("Link copiado!");
+                });
+            }
+        }
+
+        function abrirAjudaFeedback() {
+            abrirJanelaFixa(`
+                <h2>❓ Ajuda</h2>
+                <hr>
+                <p style="font-size: 0.85rem; margin-bottom: 10px;">Consulte as informações institucionais e patrióticas.</p>
+                <textarea id="textoFeedback" placeholder="Deixe a sua mensagem..." style="font-size:0.9rem; height:80px;"></textarea>
+                <button onclick="enviarFeedback()" class="whatsapp-btn" style="padding:10px;">💬 Enviar WhatsApp</button>
+                <br>
+                <button onclick="abrirSubmenuDireito()" class="secondary-btn" style="padding:10px;">Voltar</button>
+            `);
+        }
+
+        function enviarFeedback() {
+            const texto = document.getElementById("textoFeedback").value.trim();
+            if (texto === "") {
+                mostrarToast("Escreva uma mensagem!");
+                return;
+            }
+            let nomeUtilizador = localStorage.getItem("utilizador_nome") || "Utilizador";
+            let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Feedback Angola 2026\nDe: ${nomeUtilizador}\n\nMensagem: ${texto}`);
+            window.open(urlZap, '_blank');
+        }
+
+        function abrirSubmenuSaude() {
+            abrirJanelaFixa(`
+                <h2>🩺 Saúde</h2>
+                <hr>
+                <button onclick="calcMed()" style="padding:10px;">💊 Dosagens</button>
+                <button onclick="infoSaude('🦟 Paludismo', 'Febre alta e calafrios. Use redes mosqueteiras.')" style="padding:10px;">🦟 Paludismo</button>
+                <button onclick="infoSaude('🎗 HIV/SIDA', 'Prevenção com preservativos e testagem regular.')" style="padding:10px;">🎗 HIV/SIDA</button>
+                <br>
+                <button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar</button>
+            `);
+        }
+
+        function abrirChat() {
+            abrirJanelaFixa(`
+                <h2>💬 Chat Dev</h2>
+                <div class="chat-box" id="chatHistorico" style="background:#f1f5f9; border:1px solid #cbd5e1;"></div>
+                <input type="text" id="mensagemInput" placeholder="Escreve..." style="font-size:0.9rem; padding:10px;">
+                <button onclick="enviarMensagemChat()" style="padding:10px;">Enviar</button>
+                <button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar</button>
+            `);
+            carregarConversasBD();
+        }
+
+        function carregarConversasBD() {
+            const historicoDiv = document.getElementById("chatHistorico");
+            if (!historicoDiv) return;
+            let conversas = JSON.parse(localStorage.getItem("angola_chat_db")) || [];
+            if (conversas.length === 0) {
+                historicoDiv.innerHTML = `<div style="color:#64748b; font-size:0.85rem;">Escreva uma mensagem.</div>`;
+                return;
+            }
+            historicoDiv.innerHTML = "";
+            conversas.forEach(msg => {
+                historicoDiv.innerHTML += `<div style="background:${msg.tipo === 'user' ? '#1d4ed8' : '#e2e8f0'}; color:${msg.tipo === 'user' ? '#fff' : '#0f172a'}; padding:6px 10px; border-radius:6px; font-size:0.85rem; margin-bottom:4px;">${msg.texto}</div>`;
+            });
+            historicoDiv.scrollTop = historicoDiv.scrollHeight;
+        }
+
+        function enviarMensagemChat() {
+            const input = document.getElementById("mensagemInput");
+            const texto = input.value.trim();
+            if (texto === "") return;
+            let conversas = JSON.parse(localStorage.getItem("angola_chat_db")) || [];
+            conversas.push({ tipo: "user", texto: texto });
+            conversas.push({ tipo: "dev", texto: "Mensagem guardada! Podes enviar para o WhatsApp." });
+            localStorage.setItem("angola_chat_db", JSON.stringify(conversas));
+            input.value = "";
+            carregarConversasBD();
+            let nomeUtilizador = localStorage.getItem("utilizador_nome") || "Utilizador";
+            let zapUrl = `https://wa.me/244944048287?text=` + encodeURIComponent(`Mensagem de ${nomeUtilizador}: ${texto}`);
+            const historicoDiv = document.getElementById("chatHistorico");
+            historicoDiv.innerHTML += `<button class="whatsapp-btn" onclick="window.open('${zapUrl}', '_blank')" style="padding:8px; font-size:0.8rem; margin-top:4px;">💬 Enviar para o WhatsApp</button>`;
+            historicoDiv.scrollTop = historicoDiv.scrollHeight;
+        }
+
+        function calcMed() {
+            abrirJanelaFixa(`
+                <h2>💊 Dosagens</h2>
+                <hr>
+                <input type="number" id="peso" placeholder="Peso (kg)" style="padding:10px; font-size:0.9rem;">
+                <input type="number" id="dose" placeholder="Dose (mg/kg)" style="padding:10px; font-size:0.9rem;">
+                <input type="number" id="conc" placeholder="Concentração (mg/ml)" style="padding:10px; font-size:0.9rem;">
+                <button onclick="executarCalculo()" style="padding:10px;">Calcular</button>
+                <button onclick="abrirSubmenuSaude()" class="secondary-btn" style="padding:10px;">Voltar</button>
+            `);
+        }
+
+        function executarCalculo() {
+            const peso = parseFloat(document.getElementById("peso").value);
+            const dose = parseFloat(document.getElementById("dose").value);
+            const conc = parseFloat(document.getElementById("conc").value);
+            if (!isNaN(peso) && !isNaN(dose)) {
+                let total = peso * dose;
+                let res = `<h2>📊 Resultado</h2><hr><p><b>Dose:</b> ${total.toFixed(2)} mg</p>`;
+                if (!isNaN(conc) && conc > 0) res += `<p><b>Volume:</b> ${(total/conc).toFixed(2)} ml</p>`;
+                res += `<br><button onclick="calcMed()" style="padding:10px;">Novo</button><button onclick="abrirSubmenuSaude()" class="secondary-btn" style="padding:10px;">Voltar</button>`;
+                abrirJanelaFixa(res);
+            } else {
+                mostrarToast("Preencha valores válidos!");
+            }
+        }
+
+        function infoSaude(titulo, msg) {
+            abrirJanelaFixa(`<h2>${titulo}</h2><hr><p style="font-size:0.9rem;">${msg}</p><br><button onclick="abrirSubmenuSaude()" class="secondary-btn" style="padding:10px;">Voltar</button>`);
+        }
+
+        function infoDev() {
+            let meuNomeCadastrado = localStorage.getItem("utilizador_nome") || "Utilizador";
+            abrirJanelaFixa(`
+                <h2>👨‍💻 Desenvolvedor</h2>
+                <hr><p style="font-size:0.9rem;"><b>Nome:</b> ${MEU_TITULAR}<br><b>Contacto:</b> ${MEU_TELEFONE}</p>
+                <button class="whatsapp-btn" onclick="window.open('https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, sou o/a ${meuNomeCadastrado}.`) + `', '_blank')" style="padding:10px;">💬 WhatsApp</button>
+                <button class="call-btn" onclick="window.location.href='tel:${MEU_TELEFONE}'" style="padding:10px;">📞 Ligar</button>
+                <br><br><button onclick="abrirSubmenuDireito()" class="secondary-btn" style="padding:10px;">Voltar</button>
+            `);
+        }
+
+        function infoIban() {
+            abrirJanelaFixa(`<h2>💳 IBAN</h2><hr><div class="iban-box" style="background:rgba(241, 245, 249, 0.9); color:#1e3a8a; border:1px dashed #cbd5e1;">${MEU_IBAN}</div><br><button onclick="abrirSubmenuDireito()" class="secondary-btn" style="padding:10px;">Voltar</button>`);
+        }
+    </script>
+</body>
+</html>
