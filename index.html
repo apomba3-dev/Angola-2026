@@ -178,9 +178,9 @@
 
         <ul id="listaArtigos"></ul>
 
-        <!-- Container da imagem que aparece quando a lista é ocultada -->
+        <!-- Container da imagem fo.png que aparece quando a lista é ocultada -->
         <div id="containerImagemOculta" style="display: none; text-align: center; margin-top: 20px;">
-            <img src="7415.png" alt="Imagem Oculta" style="max-width: 100%; border-radius: 10px; border: 1px solid rgba(203, 213, 225, 0.9); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+            <img src="fo.png" alt="Imagem Oculta" style="max-width: 100%; border-radius: 10px; border: 1px solid rgba(203, 213, 225, 0.9); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
         </div>
     </div>
 
@@ -189,8 +189,6 @@
     <div id="modal" class="modal">
         <div class="modal-content" id="modalConteudo"></div>
     </div>
-
-    <script src="dados.js"></script>
 
     <script>
         const MEU_TITULAR = "Artur Jamba Pomba";
@@ -204,6 +202,40 @@
         let estadoTodasOculto = false;
         let temporizadorInatividade;
         const TEMPO_LIMITE_MINUTOS = 3;
+
+        // Base de dados interna completa
+        let dados = [
+            {
+                titulo: "História de Angola: Da Resistência à Independência",
+                categoria: "História",
+                conteudo: "A história de Angola é marcada por séculos de resistência contra a colonização portuguesa, culminando na Luta Armada de Libertação Nacional liderada pelos movimentos independentistas. A independência nacional foi proclamada a 11 de novembro de 1975 pelo Dr. Agostinho Neto, primeiro Presidente de Angola."
+            },
+            {
+                titulo: "Símbolos Nacionais e Cidadania",
+                categoria: "Cidadania",
+                conteudo: "A cidadania angolana rege-se pelos deveres e direitos fundamentais consagrados na Constituição. Os Símbolos Nacionais de Angola são a Bandeira Nacional (com as cores vermelha, preta e o emblema da roda dentada, machete e estrela), a Insígnia da República e o Hino Nacional ('Angola Avante')."
+            },
+            {
+                titulo: "Instituições da República de Angola",
+                categoria: "Instituições",
+                conteudo: "As instituições da República de Angola fundamentam-se no respeito pela Constituição e pela lei, estruturando-se com base no princípio da separação de poderes e interdependência de funções. Os órgãos de soberania são o Presidente da República, a Assembleia Nacional e os Tribunais. O Presidente da República é o Chefe de Estado, Titular do Poder Executivo e Comandante-em-Chefe das Forças Armadas Angolanas (FAA). A Assembleia Nacional constitui o parlamento unicameral, responsável pela função legislativa, aprovação do Orçamento Geral do Estado e fiscalização política da governação. Os Tribunais administram a justiça em nome do povo, destacando-se o Tribunal Supremo, o Tribunal Constitucional e o Tribunal de Contas."
+            },
+            {
+                titulo: "Organização do Estado Angolano",
+                categoria: "Organização do Estado",
+                conteudo: "O Estado angolano organiza-se sob a forma de uma República unitária e presidencialista. O poder político está estruturado com base no princípio da separação de poderes entre o Executivo (liderado pelo Presidente da República), o Legislativo (Assembleia Nacional) e o Judicial (Tribunais)."
+            },
+            {
+                titulo: "Administração Pública em Angola",
+                categoria: "Administração",
+                conteudo: "A Administração Pública em Angola visa assegurar a satisfação das necessidades coletivas dos cidadãos, estruturando-se de forma descentralizada através dos órgãos da administração central, governos provinciais, administrações municipais e comunais."
+            },
+            {
+                titulo: "Ministério do Interior (MININT)",
+                categoria: "Minint",
+                conteudo: "O Ministério do Interior (MININT) é o departamento ministerial encarregue de formular, coordenar e executar a política de segurança pública, manutenção da ordem interna, garantia da tranquilidade e proteção das fronteiras nacionais. O MININT opera através de vários órgãos executivos centrais especializados: a Polícia Nacional de Angola (PNA), encarregue da ordem pública e segurança das populações; o Serviço de Investigação Criminal (SIC), vocacionado para o combate à criminalidade e investigação de infrações penais; o Serviço de Migração e Estrangeiros (SME), responsável pelo controlo do movimento migratório e fronteiriço; o Serviço Penitenciário, que assegura a execução das penas e a reinserção social; e o Serviço de Proteção Civil e Bombeiros, atuando na prevenção e socorro em casos de calamidades e sinistros."
+            }
+        ];
 
         function reiniciarTemporizadorInatividade() {
             clearTimeout(temporizadorInatividade);
@@ -261,34 +293,8 @@
         };
 
         window.addEventListener('DOMContentLoaded', () => {
-            if (typeof dados !== 'undefined') {
-                dados = dados.filter(d => !d.isPlayerModulo && !d.isVideoModulo && !d.isGaleriaModulo && d.categoria !== "Música" && d.categoria !== "Vídeos" && d.categoria !== "Imagens");
-            } else {
-                dados = [];
-            }
-
-            // Inserir explicitamente os conteúdos de Instituições e MININT com as categorias rigorosas
-            const conteudoInstituicoes = {
-                titulo: "Instituições da República de Angola",
-                categoria: "Instituições",
-                conteudo: "As instituições da República de Angola fundamentam-se no respeito pela Constituição e pela lei, estruturando-se com base no princípio da separação de poderes e interdependência de funções. Os órgãos de soberania são o Presidente da República, a Assembleia Nacional e os Tribunais. O Presidente da República é o Chefe de Estado, Titular do Poder Executivo e Comandante-em-Chefe das Forças Armadas Angolanas (FAA). A Assembleia Nacional constitui o parlamento unicameral, responsável pela função legislativa, aprovação do Orçamento Geral do Estado e fiscalização política da governação. Os Tribunais administram a justiça em nome do povo, destacando-se o Tribunal Supremo, o Tribunal Constitucional e o Tribunal de Contas."
-            };
-
-            const conteudoMinint = {
-                titulo: "Ministério do Interior (MININT)",
-                categoria: "Minint",
-                conteudo: "O Ministério do Interior (MININT) é o departamento ministerial encarregue de formular, coordenar e executar a política de segurança pública, manutenção da ordem interna, garantia da tranquilidade e proteção das fronteiras nacionais. O MININT opera através de vários órgãos executivos centrais especializados: a Polícia Nacional de Angola (PNA), encarregue da ordem pública e segurança das populações; o Serviço de Investigação Criminal (SIC), vocacionado para o combate à criminalidade e investigação de infrações penais; o Serviço de Migração e Estrangeiros (SME), responsável pelo controlo do movimento migratório e fronteiriço; o Serviço Penitenciário, que assegura a execução das penas e a reinserção social; e o Serviço de Proteção Civil e Bombeiros, atuando na prevenção e socorro em casos de calamidades e sinistros."
-            };
-
-            const jaTemInst = dados.some(d => d.titulo.includes("Instituições da República"));
-            if (!jaTemInst) dados.push(conteudoInstituicoes);
-
-            const jaTemMin = dados.some(d => d.titulo.includes("Ministério do Interior"));
-            if (!jaTemMin) dados.push(conteudoMinint);
-
             listaFiltrada = [...dados];
             carregarLista(listaFiltrada);
-
             verificarSessaoUtilizador();
             configurarBotaoTodasDuploClique();
         });
