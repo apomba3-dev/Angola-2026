@@ -657,179 +657,110 @@
             }
         }
 
-        // --- MÓDULO DE MÚSICA (VINCULADO AO UTILIZADOR NA NUVEM) ---
-        function abrirLeitorMusica() {
+        // --- SISTEMA DE PESQUISA E LISTAGEM GERAL NA NUVEM ---
+        function renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro) {
             let userId = localStorage.getItem("utilizador_id_nuvem");
-            dbCloud.collection("musicas").where("userId", "==", userId).get().then((snapshot) => {
-                let htmlMusicas = `<h2>🎵 As Minhas Músicas</h2>`;
-                htmlMusicas += `<button onclick="tentarFazerUploadMusica()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar Música</button>`;
-                htmlMusicas += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
+            dbCloud.collection(colecao).where("userId", "==", userId).get().then((snapshot) => {
+                let itensCloud = [];
+                snapshot.forEach((doc) => {
+                    itensCloud.push({ id: doc.id, ...doc.data() });
+                });
 
-                if (snapshot.empty) {
-                    htmlMusicas += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem músicas guardadas.</p>`;
-                } else {
-                    snapshot.forEach((doc) => {
-                        let m = doc.data();
-                        let id = doc.id;
-                        htmlMusicas += `<div style="background:#ffffff; border:1px solid #e2e8f0; padding:5px 6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${m.nome}">🎶 ${m.nome}</span>
-                            <div style="display: flex; gap: 2px;">
-                                <button onclick='reproduzirMusicaCloud("${m.url}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ouvir">▶</button>
-                                <button onclick='tentarBaixarCloud("${m.url}", "${m.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
-                                <button onclick='apagarCloud("musicas", "${id}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
-                            </div>
-                        </div>`;
-                    });
-                }
-                htmlMusicas += `</div>`;
-                htmlMusicas += `<audio id="audioPlayer" controls style="width:100%; margin-top:8px; display:none;"></audio>`;
-                htmlMusicas += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
-                abrirJanelaFixa(htmlMusicas);
+                window.dadosAtuaisGestor = itensCloud; // Guarda para filtragem por pesquisa
+
+                construirInterfaceGestor(colecao, tituloGestor, tipoFicheiro, itensCloud);
             });
         }
 
-        function tentarFazerUploadMusica() {
-            abrirJanelaFixa(`
-                <h2>📤 Enviar Música</h2>
-                <hr>
-                <label class="file-upload-box">
-                    📂 Selecionar do Telemóvel
-                    <input type="file" accept="audio/*" onchange="uploadCloud(event, 'musicas')">
-                </label>
-                <button onclick="abrirLeitorMusica()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
-            `);
+        function construirInterfaceGestor(colecao, tituloGestor, tipoFicheiro, itens) {
+            let html = `<h2>${tituloGestor}</h2>`;
+            html += `<button onclick="tentarFazerUploadGenerico('${colecao}', '${tituloGestor}', '${tipoFicheiro}')" style="background:#059669; font-size:0.95rem; margin-bottom:8px; padding:10px;">➕ Enviar Novo Ficheiro</button>`;
+            
+            // Caixa de Pesquisa Interna
+            html += `<input type="text" id="inputPesquisaCloud" placeholder="Pesquisar ${tituloGestor.toLowerCase()}..." oninput="filtrarGestorCloud('${colecao}', '${tituloGestor}', '${tipoFicheiro}')" style="padding:8px; font-size:0.9rem; margin-bottom:8px;">`;
+            
+            html += `<hr><div id="containerListaCloud" style="max-height: 180px; overflow-y: auto;">`;
+
+            if (itens.length === 0) {
+                html += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Nenhum ficheiro encontrado.</p>`;
+            } else {
+                itens.forEach((m) => {
+                    html += `
+                    <div style="background:#ffffff; border:1px solid #e2e8f0; padding:6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${m.nome}">📄 ${m.nome}</span>
+                        <div style="display: flex; gap: 2px;">
+                            ${gerarBotoesAcaoItem(colecao, m)}
+                            <button onclick='tentarBaixarCloud("${m.url}", "${m.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
+                            <button onclick='apagarCloud("${colecao}", "${m.id}", "${tituloGestor}", "${tipoFicheiro}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                        </div>
+                    </div>`;
+                });
+            }
+            html += `</div>`;
+            html += `<audio id="audioPlayer" controls style="width:100%; margin-top:8px; display:none;"></audio>`;
+            html += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
+            
+            abrirJanelaFixa(html);
         }
 
-        // --- MÓDULO DE VÍDEOS (VINCULADO AO UTILIZADOR NA NUVEM) ---
-        function abrirGestorVideos() {
-            let userId = localStorage.getItem("utilizador_id_nuvem");
-            dbCloud.collection("videos").where("userId", "==", userId).get().then((snapshot) => {
-                let htmlVideos = `<h2>🎥 Os Meus Vídeos</h2>`;
-                htmlVideos += `<button onclick="tentarFazerUploadVideo()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar Vídeo</button>`;
-                htmlVideos += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
+        function filtrarGestorCloud(colecao, tituloGestor, tipoFicheiro) {
+            let termo = document.getElementById("inputPesquisaCloud").value.toLowerCase().trim();
+            let filtrados = window.dadosAtuaisGestor.filter(item => item.nome.toLowerCase().includes(termo));
+            
+            let container = document.getElementById("containerListaCloud");
+            if (!container) return;
 
-                if (snapshot.empty) {
-                    htmlVideos += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem vídeos guardados.</p>`;
-                } else {
-                    snapshot.forEach((doc) => {
-                        let v = doc.data();
-                        let id = doc.id;
-                        htmlVideos += `<div style="background:#ffffff; border:1px solid #e2e8f0; padding:5px 6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${v.nome}">🎬 ${v.nome}</span>
-                            <div style="display: flex; gap: 2px;">
-                                <button onclick='reproduzirVideoCloud("${v.url}", "${v.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">▶</button>
-                                <button onclick='tentarBaixarCloud("${v.url}", "${v.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
-                                <button onclick='apagarCloud("videos", "${id}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
-                            </div>
-                        </div>`;
-                    });
-                }
-                htmlVideos += `</div>`;
-                htmlVideos += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
-                abrirJanelaFixa(htmlVideos);
+            if (filtrados.length === 0) {
+                container.innerHTML = `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Nenhum resultado para "${termo}".</p>`;
+                return;
+            }
+
+            let html = "";
+            filtrados.forEach((m) => {
+                html += `
+                <div style="background:#ffffff; border:1px solid #e2e8f0; padding:6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${m.nome}">📄 ${m.nome}</span>
+                    <div style="display: flex; gap: 2px;">
+                        ${gerarBotoesAcaoItem(colecao, m)}
+                        <button onclick='tentarBaixarCloud("${m.url}", "${m.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
+                        <button onclick='apagarCloud("${colecao}", "${m.id}", "${tituloGestor}", "${tipoFicheiro}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                    </div>
+                </div>`;
             });
+            container.innerHTML = html;
         }
 
-        function tentarFazerUploadVideo() {
+        function gerarBotoesAcaoItem(colecao, m) {
+            if (colecao === "musicas") {
+                return `<button onclick='reproduzirMusicaCloud("${m.url}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ouvir">▶</button>`;
+            } else if (colecao === "videos") {
+                return `<button onclick='reproduzirVideoCloud("${m.url}", "${m.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">▶</button>`;
+            } else if (colecao === "imagens") {
+                return `<button onclick='verImagemCloud("${m.url}", "${m.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">🔍</button>`;
+            } else if (colecao === "pdfs") {
+                return `<button onclick='window.open("${m.url}", "_blank")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">👁️</button>`;
+            }
+            return "";
+        }
+
+        function tentarFazerUploadGenerico(colecao, tituloGestor, tipoFicheiro) {
             abrirJanelaFixa(`
-                <h2>📤 Enviar Vídeo</h2>
+                <h2>📤 Enviar Ficheiro</h2>
                 <hr>
                 <label class="file-upload-box">
                     📂 Selecionar do Telemóvel
-                    <input type="file" accept="video/*" onchange="uploadCloud(event, 'videos')">
+                    <input type="file" accept="${tipoFicheiro}" onchange="uploadCloud(event, '${colecao}', '${tituloGestor}', '${tipoFicheiro}')">
                 </label>
-                <button onclick="abrirGestorVideos()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
+                <button onclick="renderizarGestorCloud('${colecao}', '${tituloGestor}', '${tipoFicheiro}')" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
             `);
         }
 
-        // --- MÓDULO DE IMAGENS (VINCULADO AO UTILIZADOR NA NUVEM) ---
-        function abrirGaleriaImagens() {
-            let userId = localStorage.getItem("utilizador_id_nuvem");
-            dbCloud.collection("imagens").where("userId", "==", userId).get().then((snapshot) => {
-                let htmlImagens = `<h2>🖼️ As Minhas Imagens</h2>`;
-                htmlImagens += `<button onclick="tentarFazerUploadImagem()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar Imagem</button>`;
-                htmlImagens += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
+        function abrirLeitorMusica() { renderizarGestorCloud("musicas", "🎵 As Minhas Músicas", "audio/*"); }
+        function abrirGestorVideos() { renderizarGestorCloud("videos", "🎥 Os Meus Vídeos", "video/*"); }
+        function abrirGaleriaImagens() { renderizarGestorCloud("imagens", "🖼️ As Minhas Imagens", "image/*"); }
+        function abrirGestorPDFs() { renderizarGestorCloud("pdfs", "📄 Os Meus Documentos PDF", "application/pdf"); }
 
-                if (snapshot.empty) {
-                    htmlImagens += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem imagens guardadas.</p>`;
-                } else {
-                    snapshot.forEach((doc) => {
-                        let i = doc.data();
-                        let id = doc.id;
-                        htmlImagens += `<div style="background:#ffffff; border:1px solid #e2e8f0; padding:5px 6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
-                            <div style="display:flex; align-items:center; gap:4px; overflow:hidden;">
-                                <img src="${i.url}" style="width:30px; height:30px; object-fit:cover; border-radius:4px;" alt="Miniatura">
-                                <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:90px;">📷 ${i.nome}</span>
-                            </div>
-                            <div style="display: flex; gap: 2px;">
-                                <button onclick='verImagemCloud("${i.url}", "${i.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">🔍</button>
-                                <button onclick='tentarBaixarCloud("${i.url}", "${i.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
-                                <button onclick='apagarCloud("imagens", "${id}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
-                            </div>
-                        </div>`;
-                    });
-                }
-                htmlImagens += `</div>`;
-                htmlImagens += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
-                abrirJanelaFixa(htmlImagens);
-            });
-        }
-
-        function tentarFazerUploadImagem() {
-            abrirJanelaFixa(`
-                <h2>📤 Enviar Imagem</h2>
-                <hr>
-                <label class="file-upload-box">
-                    📂 Selecionar do Telemóvel
-                    <input type="file" accept="image/*" onchange="uploadCloud(event, 'imagens')">
-                </label>
-                <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
-            `);
-        }
-
-        // --- MÓDULO DE DOCUMENTOS PDF (VINCULADO AO UTILIZADOR NA NUVEM) ---
-        function abrirGestorPDFs() {
-            let userId = localStorage.getItem("utilizador_id_nuvem");
-            dbCloud.collection("pdfs").where("userId", "==", userId).get().then((snapshot) => {
-                let htmlPDFs = `<h2>📄 Os Meus Documentos PDF</h2>`;
-                htmlPDFs += `<button onclick="tentarFazerUploadPDF()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar PDF</button>`;
-                htmlPDFs += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
-
-                if (snapshot.empty) {
-                    htmlPDFs += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem PDFs guardados.</p>`;
-                } else {
-                    snapshot.forEach((doc) => {
-                        let p = doc.data();
-                        let id = doc.id;
-                        htmlPDFs += `<div style="background:#ffffff; border:1px solid #e2e8f0; padding:5px 6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${p.nome}">📄 ${p.nome}</span>
-                            <div style="display: flex; gap: 2px;">
-                                <button onclick='window.open("${p.url}", "_blank")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">👁️</button>
-                                <button onclick='tentarBaixarCloud("${p.url}", "${p.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
-                                <button onclick='apagarCloud("pdfs", "${id}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
-                            </div>
-                        </div>`;
-                    });
-                }
-                htmlPDFs += `</div>`;
-                htmlPDFs += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
-                abrirJanelaFixa(htmlPDFs);
-            });
-        }
-
-        function tentarFazerUploadPDF() {
-            abrirJanelaFixa(`
-                <h2>📤 Enviar Documento PDF</h2>
-                <hr>
-                <label class="file-upload-box">
-                    📂 Selecionar do Telemóvel
-                    <input type="file" accept="application/pdf" onchange="uploadCloud(event, 'pdfs')">
-                </label>
-                <button onclick="abrirGestorPDFs()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
-            `);
-        }
-
-        function uploadCloud(event, colecao) {
+        function uploadCloud(event, colecao, tituloGestor, tipoFicheiro) {
             const ficheiro = event.target.files[0];
             if (!ficheiro) return;
 
@@ -851,10 +782,7 @@
                         criadoEm: firebase.firestore.FieldValue.serverTimestamp()
                     }).then(() => {
                         mostrarToast("Ficheiro guardado na sua conta!");
-                        if (colecao === "musicas") abrirLeitorMusica();
-                        if (colecao === "videos") abrirGestorVideos();
-                        if (colecao === "imagens") abrirGaleriaImagens();
-                        if (colecao === "pdfs") abrirGestorPDFs();
+                        renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro);
                     });
                 });
             }).catch((error) => {
@@ -875,23 +803,20 @@
             });
         }
 
-        function apagarCloud(colecao, id) {
+        function apagarCloud(colecao, id, tituloGestor, tipoFicheiro) {
             abrirJanelaFixa(`
                 <h2>⚠️ Eliminar Ficheiro</h2>
                 <hr>
                 <p style="font-size: 0.9rem; margin-bottom: 15px;">Pretende remover este ficheiro da sua conta?</p>
-                <button onclick="executarApagarCloud('${colecao}', '${id}')" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Apagar</button>
-                <button onclick="abrirMenu()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
+                <button onclick="executarApagarCloud('${colecao}', '${id}', '${tituloGestor}', '${tipoFicheiro}')" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Apagar</button>
+                <button onclick="renderizarGestorCloud('${colecao}', '${tituloGestor}', '${tipoFicheiro}')" class="secondary-btn" style="padding: 10px;">Cancelar</button>
             `);
         }
 
-        function executarApagarCloud(colecao, id) {
+        function executarApagarCloud(colecao, id, tituloGestor, tipoFicheiro) {
             dbCloud.collection(colecao).doc(id).delete().then(() => {
                 mostrarToast("Ficheiro eliminado!");
-                if (colecao === "musicas") abrirLeitorMusica();
-                if (colecao === "videos") abrirGestorVideos();
-                if (colecao === "imagens") abrirGaleriaImagens();
-                if (colecao === "pdfs") abrirGestorPDFs();
+                renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro);
             });
         }
 
