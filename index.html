@@ -437,7 +437,8 @@
                 fecharJanela();
                 mostrarToast("Conta criada com sucesso!");
             }).catch((error) => {
-                mostrarToast("Erro ao registar. Verifique a internet.");
+                console.error("Erro detalhado ao registar:", error);
+                alert("Erro ao registar: " + error.message);
             });
         }
 
