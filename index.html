@@ -165,16 +165,15 @@
             <button class="search-action-btn" onclick="executarPesquisaBotao()" title="Pesquisar na Web">🔎</button>
         </div>
         
+        <!-- Abas restritas apenas às categorias institucionais e históricas na página principal -->
         <div class="tabs-container">
             <button class="tab-btn active" onclick="filtrarPorAba('Todas', this)">🔄 Todas</button>
             <button class="tab-btn" onclick="filtrarPorAba('História', this)">📜 História</button>
-            <button class="tab-btn" onclick="filtrarPorAba('Cidadania', this)">🇦🇴 Patriotismo</button>
-            <button class="tab-btn" onclick="filtrarPorAba('Instituições', this)">🏛️ Política</button>
-            <button class="tab-btn" onclick="filtrarPorAba('Administração', this)">📋 Adm. Pública</button>
-            <button class="tab-btn" onclick="filtrarPorAba('Minint', this)">🛡️ MININT</button>
-            <button class="tab-btn" onclick="filtrarPorAba('Música', this)">🎵 Músicas</button>
-            <button class="tab-btn" onclick="filtrarPorAba('Vídeos', this)">🎥 Vídeos</button>
-            <button class="tab-btn" onclick="filtrarPorAba('Imagens', this)">🖼️ Imagens</button>
+            <button class="tab-btn" onclick="filtrarPorAba('Cidadania', this)">🇦🇴 Cidadania</button>
+            <button class="tab-btn" onclick="filtrarPorAba('Instituições', this)">🏛️ Instituição</button>
+            <button class="tab-btn" onclick="filtrarPorAba('Organização do Estado', this)">🏛️ Organização do Estado</button>
+            <button class="tab-btn" onclick="filtrarPorAba('Administração', this)">📋 Administração</button>
+            <button class="tab-btn" onclick="filtrarPorAba('Minint', this)">🛡️ Ministério do Interior</button>
         </div>
 
         <ul id="listaArtigos"></ul>
@@ -235,7 +234,7 @@
         }
 
         let db;
-        const requestDB = indexedDB.open("AngolaAppDB", 4); // Versão incrementada para 4 para criar o store de vídeos
+        const requestDB = indexedDB.open("AngolaAppDB", 4);
 
         requestDB.onerror = function(event) {
             console.log("Erro ao abrir a base de dados IndexedDB");
@@ -263,6 +262,9 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             if (typeof dados !== 'undefined') {
+                // Filtra os dados carregados para remover os módulos de mídia da listagem da página principal
+                dados = dados.filter(d => !d.isPlayerModulo && !d.isVideoModulo && !d.isGaleriaModulo && d.categoria !== "Música" && d.categoria !== "Vídeos" && d.categoria !== "Imagens");
+
                 const jaTemPolitica = dados.some(d => d.titulo.includes("Política Geral"));
                 if (!jaTemPolitica) {
                     dados.push({
@@ -277,36 +279,6 @@
                         titulo: "Como Funciona o MININT (Ministério do Interior)",
                         categoria: "Minint",
                         conteudo: "O Ministério do Interior (MININT) é o departamento ministerial auxiliar do Presidente da República encarregue de garantir a segurança pública, a ordem interna, a tranquilidade e a proteção das fronteiras nacionais. O seu funcionamento articula-se através de vários órgãos executivos centrais fundamentais, destacando-se: a Polícia Nacional de Angola (PNA), responsável pela manutenção da ordem pública; o Serviço de Investigação Criminal (SIC), focado no combate à criminalidade e investigação de delitos; o Serviço de Migração e Estrangeiros (SME), que controla o movimento migratório e fronteiriço; e o Serviço Penitenciário, responsável pela gestão e reinserção social nas unidades prisionais. O MININT coordena ainda a vertente da Proteção Civil e Bombeiros, atuando na prevenção e socorro em situações de calamidades."
-                    });
-                }
-
-                const jaTemMusicaApp = dados.some(d => d.categoria === "Música");
-                if (!jaTemMusicaApp) {
-                    dados.push({
-                        titulo: "Módulo de Músicas Pessoais",
-                        categoria: "Música",
-                        conteudo: "Crie pastas personalizadas, organize e reproduza as suas músicas favoritas de forma permanente no seu dispositivo.",
-                        isPlayerModulo: true
-                    });
-                }
-
-                const jaTemVideosApp = dados.some(d => d.categoria === "Vídeos");
-                if (!jaTemVideosApp) {
-                    dados.push({
-                        titulo: "Módulo de Vídeos Pessoais",
-                        categoria: "Vídeos",
-                        conteudo: "Guarde, organize e reproduza os seus vídeos favoritos de forma permanente no seu telemóvel.",
-                        isVideoModulo: true
-                    });
-                }
-
-                const jaTemImagensApp = dados.some(d => d.categoria === "Imagens");
-                if (!jaTemImagensApp) {
-                    dados.push({
-                        titulo: "Módulo de Imagens Pessoais",
-                        categoria: "Imagens",
-                        conteudo: "Guarde e visualize as suas fotografias e imagens favoritas de forma permanente no seu telemóvel.",
-                        isGaleriaModulo: true
                     });
                 }
 
@@ -531,19 +503,6 @@
         }
 
         function mostrarDetalhes(item) {
-            if (item.isPlayerModulo) {
-                abrirLeitorMusica();
-                return;
-            }
-            if (item.isVideoModulo) {
-                abrirGestorVideos();
-                return;
-            }
-            if (item.isGaleriaModulo) {
-                abrirGaleriaImagens();
-                return;
-            }
-
             abrirJanelaFixa(`
                 <h2>${item.titulo}</h2>
                 <p><span class="badge">${item.categoria}</span></p>
@@ -665,7 +624,7 @@
                     }
                     htmlMusicas += `</div>`;
                     htmlMusicas += `<audio id="audioPlayer" controls style="width:100%; margin-top:8px; display:none;"></audio>`;
-                    htmlMusicas += `<br><button onclick="fecharJanelaModal()" class="secondary-btn" style="padding:10px;">Fechar</button>`;
+                    htmlMusicas += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
                     
                     abrirJanelaFixa(htmlMusicas);
                 };
@@ -892,7 +851,7 @@
                     });
                 }
                 htmlVideos += `</div>`;
-                htmlVideos += `<br><button onclick="fecharJanelaModal()" class="secondary-btn" style="padding:10px;">Fechar</button>`;
+                htmlVideos += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
                 
                 abrirJanelaFixa(htmlVideos);
             };
@@ -996,7 +955,7 @@
                     });
                 }
                 htmlImagens += `</div>`;
-                htmlImagens += `<br><button onclick="fecharJanelaModal()" class="secondary-btn" style="padding:10px;">Fechar</button>`;
+                htmlImagens += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
                 
                 abrirJanelaFixa(htmlImagens);
             };
@@ -1135,7 +1094,7 @@
             abrirJanelaFixa(`
                 <h2>❓ Ajuda</h2>
                 <hr>
-                <p style="font-size: 0.85rem; margin-bottom: 10px;">Use o menu para gerir músicas, vídeos, imagens e ferramentas.</p>
+                <p style="font-size: 0.85rem; margin-bottom: 10px;">Consulte as informações institucionais e patrióticas.</p>
                 <textarea id="textoFeedback" placeholder="Deixe a sua mensagem..." style="font-size:0.9rem; height:80px;"></textarea>
                 <button onclick="enviarFeedback()" class="whatsapp-btn" style="padding:10px;">💬 Enviar WhatsApp</button>
                 <br>
