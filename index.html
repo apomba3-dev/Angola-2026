@@ -380,18 +380,15 @@
             }
         }
 
-        // --- VERIFICAÇÃO DE CADASTRO NA NUVEM (FIRESTORE) ---
         function verificarSessaoUtilizador() {
             let userIdSalvo = localStorage.getItem("utilizador_id_nuvem");
             let sessaoAtiva = localStorage.getItem("sessao_ativa");
 
             if (userIdSalvo) {
-                // Se já existe um ID salvo no aparelho, verifica se a sessão está ativa
                 if (sessaoAtiva !== "true") {
                     mostrarEcraLoginComNome();
                 }
             } else {
-                // Se não existe ID salvo, verifica na nuvem se já há algum registo ou abre o registo novo
                 mostrarEcraCadastro();
             }
         }
@@ -425,7 +422,6 @@
 
             mostrarToast("A criar conta na nuvem...");
 
-            // Grava o novo utilizador na coleção "utilizadores" do Firestore
             dbCloud.collection("utilizadores").add({
                 nome: nome,
                 contacto: contacto,
@@ -439,7 +435,7 @@
                 localStorage.setItem("sessao_ativa", "true");
 
                 fecharJanela();
-                mostrarToast("Conta criada e guardada na nuvem!");
+                mostrarToast("Conta criada com sucesso!");
             }).catch((error) => {
                 mostrarToast("Erro ao registar. Verifique a internet.");
             });
@@ -449,7 +445,7 @@
             abrirJanelaFixa(`
                 <h2>🔐 Bem-vindo de novo</h2>
                 <hr>
-                <p style="font-size: 0.9rem; margin-bottom: 12px;">Insira o seu Nome e Senha para entrar:</p>
+                <p style="font-size: 0.9rem; margin-bottom: 12px;">Insira o seu Nome e Senha para recuperar os seus dados:</p>
                 <input type="text" id="nomeLogin" placeholder="O seu Nome">
                 <input type="password" id="senhaLogin" placeholder="A sua Senha">
                 <button onclick="validarLoginNuvem()" style="margin-top: 5px;">Entrar</button>
@@ -466,9 +462,8 @@
                 return;
             }
 
-            mostrarToast("A verificar na nuvem...");
+            mostrarToast("A recuperar dados da nuvem...");
 
-            // Procura na nuvem se existe o utilizador com esse nome e senha
             dbCloud.collection("utilizadores")
                 .where("nome", "==", nomeDigitado)
                 .where("senha", "==", senhaDigitada)
@@ -482,9 +477,9 @@
                         localStorage.setItem("sessao_ativa", "true");
 
                         fecharJanela();
-                        mostrarToast("Sessão iniciada com sucesso!");
+                        mostrarToast("Dados recuperados com sucesso!");
                     } else {
-                        mostrarToast("Nome ou senha incorretos na nuvem!");
+                        mostrarToast("Nome ou senha incorretos!");
                     }
                 })
                 .catch((error) => {
@@ -662,15 +657,16 @@
             }
         }
 
-        // --- MÓDULO DE MÚSICA (NUVEM FIREBASE) ---
+        // --- MÓDULO DE MÚSICA (VINCULADO AO UTILIZADOR NA NUVEM) ---
         function abrirLeitorMusica() {
-            dbCloud.collection("musicas").orderBy("criadoEm", "desc").get().then((snapshot) => {
-                let htmlMusicas = `<h2>🎵 Gestor de Músicas (Global)</h2>`;
+            let userId = localStorage.getItem("utilizador_id_nuvem");
+            dbCloud.collection("musicas").where("userId", "==", userId).get().then((snapshot) => {
+                let htmlMusicas = `<h2>🎵 As Minhas Músicas</h2>`;
                 htmlMusicas += `<button onclick="tentarFazerUploadMusica()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar Música</button>`;
                 htmlMusicas += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
 
                 if (snapshot.empty) {
-                    htmlMusicas += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem músicas na nuvem.</p>`;
+                    htmlMusicas += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem músicas guardadas.</p>`;
                 } else {
                     snapshot.forEach((doc) => {
                         let m = doc.data();
@@ -704,15 +700,16 @@
             `);
         }
 
-        // --- MÓDULO DE VÍDEOS (NUVEM FIREBASE) ---
+        // --- MÓDULO DE VÍDEOS (VINCULADO AO UTILIZADOR NA NUVEM) ---
         function abrirGestorVideos() {
-            dbCloud.collection("videos").orderBy("criadoEm", "desc").get().then((snapshot) => {
-                let htmlVideos = `<h2>🎥 Gestor de Vídeos (Global)</h2>`;
+            let userId = localStorage.getItem("utilizador_id_nuvem");
+            dbCloud.collection("videos").where("userId", "==", userId).get().then((snapshot) => {
+                let htmlVideos = `<h2>🎥 Os Meus Vídeos</h2>`;
                 htmlVideos += `<button onclick="tentarFazerUploadVideo()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar Vídeo</button>`;
                 htmlVideos += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
 
                 if (snapshot.empty) {
-                    htmlVideos += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem vídeos na nuvem.</p>`;
+                    htmlVideos += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem vídeos guardados.</p>`;
                 } else {
                     snapshot.forEach((doc) => {
                         let v = doc.data();
@@ -745,15 +742,16 @@
             `);
         }
 
-        // --- MÓDULO DE IMAGENS (NUVEM FIREBASE) ---
+        // --- MÓDULO DE IMAGENS (VINCULADO AO UTILIZADOR NA NUVEM) ---
         function abrirGaleriaImagens() {
-            dbCloud.collection("imagens").orderBy("criadoEm", "desc").get().then((snapshot) => {
-                let htmlImagens = `<h2>🖼️ Galeria de Imagens (Global)</h2>`;
+            let userId = localStorage.getItem("utilizador_id_nuvem");
+            dbCloud.collection("imagens").where("userId", "==", userId).get().then((snapshot) => {
+                let htmlImagens = `<h2>🖼️ As Minhas Imagens</h2>`;
                 htmlImagens += `<button onclick="tentarFazerUploadImagem()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar Imagem</button>`;
                 htmlImagens += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
 
                 if (snapshot.empty) {
-                    htmlImagens += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem imagens na nuvem.</p>`;
+                    htmlImagens += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem imagens guardadas.</p>`;
                 } else {
                     snapshot.forEach((doc) => {
                         let i = doc.data();
@@ -789,15 +787,16 @@
             `);
         }
 
-        // --- MÓDULO DE DOCUMENTOS PDF (NUVEM FIREBASE) ---
+        // --- MÓDULO DE DOCUMENTOS PDF (VINCULADO AO UTILIZADOR NA NUVEM) ---
         function abrirGestorPDFs() {
-            dbCloud.collection("pdfs").orderBy("criadoEm", "desc").get().then((snapshot) => {
-                let htmlPDFs = `<h2>📄 Gestor de Documentos PDF (Global)</h2>`;
+            let userId = localStorage.getItem("utilizador_id_nuvem");
+            dbCloud.collection("pdfs").where("userId", "==", userId).get().then((snapshot) => {
+                let htmlPDFs = `<h2>📄 Os Meus Documentos PDF</h2>`;
                 htmlPDFs += `<button onclick="tentarFazerUploadPDF()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar PDF</button>`;
                 htmlPDFs += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
 
                 if (snapshot.empty) {
-                    htmlPDFs += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem PDFs na nuvem.</p>`;
+                    htmlPDFs += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem PDFs guardados.</p>`;
                 } else {
                     snapshot.forEach((doc) => {
                         let p = doc.data();
@@ -834,17 +833,24 @@
             const ficheiro = event.target.files[0];
             if (!ficheiro) return;
 
+            let userId = localStorage.getItem("utilizador_id_nuvem");
+            if (!userId) {
+                mostrarToast("Erro: Utilizador não identificado.");
+                return;
+            }
+
             mostrarToast("A enviar para a nuvem...");
-            const storageRef = storageCloud.ref(`${colecao}/${Date.now()}_${ficheiro.name}`);
+            const storageRef = storageCloud.ref(`${colecao}/${userId}/${Date.now()}_${ficheiro.name}`);
             
             storageRef.put(ficheiro).then((snapshot) => {
                 snapshot.ref.getDownloadURL().then((downloadURL) => {
                     dbCloud.collection(colecao).add({
+                        userId: userId,
                         nome: ficheiro.name,
                         url: downloadURL,
                         criadoEm: firebase.firestore.FieldValue.serverTimestamp()
                     }).then(() => {
-                        mostrarToast("Enviado com sucesso para todos!");
+                        mostrarToast("Ficheiro guardado na sua conta!");
                         if (colecao === "musicas") abrirLeitorMusica();
                         if (colecao === "videos") abrirGestorVideos();
                         if (colecao === "imagens") abrirGaleriaImagens();
@@ -873,7 +879,7 @@
             abrirJanelaFixa(`
                 <h2>⚠️ Eliminar Ficheiro</h2>
                 <hr>
-                <p style="font-size: 0.9rem; margin-bottom: 15px;">Pretende remover este ficheiro da nuvem para todos os utilizadores?</p>
+                <p style="font-size: 0.9rem; margin-bottom: 15px;">Pretende remover este ficheiro da sua conta?</p>
                 <button onclick="executarApagarCloud('${colecao}', '${id}')" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Apagar</button>
                 <button onclick="abrirMenu()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
             `);
@@ -881,7 +887,7 @@
 
         function executarApagarCloud(colecao, id) {
             dbCloud.collection(colecao).doc(id).delete().then(() => {
-                mostrarToast("Eliminado da nuvem!");
+                mostrarToast("Ficheiro eliminado!");
                 if (colecao === "musicas") abrirLeitorMusica();
                 if (colecao === "videos") abrirGestorVideos();
                 if (colecao === "imagens") abrirGaleriaImagens();
