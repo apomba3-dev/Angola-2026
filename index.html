@@ -666,8 +666,7 @@
                     itensCloud.push({ id: doc.id, ...doc.data() });
                 });
 
-                window.dadosAtuaisGestor = itensCloud; // Guarda para filtragem por pesquisa
-
+                window.dadosAtuaisGestor = itensCloud;
                 construirInterfaceGestor(colecao, tituloGestor, tipoFicheiro, itensCloud);
             });
         }
@@ -676,7 +675,6 @@
             let html = `<h2>${tituloGestor}</h2>`;
             html += `<button onclick="tentarFazerUploadGenerico('${colecao}', '${tituloGestor}', '${tipoFicheiro}')" style="background:#059669; font-size:0.95rem; margin-bottom:8px; padding:10px;">➕ Enviar Novo Ficheiro</button>`;
             
-            // Caixa de Pesquisa Interna
             html += `<input type="text" id="inputPesquisaCloud" placeholder="Pesquisar ${tituloGestor.toLowerCase()}..." oninput="filtrarGestorCloud('${colecao}', '${tituloGestor}', '${tipoFicheiro}')" style="padding:8px; font-size:0.9rem; margin-bottom:8px;">`;
             
             html += `<hr><div id="containerListaCloud" style="max-height: 180px; overflow-y: auto;">`;
@@ -762,7 +760,10 @@
 
         function uploadCloud(event, colecao, tituloGestor, tipoFicheiro) {
             const ficheiro = event.target.files[0];
-            if (!ficheiro) return;
+            if (!ficheiro) {
+                mostrarToast("Nenhum ficheiro selecionado.");
+                return;
+            }
 
             let userId = localStorage.getItem("utilizador_id_nuvem");
             if (!userId) {
@@ -783,9 +784,13 @@
                     }).then(() => {
                         mostrarToast("Ficheiro guardado na sua conta!");
                         renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro);
+                    }).catch((err) => {
+                        console.error("Erro no Firestore:", err);
+                        mostrarToast("Erro ao gravar dados na nuvem.");
                     });
                 });
             }).catch((error) => {
+                console.error("Erro no Storage:", error);
                 mostrarToast("Erro ao enviar. Verifique a ligação.");
             });
         }
