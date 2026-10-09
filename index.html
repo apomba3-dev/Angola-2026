@@ -121,7 +121,7 @@
         .modal-content input::placeholder, .modal-content textarea::placeholder { color: #94a3b8; }
         
         .badge { background: #1e3a8a; color: #93c5fd; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; border: 1px solid #3b82f6; display: inline-block; margin-top: 5px; }
-        .iban-box { background: #020617; padding: 12px; border: 1px dashed #60a5fa; border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 0.95rem; margin: 10px 0; color: #93c5fd; }
+        .iban-box { background: #020617; padding: 10px; border: 1px dashed #60a5fa; border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 0.85rem; margin: 6px 0; color: #93c5fd; text-align: center; }
         .whatsapp-btn { background: #059669 !important; color: white !important; }
         .call-btn { background: #0284c7 !important; color: white !important; }
         .danger-btn { background: #dc2626 !important; color: white !important; }
@@ -193,7 +193,7 @@
         <div id="containerImagemOculta" style="display: none; text-align: center; margin-top: 5px;">
             <img id="imagemFundoPrincipal" src="fo.png" alt="Imagem Oculta" style="width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px; border: 1px solid rgba(203, 213, 225, 0.9); box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: block; margin: 0 auto;">
             <p style="margin-top: 15px; font-size: 1.25rem; font-weight: bold; color: #93c5fd; text-shadow: 0 2px 4px rgba(0,0,0,0.6);">📚 Continua a estudar</p>
-            <button onclick="tentarBaixarImagemPrincipal()" style="margin-top: 10px; background: #059669; padding: 12px; font-size: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">📥 Baixar Imagem (Admin IBAN)</button>
+            <button onclick="tentarBaixarImagemPrincipal()" style="margin-top: 10px; background: #059669; padding: 12px; font-size: 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">📥 Baixar Imagem (IBAN)</button>
         </div>
     </div>
 
@@ -364,7 +364,7 @@
         }
 
         function tentarBaixarImagemPrincipal() {
-            abrirPainelAdminComInfo(() => {
+            abrirPainelAdminComInfo("Imagem Principal (fo.png)", () => {
                 const link = document.createElement('a');
                 link.href = 'fo.png';
                 link.download = 'fo.png';
@@ -588,19 +588,29 @@
             `);
         }
 
-        // --- PAINEL DE ADMINISTRADOR COM AVISO DE IBAN ---
-        function abrirPainelAdminComInfo(callbackSucesso) {
+        // --- PAINEL DE ADMINISTRADOR COM NOTIFICAÇÃO AO ADMIN VIA WHATSAPP ---
+        function abrirPainelAdminComInfo(nomeFicheiro, callbackSucesso) {
             if (adminAutenticado) {
                 callbackSucesso();
                 return;
             }
+            let nomeUtilizador = localStorage.getItem("utilizador_nome") || "Utilizador";
+            let contactoUtilizador = localStorage.getItem("utilizador_contacto") || "Sem contacto";
+            
+            let textoNotificacaoAdmin = `Olá Artur! O utilizador *${nomeUtilizador}* (${contactoUtilizador}) efetuou ou vai efetuar a transferência via IBAN para baixar o ficheiro: *${nomeFicheiro}*. Por favor, confirme a transferência e envie a senha.`;
+            let linkZapAdmin = `https://wa.me/244944048287?text=` + encodeURIComponent(textoNotificacaoAdmin);
+
             abrirJanelaFixa(`
-                <h2>🔒 Baixar Ficheiro (Admin)</h2>
+                <h2>🔒 Baixar Ficheiro</h2>
                 <hr>
-                <p style="font-size: 0.85rem; margin-bottom: 8px;">Para efetuar o download, é necessária transferência via IBAN e autorização do Administrador.</p>
-                <div class="iban-box" style="font-size:0.8rem; margin:6px 0;">${MEU_IBAN}</div>
-                <input type="password" id="senhaPainelAdmin" placeholder="Senha do Administrador" style="padding:10px; font-size:0.9rem; margin-bottom:10px; margin-top:8px;">
-                <button onclick="verificarLoginAdminComSucesso(${callbackSucesso.name})" style="background:#059669; padding:10px; margin-bottom:6px;">Confirmar e Baixar</button>
+                <p style="font-size: 0.8rem; margin-bottom: 6px;">Para transferir o ficheiro, efetue o pagamento para o IBAN abaixo e notifique o Administrador:</p>
+                <div class="iban-box">${MEU_IBAN}</div>
+                
+                <button onclick="window.open('${linkZapAdmin}', '_blank')" class="whatsapp-btn" style="padding:10px; margin-bottom:8px; font-size:0.85rem;">💬 Notificar Admin (WhatsApp)</button>
+                
+                <p style="font-size: 0.8rem; margin-bottom: 4px; color:#1e3a8a;"><b>Já tem a senha do Admin? Insira abaixo:</b></p>
+                <input type="password" id="senhaPainelAdmin" placeholder="Senha do Administrador" style="padding:10px; font-size:0.9rem; margin-bottom:8px;">
+                <button onclick='verificarLoginAdminComSucesso(${callbackSucesso.name})' style="background:#059669; padding:10px; margin-bottom:6px;">Confirmar Senha e Baixar</button>
                 <button onclick="fecharJanelaModal()" class="secondary-btn" style="padding: 10px;">Voltar</button>
             `);
         }
@@ -689,7 +699,7 @@
                                         <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${musica.nome}">🎶 ${musica.nome}</span>
                                         <div style="display: flex; gap: 2px;">
                                             <button onclick='reproduzirMusicaDB(${musica.id}, "${nomePasta}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ouvir">▶</button>
-                                            <button onclick='tentarBaixarMusica(${musica.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin/IBAN)">📥</button>
+                                            <button onclick='tentarBaixarMusica(${musica.id}, "${musica.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
                                             <button onclick='tentarApagarMusica(${musica.id}, "${nomePasta}", "${musica.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                                         </div>
                                     </div>`;
@@ -758,8 +768,8 @@
             };
         }
 
-        function tentarBaixarMusica(id) {
-            abrirPainelAdminComInfo(() => {
+        function tentarBaixarMusica(id, nomeMusica) {
+            abrirPainelAdminComInfo(`Música: ${nomeMusica}`, () => {
                 db.transaction(["musicas"], "readonly").objectStore("musicas").get(id).onsuccess = function(event) {
                     let musica = event.target.result;
                     if (musica && musica.blob) {
@@ -891,7 +901,7 @@
                             <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${videoItem.titulo}">🎬 ${videoItem.titulo}</span>
                             <div style="display: flex; gap: 2px;">
                                 <button onclick='reproduzirVideoCompleta("${urlVid}", "${videoItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">▶</button>
-                                <button onclick='tentarBaixarVideo(${videoItem.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin/IBAN)">📥</button>
+                                <button onclick='tentarBaixarVideo(${videoItem.id}, "${videoItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
                                 <button onclick='tentarApagarVideo(${videoItem.id}, "${videoItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                             </div>
                         </div>`;
@@ -928,8 +938,8 @@
             };
         }
 
-        function tentarBaixarVideo(id) {
-            abrirPainelAdminComInfo(() => {
+        function tentarBaixarVideo(id, tituloVid) {
+            abrirPainelAdminComInfo(`Vídeo: ${tituloVid}`, () => {
                 db.transaction(["videos"], "readonly").objectStore("videos").get(id).onsuccess = function(event) {
                     let video = event.target.result;
                     if (video && video.blob) {
@@ -1003,7 +1013,7 @@
                             </div>
                             <div style="display: flex; gap: 2px;">
                                 <button onclick='verImagemCompleta("${urlImg}", "${imgItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">🔍</button>
-                                <button onclick='tentarBaixarImagem(${imgItem.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin/IBAN)">📥</button>
+                                <button onclick='tentarBaixarImagem(${imgItem.id}, "${imgItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
                                 <button onclick='tentarApagarImagem(${imgItem.id}, "${imgItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                             </div>
                         </div>`;
@@ -1040,8 +1050,8 @@
             };
         }
 
-        function tentarBaixarImagem(id) {
-            abrirPainelAdminComInfo(() => {
+        function tentarBaixarImagem(id, tituloImg) {
+            abrirPainelAdminComInfo(`Imagem: ${tituloImg}`, () => {
                 db.transaction(["imagens"], "readonly").objectStore("imagens").get(id).onsuccess = function(event) {
                     let img = event.target.result;
                     if (img && img.blob) {
@@ -1112,7 +1122,7 @@
                             <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${pdfItem.titulo}">📄 ${pdfItem.titulo}</span>
                             <div style="display: flex; gap: 2px;">
                                 <button onclick='abrirPDFNavegador("${urlPdf}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">👁️</button>
-                                <button onclick='tentarBaixarPDF(${pdfItem.id})' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (Admin/IBAN)">📥</button>
+                                <button onclick='tentarBaixarPDF(${pdfItem.id}, "${pdfItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#1d4ed8;" title="Baixar (IBAN)">📥</button>
                                 <button onclick='tentarApagarPDF(${pdfItem.id}, "${pdfItem.titulo}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                             </div>
                         </div>`;
@@ -1149,8 +1159,8 @@
             };
         }
 
-        function tentarBaixarPDF(id) {
-            abrirPainelAdminComInfo(() => {
+        function tentarBaixarPDF(id, tituloPdf) {
+            abrirPainelAdminComInfo(`PDF: ${tituloPdf}`, () => {
                 db.transaction(["pdfs"], "readonly").objectStore("pdfs").get(id).onsuccess = function(event) {
                     let pdf = event.target.result;
                     if (pdf && pdf.blob) {
