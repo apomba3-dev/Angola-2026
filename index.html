@@ -45,7 +45,6 @@
         
         .tabs-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; white-space: nowrap; -webkit-overflow-scrolling: touch; }
         
-        /* Abas com efeito de destaque e transição */
         .tab-btn { 
             background: #151c2f; 
             color: #93c5fd; 
@@ -67,7 +66,6 @@
             box-shadow: 0 0 12px rgba(59, 130, 246, 0.9);
         }
 
-        /* Transição suave de desvanecimento para a lista */
         #listaArtigos {
             opacity: 1;
             transition: opacity 0.3s ease-in-out;
@@ -78,7 +76,6 @@
             opacity: 0;
         }
 
-        /* Estilo idêntico ao .modal-content para a página principal */
         li { 
             background: rgba(255, 255, 255, 0.90); 
             color: #1e293b; 
@@ -98,7 +95,6 @@
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 9999; justify-content: center; align-items: center; margin: 0; padding: 15px; box-sizing: border-box; }
         
-        /* Pop-up transparente e translúcido */
         .modal-content { background: rgba(255, 255, 255, 0.90); color: #1e293b; padding: 20px 15px; border-radius: 10px; width: 100%; max-width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: left; box-sizing: border-box; max-height: 85vh; overflow-y: auto; border: 1px solid rgba(203, 213, 225, 0.9); backdrop-filter: blur(5px); }
         .modal-content h2 { color: #1e3a8a; font-size: 1.15rem; margin-top: 0; }
         .modal-content hr { border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0; }
@@ -165,7 +161,7 @@
             <button class="search-action-btn" onclick="executarPesquisaBotao()" title="Pesquisar na Web">🔎</button>
         </div>
         
-        <!-- Abas com todas as categorias solicitadas -->
+        <!-- Abas com todas as categorias -->
         <div class="tabs-container">
             <button class="tab-btn active" onclick="filtrarPorAba('Todas', this)">🔄 Todas</button>
             <button class="tab-btn" onclick="filtrarPorAba('História', this)">📜 História</button>
@@ -205,6 +201,15 @@
         let deferredPrompt = null;
         let temporizadorInatividade;
         const TEMPO_LIMITE_MINUTOS = 3;
+
+        // Registo automático do Service Worker para funcionamento Offline
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then((reg) => console.log('Service Worker registado com sucesso!', reg.scope))
+                    .catch((err) => console.log('Erro ao registar o Service Worker:', err));
+            });
+        }
 
         // Capturar o evento de instalação do PWA
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -363,7 +368,7 @@
                     deferredPrompt = null;
                 });
             } else {
-                mostrarToast("O app já está instalado ou o navegador não suporta.");
+                mostrarToast("O app já está instalado ou use o menu do navegador.");
             }
         }
 
