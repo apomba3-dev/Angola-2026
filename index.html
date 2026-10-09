@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-title" content="Angola 2026">
     <link rel="manifest" href="manifest.json">
     
-    <!-- Firebase SDKs (Compat / Versão Modular Web) -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
@@ -210,7 +210,6 @@
     </div>
 
     <script>
-        // --- CONFIGURAÇÃO FIREBASE (Substitua com as credenciais do seu projeto Firebase) ---
         const firebaseConfig = {
             apiKey: "SUA_API_KEY",
             authDomain: "seu-projeto.firebaseapp.com",
@@ -245,23 +244,6 @@
                     .then((reg) => console.log('Service Worker registado com sucesso!', reg.scope))
                     .catch((err) => console.log('Erro ao registar o Service Worker:', err));
             });
-        }
-
-        window.addEventListener('online', () => {
-            mostrarToast("Ligação detetada! Sincronizando dados pendentes...");
-            sincronizarFicheirosPendentes();
-        });
-
-        window.addEventListener('offline', () => {
-            mostrarToast("Sem internet. O envio será salvo localmente.");
-        });
-
-        function sincronizarFicheirosPendentes() {
-            let pendentes = JSON.parse(localStorage.getItem("angola_offline_pendentes")) || [];
-            if (pendentes.length > 0) {
-                mostrarToast(`A enviar ${pendentes.length} ficheiro(s) pendentes para a nuvem...`);
-                localStorage.removeItem("angola_offline_pendentes");
-            }
         }
 
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -398,15 +380,19 @@
             }
         }
 
+        // --- VERIFICAÇÃO DE CADASTRO NA NUVEM (FIRESTORE) ---
         function verificarSessaoUtilizador() {
+            let userIdSalvo = localStorage.getItem("utilizador_id_nuvem");
             let sessaoAtiva = localStorage.getItem("sessao_ativa");
-            if (sessaoAtiva !== "true") {
-                let jaCadastrado = localStorage.getItem("utilizador_cadastrado");
-                if (jaCadastrado === "true") {
-                    mostrarEcraLogin();
-                } else {
-                    mostrarEcraCadastro();
+
+            if (userIdSalvo) {
+                // Se já existe um ID salvo no aparelho, verifica se a sessão está ativa
+                if (sessaoAtiva !== "true") {
+                    mostrarEcraLoginComNome();
                 }
+            } else {
+                // Se não existe ID salvo, verifica na nuvem se já há algum registo ou abre o registo novo
+                mostrarEcraCadastro();
             }
         }
 
@@ -437,48 +423,73 @@
                 return;
             }
 
-            localStorage.setItem("utilizador_cadastrado", "true");
-            localStorage.setItem("utilizador_nome", nome);
-            localStorage.setItem("utilizador_contacto", contacto);
-            localStorage.setItem("utilizador_senha", senha);
-            localStorage.setItem("sessao_ativa", "true");
+            mostrarToast("A criar conta na nuvem...");
 
-            let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
-            acessos.push({ dataHora: new Date().toLocaleString("pt-PT"), perfil: `${nome} (${contacto})` });
-            localStorage.setItem("angola_acessos_log", JSON.stringify(acessos));
+            // Grava o novo utilizador na coleção "utilizadores" do Firestore
+            dbCloud.collection("utilizadores").add({
+                nome: nome,
+                contacto: contacto,
+                senha: senha,
+                criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+            }).then((docRef) => {
+                localStorage.setItem("utilizador_id_nuvem", docRef.id);
+                localStorage.setItem("utilizador_nome", nome);
+                localStorage.setItem("utilizador_contacto", contacto);
+                localStorage.setItem("utilizador_senha", senha);
+                localStorage.setItem("sessao_ativa", "true");
 
-            fecharJanela();
-            mostrarToast("Conta criada com sucesso!");
+                fecharJanela();
+                mostrarToast("Conta criada e guardada na nuvem!");
+            }).catch((error) => {
+                mostrarToast("Erro ao registar. Verifique a internet.");
+            });
         }
 
-        function mostrarEcraLogin() {
-            let nomeSalvo = localStorage.getItem("utilizador_nome") || "Utilizador";
+        function mostrarEcraLoginComNome() {
             abrirJanelaFixa(`
-                <h2>🔐 Bem-vindo, ${nomeSalvo}</h2>
+                <h2>🔐 Bem-vindo de novo</h2>
                 <hr>
-                <p style="font-size: 0.9rem; margin-bottom: 12px;">Insira a sua senha de acesso:</p>
-                <input type="password" id="senhaLogin" placeholder="Digite a sua senha">
-                <button onclick="validarLogin()" style="margin-top: 5px;">Entrar</button>
+                <p style="font-size: 0.9rem; margin-bottom: 12px;">Insira o seu Nome e Senha para entrar:</p>
+                <input type="text" id="nomeLogin" placeholder="O seu Nome">
+                <input type="password" id="senhaLogin" placeholder="A sua Senha">
+                <button onclick="validarLoginNuvem()" style="margin-top: 5px;">Entrar</button>
                 <button onclick="esqueciMinhaSenha()" class="whatsapp-btn" style="margin-top: 5px;">💬 Esqueci-me da Senha</button>
             `);
         }
 
-        function validarLogin() {
+        function validarLoginNuvem() {
+            const nomeDigitado = document.getElementById("nomeLogin").value.trim();
             const senhaDigitada = document.getElementById("senhaLogin").value.trim();
-            const senhaSalva = localStorage.getItem("utilizador_senha");
 
-            if (!senhaDigitada) {
-                mostrarToast("Digite a senha!");
+            if (!nomeDigitado || !senhaDigitada) {
+                mostrarToast("Preencha o nome e a senha!");
                 return;
             }
 
-            if (senhaDigitada === senhaSalva) {
-                localStorage.setItem("sessao_ativa", "true");
-                fecharJanela();
-                mostrarToast("Sessão iniciada!");
-            } else {
-                mostrarToast("Senha incorreta!");
-            }
+            mostrarToast("A verificar na nuvem...");
+
+            // Procura na nuvem se existe o utilizador com esse nome e senha
+            dbCloud.collection("utilizadores")
+                .where("nome", "==", nomeDigitado)
+                .where("senha", "==", senhaDigitada)
+                .get()
+                .then((querySnapshot) => {
+                    if (!querySnapshot.empty) {
+                        let doc = querySnapshot.docs[0];
+                        localStorage.setItem("utilizador_id_nuvem", doc.id);
+                        localStorage.setItem("utilizador_nome", nomeDigitado);
+                        localStorage.setItem("utilizador_senha", senhaDigitada);
+                        localStorage.setItem("sessao_ativa", "true");
+
+                        fecharJanela();
+                        mostrarToast("Sessão iniciada com sucesso!");
+                    } else {
+                        mostrarToast("Nome ou senha incorretos na nuvem!");
+                    }
+                })
+                .catch((error) => {
+                    mostrarToast("Erro de ligação à nuvem.");
+                });
         }
 
         function sairDoApp() {
@@ -494,17 +505,16 @@
 
         function fecharJanelaModal() {
             adminAutenticado = false;
-            if (localStorage.getItem("utilizador_cadastrado") === "true" && localStorage.getItem("sessao_ativa") === "true") {
+            if (localStorage.getItem("utilizador_id_nuvem") && localStorage.getItem("sessao_ativa") === "true") {
                 document.getElementById("modal").style.display = "none";
             } else {
-                mostrarToast("Preencha o cadastro primeiro!");
+                mostrarToast("Faça login ou crie conta primeiro!");
             }
         }
 
         function esqueciMinhaSenha() {
-            let nomeSalvo = localStorage.getItem("utilizador_nome") || "Utilizador Desconhecido";
-            let contactoSalvo = localStorage.getItem("utilizador_contacto") || "Sem contacto";
-            let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, esqueci-me da senha da app Angola 2026.\nO meu nome é: ${nomeSalvo}\nContacto: ${contactoSalvo}`);
+            let nomeSalvo = localStorage.getItem("utilizador_nome") || "Utilizador";
+            let urlZap = `https://wa.me/244944048287?text=` + encodeURIComponent(`Olá Artur, esqueci-me da senha da app Angola 2026.\nO meu nome é: ${nomeSalvo}`);
             window.open(urlZap, '_blank');
         }
 
@@ -820,7 +830,6 @@
             `);
         }
 
-        // --- FUNÇÕES UNIVERSAIS CLOUD (FIREBASE) ---
         function uploadCloud(event, colecao) {
             const ficheiro = event.target.files[0];
             if (!ficheiro) return;
@@ -908,7 +917,6 @@
                 <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding: 10px;">⬅ Voltar</button>
             `);
         }
-        // --------------------------------------------------------
 
         function abrirEstatisticasAcessos() {
             let acessos = JSON.parse(localStorage.getItem("angola_acessos_log")) || [];
