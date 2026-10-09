@@ -420,7 +420,7 @@
                 return;
             }
 
-            mostrarToast("A criar conta na nuvem...");
+            mostrarToast("A ligar à nuvem...");
 
             dbCloud.collection("utilizadores").add({
                 nome: nome,
@@ -437,8 +437,15 @@
                 fecharJanela();
                 mostrarToast("Conta criada com sucesso!");
             }).catch((error) => {
-                console.error("Erro detalhado ao registar:", error);
-                alert("Erro ao registar: " + error.message);
+                console.error("Erro detalhado:", error);
+                abrirJanelaFixa(`
+                    <h2>❌ Erro no Registo</h2>
+                    <hr>
+                    <p style="font-size:0.85rem; color:#dc2626; word-break:break-all;"><b>Código:</b> ${error.code}</p>
+                    <p style="font-size:0.85rem; color:#334155; word-break:break-all;"><b>Mensagem:</b> ${error.message}</p>
+                    <br>
+                    <button onclick="mostrarEcraCadastro()" class="secondary-btn" style="padding:10px;">Tentar Novamente</button>
+                `);
             });
         }
 
@@ -658,7 +665,6 @@
             }
         }
 
-        // --- SISTEMA DE PESQUISA E LISTAGEM GERAL NA NUVEM ---
         function renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro) {
             let userId = localStorage.getItem("utilizador_id_nuvem");
             dbCloud.collection(colecao).where("userId", "==", userId).get().then((snapshot) => {
