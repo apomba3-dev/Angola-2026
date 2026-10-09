@@ -294,7 +294,7 @@
         }
 
         let db;
-        const requestDB = indexedDB.open("AngolaAppDB", 4);
+        const requestDB = indexedDB.open("AngolaAppDB", 5);
 
         requestDB.onerror = function(event) {
             console.log("Erro ao abrir a base de dados IndexedDB");
@@ -317,6 +317,9 @@
             }
             if (!dbConnection.objectStoreNames.contains("videos")) {
                 dbConnection.createObjectStore("videos", { keyPath: "id", autoIncrement: true });
+            }
+            if (!dbConnection.objectStoreNames.contains("pdfs")) {
+                dbConnection.createObjectStore("pdfs", { keyPath: "id", autoIncrement: true });
             }
         };
 
@@ -1090,6 +1093,97 @@
                 <button onclick="abrirGaleriaImagens()" class="secondary-btn" style="padding: 10px;">⬅ Voltar</button>
             `);
         }
+
+        // --- MÓDULO DE DOCUMENTOS PDF ---
+        function abrirGestorPDFs() {
+            if (!db) {
+                setTimeout(abrirGestorPDFs, 500);
+                return;
+            }
+
+            let transaction = db.transaction(["pdfs"], "readonly");
+            transaction.objectStore("pdfs").getAll().onsuccess = function(event) {
+                let pdfsSalvos = event.target.result;
+                
+                let htmlPDFs = `<h2>📄 Gestor de Documentos PDF</h2>`;
+                htmlPDFs += `<button onclick="tentarFazerUploadPDF()" style="background:#059669; font-size:0.95rem; margin-bottom:10px; padding:10px;">➕ Enviar PDF</button>`;
+                htmlPDFs += `<hr><div style="max-height: 200px; overflow-y: auto;">`;
+
+                if (pdfsSalvos.length === 0) {
+                    htmlPDFs += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Sem PDFs guardados.</p>`;
+                } else {
+                    pdfsSalvos.forEach((pdfItem) => {
+                        let urlPdf = URL.createObjectURL(pdfItem.blob);
+                        htmlPDFs += `<div style="background:rgba(248, 250, 252, 0.9); border:1px solid #cbd5e1; padding:6px; margin-bottom:6px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px;" title="${pdfItem.titulo}">📄 ${pdfItem.titulo}</span>
+                            <div>
+                                <button onclick='abrirPDFNavegador("${urlPdf}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#059669;" title="Abrir PDF">👁️</button>
+                                <button onclick='tentarApagarPDF(${pdfItem.id}, "${pdfItem.titulo}")' style="padding:3px 6px; margin:0; font-size:0.7rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                            </div>
+                        </div>`;
+                    });
+                }
+                htmlPDFs += `</div>`;
+                htmlPDFs += `<br><button onclick="abrirMenu()" class="secondary-btn" style="padding:10px;">Voltar ao Menu</button>`;
+                
+                abrirJanelaFixa(htmlPDFs);
+            };
+        }
+
+        function tentarFazerUploadPDF() {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(tentarFazerUploadPDF);
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>📤 Enviar Documento PDF</h2>
+                <hr>
+                <label class="file-upload-box">
+                    📂 Escolher PDF (Files)
+                    <input type="file" accept="application/pdf" onchange="guardarPDFSelecionado(event)">
+                </label>
+                <button onclick="abrirGestorPDFs()" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
+            `);
+        }
+
+        function guardarPDFSelecionado(event) {
+            const ficheiro = event.target.files[0];
+            if (!ficheiro) return;
+
+            let titulo = ficheiro.name;
+            let transaction = db.transaction(["pdfs"], "readwrite");
+            transaction.objectStore("pdfs").add({ titulo: titulo, blob: ficheiro }).onsuccess = function() {
+                mostrarToast("PDF guardado com sucesso!");
+                abrirGestorPDFs();
+            };
+        }
+
+        function tentarApagarPDF(id, tituloPdf) {
+            if (!adminAutenticado) {
+                abrirPainelAdmin(() => tentarApagarPDF(id, tituloPdf));
+                return;
+            }
+            abrirJanelaFixa(`
+                <h2>⚠️ Eliminar PDF</h2>
+                <hr>
+                <p style="font-size: 0.9rem; margin-bottom: 5px;">Pretende eliminar:</p>
+                <p style="color: #1e3a8a; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; word-break: break-all;">📄 ${tituloPdf}</p>
+                <button onclick="apagarPDFDB(${id})" class="danger-btn" style="padding: 10px; margin-bottom: 6px;">Sim, Eliminar</button>
+                <button onclick="abrirGestorPDFs()" class="secondary-btn" style="padding: 10px;">Cancelar</button>
+            `);
+        }
+
+        function apagarPDFDB(id) {
+            let transaction = db.transaction(["pdfs"], "readwrite");
+            transaction.objectStore("pdfs").delete(id).onsuccess = function() {
+                mostrarToast("PDF eliminado!");
+                abrirGestorPDFs();
+            };
+        }
+
+        function abrirPDFNavegador(url) {
+            window.open(url, '_blank');
+        }
         // --------------------------------------------------------
 
         function abrirEstatisticasAcessos() {
@@ -1120,6 +1214,7 @@
                 <button onclick="abrirLeitorMusica()" style="padding:10px;">🎵 Músicas</button>
                 <button onclick="abrirGestorVideos()" style="padding:10px;">🎥 Vídeos</button>
                 <button onclick="abrirGaleriaImagens()" style="padding:10px;">🖼️ Imagens</button>
+                <button onclick="abrirGestorPDFs()" style="padding:10px;">📄 Documentos PDF</button>
                 <button onclick="abrirChat()" style="padding:10px;">💬 Chat Dev</button>
                 <br>
                 <button onclick="fecharJanelaModal()" class="danger-btn" style="padding:10px;">Fechar</button>
