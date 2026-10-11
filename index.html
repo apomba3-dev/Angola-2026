@@ -357,7 +357,6 @@
             }
         }
 
-        // Ecrã Unificado com Abas: Entrar / Criar Conta
         function mostrarEcraAutenticacao(abaAtiva) {
             let isLogin = abaAtiva === 'login';
             
@@ -620,24 +619,49 @@
             }
         }
 
-        // GESTOR DE FICHEIROS LOCAIS / NUVEM
+        // GESTOR DE FICHEIROS NA NUVEM (FIRESTORE COM SUPORTE ATÉ 5MB)
         function renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro) {
             let userId = localStorage.getItem("utilizador_id_nuvem");
-            let chaveStorage = `angola_files_${userId}_${colecao}`;
-            let itensCloud = JSON.parse(localStorage.getItem(chaveStorage)) || [];
+            mostrarToast("A sincronizar com a nuvem...");
 
-            window.dadosAtuaisGestor = itensCloud;
-            construirInterfaceGestor(colecao, tituloGestor, tipoFicheiro, itensCloud);
+            dbCloud.collection(colecao).where("userId", "==", userId).get().then(async (snapshot) => {
+                let itensCloud = [];
+                
+                for (let docSnap of snapshot.docs) {
+                    let dadosDoc = docSnap.data();
+                    let fileId = docSnap.id;
+
+                    try {
+                        let pedacosSnap = await dbCloud.collection(colecao + "_pedacos").where("fileId", "==", fileId).get();
+                        let pedacosArray = new Array(dadosDoc.totalPedaços);
+                        
+                        pedacosSnap.forEach(pDoc => {
+                            let pData = pDoc.data();
+                            pedacosArray[pData.indice] = pData.dados;
+                        });
+
+                        let urlCompleta = pedacosArray.join('');
+                        itensCloud.push({ id: fileId, nome: dadosDoc.nome, url: urlCompleta, ...dadosDoc });
+                    } catch (e) {
+                        console.error("Erro ao juntar pedaços:", e);
+                    }
+                }
+
+                window.dadosAtuaisGestor = itensCloud;
+                construirInterfaceGestor(colecao, tituloGestor, tipoFicheiro, itensCloud);
+            }).catch((err) => {
+                mostrarToast("Erro de ligação à nuvem.");
+            });
         }
 
         function construirInterfaceGestor(colecao, tituloGestor, tipoFicheiro, itens) {
             let html = `<h2>${tituloGestor}</h2>`;
-            html += `<button onclick="tentarFazerUploadGenerico('${colecao}', '${tituloGestor}', '${tipoFicheiro}')" style="background:#059669; font-size:0.95rem; margin-bottom:8px; padding:10px;">➕ Adicionar Ficheiro</button>`;
+            html += `<button onclick="tentarFazerUploadGenerico('${colecao}', '${tituloGestor}', '${tipoFicheiro}')" style="background:#059669; font-size:0.95rem; margin-bottom:8px; padding:10px;">➕ Enviar para a Nuvem</button>`;
             html += `<input type="text" id="inputPesquisaCloud" placeholder="Pesquisar..." oninput="filtrarGestorCloud('${colecao}', '${tituloGestor}', '${tipoFicheiro}')" style="padding:8px; font-size:0.9rem; margin-bottom:8px;">`;
             html += `<hr><div id="containerListaCloud" style="max-height: 180px; overflow-y: auto;">`;
 
             if (itens.length === 0) {
-                html += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Nenhum ficheiro guardado.</p>`;
+                html += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Nenhum ficheiro na nuvem.</p>`;
             } else {
                 itens.forEach((m) => {
                     html += `
@@ -697,53 +721,89 @@
 
         function tentarFazerUploadGenerico(colecao, tituloGestor, tipoFicheiro) {
             abrirJanelaFixa(`
-                <h2>📤 Adicionar Ficheiro</h2>
+                <h2>📤 Enviar Ficheiro (Nuvem)</h2>
                 <hr>
                 <label class="file-upload-box">
                     📂 Selecionar do Telemóvel
-                    <input type="file" accept="${tipoFicheiro}" onchange="uploadCloudLocal(event, '${colecao}', '${tituloGestor}', '${tipoFicheiro}')">
+                    <input type="file" accept="${tipoFicheiro}" onchange="uploadCloudFirestore(event, '${colecao}', '${tituloGestor}', '${tipoFicheiro}')">
                 </label>
                 <button onclick="renderizarGestorCloud('${colecao}', '${tituloGestor}', '${tipoFicheiro}')" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
             `);
         }
 
-        function uploadCloudLocal(event, colecao, tituloGestor, tipoFicheiro) {
+        function uploadCloudFirestore(event, colecao, tituloGestor, tipoFicheiro) {
             const ficheiro = event.target.files[0];
             if (!ficheiro) return;
 
             let userId = localStorage.getItem("utilizador_id_nuvem");
-            mostrarToast("A carregar ficheiro...");
+            if (!userId) {
+                mostrarToast("Erro: Utilizador não identificado.");
+                return;
+            }
+
+            if (ficheiro.size > 5 * 1024 * 1024) {
+                mostrarToast("O ficheiro excede o limite de 5MB.");
+                return;
+            }
+
+            mostrarToast("A dividir e enviar para a nuvem...");
 
             const leitor = new FileReader();
             leitor.onload = function(e) {
-                let chaveStorage = `angola_files_${userId}_${colecao}`;
-                let ficheirosSalvos = JSON.parse(localStorage.getItem(chaveStorage)) || [];
-                
-                ficheirosSalvos.push({
-                    id: 'local_' + Date.now(),
+                const base64Dados = e.target.result;
+                const tamanhoPedaco = 800 * 1024;
+                const totalPedaços = Math.ceil(base64Dados.length / tamanhoPedaco);
+                const fileIdUnico = 'file_' + Date.now();
+
+                let batch = dbCloud.batch();
+
+                let docPrincipalRef = dbCloud.collection(colecao).doc(fileIdUnico);
+                batch.set(docPrincipalRef, {
                     userId: userId,
                     nome: ficheiro.name,
-                    url: e.target.result,
-                    criadoEm: new Date().toISOString()
+                    tipo: tipoFicheiro,
+                    totalPedaços: totalPedaços,
+                    criadoEm: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                localStorage.setItem(chaveStorage, JSON.stringify(ficheirosSalvos));
-                mostrarToast("Ficheiro guardado com sucesso!");
-                renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro);
+                for (let i = 0; i < totalPedaços; i++) {
+                    let pedacoStr = base64Dados.substring(i * tamanhoPedaco, (i + 1) * tamanhoPedaco);
+                    let pedacoRef = dbCloud.collection(colecao + "_pedacos").doc(`${fileIdUnico}_part_${i}`);
+                    batch.set(pedacoRef, {
+                        fileId: fileIdUnico,
+                        indice: i,
+                        dados: pedacoStr
+                    });
+                }
+
+                batch.commit().then(() => {
+                    mostrarToast("Ficheiro guardado na nuvem!");
+                    renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro);
+                }).catch((err) => {
+                    console.error("Erro no upload:", err);
+                    mostrarToast("Erro ao enviar para a nuvem.");
+                });
             };
             leitor.readAsDataURL(ficheiro);
         }
 
         function apagarCloud(colecao, id, tituloGestor, tipoFicheiro) {
-            let userId = localStorage.getItem("utilizador_id_nuvem");
-            let chaveStorage = `angola_files_${userId}_${colecao}`;
-            let ficheirosSalvos = JSON.parse(localStorage.getItem(chaveStorage)) || [];
+            mostrarToast("A eliminar da nuvem...");
             
-            let atualizados = ficheirosSalvos.filter(item => item.id !== id);
-            localStorage.setItem(chaveStorage, JSON.stringify(atualizados));
+            dbCloud.collection(colecao + "_pedacos").where("fileId", "==", id).get().then((snapshot) => {
+                let batch = dbCloud.batch();
+                snapshot.forEach(doc => batch.delete(doc.ref));
+                
+                let docPrincipalRef = dbCloud.collection(colecao).doc(id);
+                batch.delete(docPrincipalRef);
 
-            mostrarToast("Ficheiro eliminado!");
-            renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro);
+                batch.commit().then(() => {
+                    mostrarToast("Ficheiro eliminado da nuvem!");
+                    renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro);
+                });
+            }).catch((err) => {
+                mostrarToast("Erro ao eliminar.");
+            });
         }
 
         function reproduzirMusicaCloud(url) {
