@@ -619,7 +619,7 @@
             }
         }
 
-        // GESTOR DE FICHEIROS NA NUVEM (FIRESTORE COM SUPORTE ATÉ 5MB)
+        // GESTOR DE FICHEIROS NUVEM (ATÉ 10MB - SEQUENCIAL SEGURO SEM BLOQUEAR)
         function renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro) {
             let userId = localStorage.getItem("utilizador_id_nuvem");
             mostrarToast("A sincronizar com a nuvem...");
@@ -643,7 +643,7 @@
                         let urlCompleta = pedacosArray.join('');
                         itensCloud.push({ id: fileId, nome: dadosDoc.nome, url: urlCompleta, ...dadosDoc });
                     } catch (e) {
-                        console.error("Erro ao juntar pedaços:", e);
+                        console.error("Erro ao juntar partes:", e);
                     }
                 }
 
@@ -741,66 +741,75 @@
                 return;
             }
 
-            if (ficheiro.size > 5 * 1024 * 1024) {
-                mostrarToast("O ficheiro excede o limite de 5MB.");
+            if (ficheiro.size > 10 * 1024 * 1024) {
+                mostrarToast("O ficheiro excede o limite de 10MB.");
                 return;
             }
 
-            mostrarToast("A dividir e enviar para a nuvem...");
+            mostrarToast("A preparar ficheiro (até 10MB)...");
 
             const leitor = new FileReader();
             leitor.onload = function(e) {
                 const base64Dados = e.target.result;
-                const tamanhoPedaco = 800 * 1024;
+                const tamanhoPedaco = 700 * 1024;
                 const totalPedaços = Math.ceil(base64Dados.length / tamanhoPedaco);
-                const fileIdUnico = 'file_' + Date.now();
+                const fileIdUnico = 'file10m_' + Date.now();
 
-                let batch = dbCloud.batch();
+                mostrarToast(`A enviar ${totalPedaços} partes para a nuvem...`);
 
-                let docPrincipalRef = dbCloud.collection(colecao).doc(fileIdUnico);
-                batch.set(docPrincipalRef, {
+                dbCloud.collection(colecao).doc(fileIdUnico).set({
                     userId: userId,
                     nome: ficheiro.name,
                     tipo: tipoFicheiro,
                     totalPedaços: totalPedaços,
                     criadoEm: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                for (let i = 0; i < totalPedaços; i++) {
-                    let pedacoStr = base64Dados.substring(i * tamanhoPedaco, (i + 1) * tamanhoPedaco);
-                    let pedacoRef = dbCloud.collection(colecao + "_pedacos").doc(`${fileIdUnico}_part_${i}`);
-                    batch.set(pedacoRef, {
-                        fileId: fileIdUnico,
-                        indice: i,
-                        dados: pedacoStr
+                }).then(() => {
+                    enviarPedacosEmLotes(colecao, fileIdUnico, base64Dados, tamanhoPedaco, totalPedaços, 0, () => {
+                        mostrarToast("Ficheiro guardado com sucesso!");
+                        renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro);
                     });
-                }
-
-                batch.commit().then(() => {
-                    mostrarToast("Ficheiro guardado na nuvem!");
-                    renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro);
                 }).catch((err) => {
-                    console.error("Erro no upload:", err);
-                    mostrarToast("Erro ao enviar para a nuvem.");
+                    console.error("Erro:", err);
+                    mostrarToast("Erro ao iniciar o envio.");
                 });
             };
             leitor.readAsDataURL(ficheiro);
         }
 
+        function enviarPedacosEmLotes(colecao, fileIdUnico, base64Dados, tamanhoPedaco, totalPedaços, indiceAtual, callbackConcluido) {
+            if (indiceAtual >= totalPedaços) {
+                callbackConcluido();
+                return;
+            }
+
+            let pedacoStr = base64Dados.substring(indiceAtual * tamanhoPedaco, (indiceAtual + 1) * tamanhoPedaco);
+            let pedacoRef = dbCloud.collection(colecao + "_pedacos").doc(`${fileIdUnico}_part_${indiceAtual}`);
+
+            pedacoRef.set({
+                fileId: fileIdUnico,
+                indice: indiceAtual,
+                dados: pedacoStr
+            }).then(() => {
+                enviarPedacosEmLotes(colecao, fileIdUnico, base64Dados, tamanhoPedaco, totalPedaços, indiceAtual + 1, callbackConcluido);
+            }).catch((err) => {
+                console.error("Erro no pedaço:", err);
+                mostrarToast("Erro ao enviar parte do ficheiro.");
+            });
+        }
+
         function apagarCloud(colecao, id, tituloGestor, tipoFicheiro) {
             mostrarToast("A eliminar da nuvem...");
             
-            dbCloud.collection(colecao + "_pedacos").where("fileId", "==", id).get().then((snapshot) => {
+            dbCloud.collection(colecao + "_pedacos").where("fileId", "==", id).get().then(async (snapshot) => {
                 let batch = dbCloud.batch();
                 snapshot.forEach(doc => batch.delete(doc.ref));
                 
                 let docPrincipalRef = dbCloud.collection(colecao).doc(id);
                 batch.delete(docPrincipalRef);
 
-                batch.commit().then(() => {
-                    mostrarToast("Ficheiro eliminado da nuvem!");
-                    renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro);
-                });
+                await batch.commit();
+                mostrarToast("Ficheiro eliminado da nuvem!");
+                renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro);
             }).catch((err) => {
                 mostrarToast("Erro ao eliminar.");
             });
