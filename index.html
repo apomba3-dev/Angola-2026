@@ -10,10 +10,9 @@
     <meta name="apple-mobile-web-app-title" content="Angola 2026">
     <link rel="manifest" href="manifest.json">
     
-    <!-- Firebase SDKs (Compat) -->
+    <!-- Firebase SDKs (Compat - Apenas Firestore, sem Storage obrigatório) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
 
     <style>
         body { 
@@ -226,7 +225,6 @@
             firebase.initializeApp(firebaseConfig);
         }
         const dbCloud = firebase.firestore();
-        const storageCloud = firebase.storage();
 
         const MEU_TITULAR = "Artur Jamba Pomba";
         const MEU_BANCO = "Banco (BFA/BAI/Outro)";
@@ -690,7 +688,7 @@
             html += `<hr><div id="containerListaCloud" style="max-height: 180px; overflow-y: auto;">`;
 
             if (itens.length === 0) {
-                html += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Nenhum ficheiro encontrado.</p>`;
+                html += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Nenhum ficheiro guardado na nuvem.</p>`;
             } else {
                 itens.forEach((m) => {
                     html += `
@@ -753,11 +751,11 @@
 
         function tentarFazerUploadGenerico(colecao, tituloGestor, tipoFicheiro) {
             abrirJanelaFixa(`
-                <h2>📤 Enviar Ficheiro</h2>
+                <h2>📤 Enviar Ficheiro (Nuvem Segura)</h2>
                 <hr>
                 <label class="file-upload-box">
                     📂 Selecionar do Telemóvel
-                    <input type="file" accept="${tipoFicheiro}" onchange="uploadCloud(event, '${colecao}', '${tituloGestor}', '${tipoFicheiro}')">
+                    <input type="file" accept="${tipoFicheiro}" onchange="uploadCloudFirestore(event, '${colecao}', '${tituloGestor}', '${tipoFicheiro}')">
                 </label>
                 <button onclick="renderizarGestorCloud('${colecao}', '${tituloGestor}', '${tipoFicheiro}')" class="secondary-btn" style="padding:10px; margin-top:5px;">Cancelar</button>
             `);
@@ -768,7 +766,7 @@
         function abrirGaleriaImagens() { renderizarGestorCloud("imagens", "🖼️ As Minhas Imagens", "image/*"); }
         function abrirGestorPDFs() { renderizarGestorCloud("pdfs", "📄 Os Meus Documentos PDF", "application/pdf"); }
 
-        function uploadCloud(event, colecao, tituloGestor, tipoFicheiro) {
+        function uploadCloudFirestore(event, colecao, tituloGestor, tipoFicheiro) {
             const ficheiro = event.target.files[0];
             if (!ficheiro) {
                 mostrarToast("Nenhum ficheiro selecionado.");
@@ -781,28 +779,26 @@
                 return;
             }
 
-            mostrarToast("A enviar para a nuvem...");
-            const storageRef = storageCloud.ref(`${colecao}/${userId}/${Date.now()}_${ficheiro.name}`);
-            
-            storageRef.put(ficheiro).then((snapshot) => {
-                snapshot.ref.getDownloadURL().then((downloadURL) => {
-                    dbCloud.collection(colecao).add({
-                        userId: userId,
-                        nome: ficheiro.name,
-                        url: downloadURL,
-                        criadoEm: firebase.firestore.FieldValue.serverTimestamp()
-                    }).then(() => {
-                        mostrarToast("Ficheiro guardado na sua conta!");
-                        renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro);
-                    }).catch((err) => {
-                        console.error("Erro no Firestore:", err);
-                        mostrarToast("Erro ao gravar dados na nuvem.");
-                    });
+            mostrarToast("A guardar na nuvem...");
+
+            const leitor = new FileReader();
+            leitor.onload = function(e) {
+                const base64Dados = e.target.result;
+
+                dbCloud.collection(colecao).add({
+                    userId: userId,
+                    nome: ficheiro.name,
+                    url: base64Dados,
+                    criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+                }).then(() => {
+                    mostrarToast("Ficheiro guardado na sua conta!");
+                    renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro);
+                }).catch((err) => {
+                    console.error("Erro no Firestore:", err);
+                    mostrarToast("Erro ao gravar dados na nuvem.");
                 });
-            }).catch((error) => {
-                console.error("Erro no Storage:", error);
-                mostrarToast("Erro ao enviar. Verifique a ligação.");
-            });
+            };
+            leitor.readAsDataURL(ficheiro);
         }
 
         function tentarBaixarCloud(url, nome) {
@@ -810,7 +806,6 @@
                 const link = document.createElement('a');
                 link.href = url;
                 link.download = nome;
-                link.target = '_blank';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
