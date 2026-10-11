@@ -620,7 +620,7 @@
             }
         }
 
-        // GESTOR DE FICHEIROS NUVEM COM BOTÃO INSTANTÂNEO E SPINNER
+        // GESTOR DE FICHEIROS NUVEM COM BOTÕES DE AÇÃO (REPRODUZIR, BAIXAR E APAGAR)
         function renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro) {
             let userId = localStorage.getItem("utilizador_id_nuvem");
             mostrarToast("A sincronizar com a nuvem...");
@@ -658,14 +658,12 @@
         function construirInterfaceGestor(colecao, tituloGestor, tipoFicheiro, itens) {
             let html = `<h2>${tituloGestor}</h2>`;
             
-            // Botão de upload direto que abre o explorador de ficheiros instantaneamente
             html += `
             <label style="background:#059669; color:white; padding:12px; text-align:center; border-radius:8px; font-weight:bold; font-size:0.95rem; cursor:pointer; display:block; margin-bottom:8px; border:1px solid #34d399;">
                 ➕ Selecionar e Enviar Ficheiro
                 <input type="file" accept="${tipoFicheiro}" onchange="uploadCloudFirestore(event, '${colecao}', '${tituloGestor}', '${tipoFicheiro}')" style="display:none;">
             </label>`;
             
-            // Container da Roda de Carregamento (Spinner)
             html += `<div id="spinnerContainer" class="spinner-container">
                         <div class="spinner"></div>
                         <p id="textoProgressoUpload" style="font-size: 0.85rem; color: #93c5fd; margin: 0;">A enviar...</p>
@@ -678,12 +676,15 @@
                 html += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Nenhum ficheiro na nuvem.</p>`;
             } else {
                 itens.forEach((m) => {
+                    let urlSegura = m.url ? m.url.replace(/"/g, '&quot;') : '';
+                    let nomeSeguro = m.nome ? m.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;') : 'ficheiro';
+                    
                     html += `
                     <div style="background:#ffffff; border:1px solid #e2e8f0; padding:6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${m.nome}">📄 ${m.nome}</span>
-                        <div style="display: flex; gap: 2px;">
-                            ${gerarBotoesAcaoItem(colecao, m)}
-                            <button onclick='apagarCloud("${colecao}", "${m.id}", "${tituloGestor}", "${tipoFicheiro}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                        <div style="display: flex; gap: 3px;">
+                            ${gerarBotoesAcaoItem(colecao, urlSegura, nomeSeguro)}
+                            <button onclick='apagarCloud("${colecao}", "${m.id}", "${tituloGestor}", "${tipoFicheiro}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                         </div>
                     </div>`;
                 });
@@ -708,29 +709,45 @@
 
             let html = "";
             filtrados.forEach((m) => {
+                let urlSegura = m.url ? m.url.replace(/"/g, '&quot;') : '';
+                let nomeSeguro = m.nome ? m.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;') : 'ficheiro';
+
                 html += `
                 <div style="background:#ffffff; border:1px solid #e2e8f0; padding:6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
                     <span style="font-size:0.8rem; color:#334155; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;" title="${m.nome}">📄 ${m.nome}</span>
-                    <div style="display: flex; gap: 2px;">
-                        ${gerarBotoesAcaoItem(colecao, m)}
-                        <button onclick='apagarCloud("${colecao}", "${m.id}", "${tituloGestor}", "${tipoFicheiro}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                    <div style="display: flex; gap: 3px;">
+                        ${gerarBotoesAcaoItem(colecao, urlSegura, nomeSeguro)}
+                        <button onclick='apagarCloud("${colecao}", "${m.id}", "${tituloGestor}", "${tipoFicheiro}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
                     </div>
                 </div>`;
             });
             container.innerHTML = html;
         }
 
-        function gerarBotoesAcaoItem(colecao, m) {
+        function gerarBotoesAcaoItem(colecao, url, nome) {
+            let botaoReproduzir = "";
             if (colecao === "musicas") {
-                return `<button onclick='reproduzirMusicaCloud("${m.url}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ouvir">▶</button>`;
+                botaoReproduzir = `<button onclick='reproduzirMusicaCloud("${url}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#059669;" title="Ouvir">▶</button>`;
             } else if (colecao === "videos") {
-                return `<button onclick='reproduzirVideoCloud("${m.url}", "${m.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">▶</button>`;
+                botaoReproduzir = `<button onclick='reproduzirVideoCloud("${url}", "${nome}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#059669;" title="Ver">▶</button>`;
             } else if (colecao === "imagens") {
-                return `<button onclick='verImagemCloud("${m.url}", "${m.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">🔍</button>`;
+                botaoReproduzir = `<button onclick='verImagemCloud("${url}", "${nome}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#059669;" title="Ver">🔍</button>`;
             } else if (colecao === "pdfs") {
-                return `<button onclick='window.open("${m.url}", "_blank")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">👁️</button>`;
+                botaoReproduzir = `<button onclick='window.open("${url}", "_blank")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#059669;" title="Ver">👁️</button>`;
             }
-            return "";
+
+            let botaoBaixar = `<button onclick='baixarFicheiroCloud("${url}", "${nome}")' style="padding:2px 5px; margin:0; font-size:0.65rem; width:auto; background:#0284c7;" title="Baixar">📥</button>`;
+            return botaoReproduzir + botaoBaixar;
+        }
+
+        function baixarFicheiroCloud(url, nome) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = nome;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            mostrarToast("A transferir ficheiro...");
         }
 
         function uploadCloudFirestore(event, colecao, tituloGestor, tipoFicheiro) {
@@ -831,6 +848,7 @@
             player.src = url;
             player.style.display = "block";
             player.play();
+            mostrarToast("A reproduzir música...");
         }
 
         function reproduzirVideoCloud(url, titulo) {
