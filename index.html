@@ -124,6 +124,22 @@
         .danger-btn { background: #dc2626 !important; color: white !important; }
         .secondary-btn { background: #64748b !important; color: #ffffff !important; }
         
+        /* Estilo da Roda de Carregamento (Spinner) */
+        .spinner-container { display: none; text-align: center; padding: 15px; }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #cbd5e1;
+            border-top: 4px solid #1d4ed8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 10px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         #toastNotificacao {
             visibility: hidden;
             min-width: 220px;
@@ -243,32 +259,32 @@
             {
                 titulo: "História de Angola: Da Resistência à Independência",
                 categoria: "História",
-                conteudo: "A história de Angola é marcada por séculos de resistência contra a colonização portuguesa, culminando na Luta Armada de Libertação Nacional liderada pelos movimentos independentistas. A independência nacional foi proclamada a 11 de novembro de 1975 pelo Dr. Agostinho Neto, primeiro Presidente de Angola."
+                conteudo: "A história de Angola é marcada por séculos de resistência contra a colonização portuguesa, culminando na Luta Armada de Libertação Nacional liderada pelos movimentos independentistas."
             },
             {
                 titulo: "Símbolos Nacionais e Cidadania",
                 categoria: "Cidadania",
-                conteudo: "A cidadania angolana rege-se pelos deveres e direitos fundamentais consagrados na Constituição. Os Símbolos Nacionais de Angola são a Bandeira Nacional (com as cores vermelha, preta e o emblema da roda dentada, machete e estrela), a Insígnia da República e o Hino Nacional ('Angola Avante')."
+                conteudo: "A cidadania angolana rege-se pelos deveres e direitos fundamentais consagrados na Constituição."
             },
             {
                 titulo: "Instituições da República de Angola",
                 categoria: "Instituições",
-                conteudo: "As instituições da República de Angola fundamentam-se no respeito pela Constituição e pela lei, estruturando-se com base no princípio da separação de poderes e interdependência de funções."
+                conteudo: "As instituições fundamentam-se no respeito pela Constituição e pela lei com base na separação de poderes."
             },
             {
                 titulo: "Organização do Estado Angolano",
                 categoria: "Organização do Estado",
-                conteudo: "O Estado angolano organiza-se sob a forma de uma República unitária e presidencialista, estruturada com base na separação de poderes entre Executivo, Legislativo e Judicial."
+                conteudo: "O Estado angolano organiza-se sob a forma de uma República unitária e presidencialista."
             },
             {
                 titulo: "Administração Pública em Angola",
                 categoria: "Administração",
-                conteudo: "A Administração Pública em Angola visa assegurar a satisfação das necessidades coletivas dos cidadãos, estruturando-se de forma descentralizada."
+                conteudo: "A Administração Pública visa assegurar a satisfação das necessidades coletivas dos cidadãos."
             },
             {
                 titulo: "Ministério do Interior (MININT)",
                 categoria: "Minint",
-                conteudo: "O Ministério do Interior (MININT) é responsável pela segurança pública e ordem interna através de órgãos como a PNA, SIC, SME, Serviço Penitenciário e Bombeiros."
+                conteudo: "Responsável pela segurança pública e ordem interna através de órgãos como PNA, SIC, SME e Bombeiros."
             }
         ];
 
@@ -619,7 +635,7 @@
             }
         }
 
-        // GESTOR DE FICHEIROS NUVEM (ATÉ 10MB - SEQUENCIAL SEGURO SEM BLOQUEAR)
+        // GESTOR DE FICHEIROS NUVEM COM SPINNER ANIMADO (RODA A GIRAR)
         function renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro) {
             let userId = localStorage.getItem("utilizador_id_nuvem");
             mostrarToast("A sincronizar com a nuvem...");
@@ -657,8 +673,15 @@
         function construirInterfaceGestor(colecao, tituloGestor, tipoFicheiro, itens) {
             let html = `<h2>${tituloGestor}</h2>`;
             html += `<button onclick="tentarFazerUploadGenerico('${colecao}', '${tituloGestor}', '${tipoFicheiro}')" style="background:#059669; font-size:0.95rem; margin-bottom:8px; padding:10px;">➕ Enviar para a Nuvem</button>`;
+            
+            // Container da Roda de Carregamento (Spinner)
+            html += `<div id="spinnerContainer" class="spinner-container">
+                        <div class="spinner"></div>
+                        <p id="textoProgressoUpload" style="font-size: 0.85rem; color: #93c5fd; margin: 0;">A enviar...</p>
+                     </div>`;
+
             html += `<input type="text" id="inputPesquisaCloud" placeholder="Pesquisar..." oninput="filtrarGestorCloud('${colecao}', '${tituloGestor}', '${tipoFicheiro}')" style="padding:8px; font-size:0.9rem; margin-bottom:8px;">`;
-            html += `<hr><div id="containerListaCloud" style="max-height: 180px; overflow-y: auto;">`;
+            html += `<hr><div id="containerListaCloud" style="max-height: 150px; overflow-y: auto;">`;
 
             if (itens.length === 0) {
                 html += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Nenhum ficheiro na nuvem.</p>`;
@@ -746,7 +769,11 @@
                 return;
             }
 
-            mostrarToast("A preparar ficheiro (até 10MB)...");
+            // Ativar a roda de carregamento visual
+            let spinner = document.getElementById("spinnerContainer");
+            let textoProg = document.getElementById("textoProgressoUpload");
+            if (spinner) spinner.style.display = "block";
+            if (textoProg) textoProg.innerText = "A preparar ficheiro...";
 
             const leitor = new FileReader();
             leitor.onload = function(e) {
@@ -755,7 +782,7 @@
                 const totalPedaços = Math.ceil(base64Dados.length / tamanhoPedaco);
                 const fileIdUnico = 'file10m_' + Date.now();
 
-                mostrarToast(`A enviar ${totalPedaços} partes para a nuvem...`);
+                if (textoProg) textoProg.innerText = `A enviar (0/${totalPedaços} partes)...`;
 
                 dbCloud.collection(colecao).doc(fileIdUnico).set({
                     userId: userId,
@@ -764,23 +791,33 @@
                     totalPedaços: totalPedaços,
                     criadoEm: firebase.firestore.FieldValue.serverTimestamp()
                 }).then(() => {
-                    enviarPedacosEmLotes(colecao, fileIdUnico, base64Dados, tamanhoPedaco, totalPedaços, 0, () => {
-                        mostrarToast("Ficheiro guardado com sucesso!");
+                    enviarPedacosComSpinner(colecao, fileIdUnico, base64Dados, tamanhoPedaco, totalPedaços, 0, () => {
+                        // Sucesso total: Para a roda e avisa
+                        if (spinner) spinner.style.display = "none";
+                        mostrarToast("Foi enviado com sucesso!");
                         renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro);
+                    }, () => {
+                        // Erro
+                        if (spinner) spinner.style.display = "none";
+                        mostrarToast("Envio sem sucesso. Tente novamente.");
                     });
                 }).catch((err) => {
                     console.error("Erro:", err);
-                    mostrarToast("Erro ao iniciar o envio.");
+                    if (spinner) spinner.style.display = "none";
+                    mostrarToast("Envio sem sucesso.");
                 });
             };
             leitor.readAsDataURL(ficheiro);
         }
 
-        function enviarPedacosEmLotes(colecao, fileIdUnico, base64Dados, tamanhoPedaco, totalPedaços, indiceAtual, callbackConcluido) {
+        function enviarPedacosComSpinner(colecao, fileIdUnico, base64Dados, tamanhoPedaco, totalPedaços, indiceAtual, callbackSucesso, callbackErro) {
             if (indiceAtual >= totalPedaços) {
-                callbackConcluido();
+                callbackSucesso();
                 return;
             }
+
+            let textoProg = document.getElementById("textoProgressoUpload");
+            if (textoProg) textoProg.innerText = `A enviar parte ${indiceAtual + 1} de ${totalPedaços}...`;
 
             let pedacoStr = base64Dados.substring(indiceAtual * tamanhoPedaco, (indiceAtual + 1) * tamanhoPedaco);
             let pedacoRef = dbCloud.collection(colecao + "_pedacos").doc(`${fileIdUnico}_part_${indiceAtual}`);
@@ -790,10 +827,10 @@
                 indice: indiceAtual,
                 dados: pedacoStr
             }).then(() => {
-                enviarPedacosEmLotes(colecao, fileIdUnico, base64Dados, tamanhoPedaco, totalPedaços, indiceAtual + 1, callbackConcluido);
+                enviarPedacosComSpinner(colecao, fileIdUnico, base64Dados, tamanhoPedaco, totalPedaços, indiceAtual + 1, callbackSucesso, callbackErro);
             }).catch((err) => {
                 console.error("Erro no pedaço:", err);
-                mostrarToast("Erro ao enviar parte do ficheiro.");
+                callbackErro();
             });
         }
 
