@@ -229,7 +229,18 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then((reg) => console.log('Service Worker registado!', reg.scope))
+                    .then((reg) => {
+                        console.log('Service Worker registado!', reg.scope);
+                        reg.onupdatefound = () => {
+                            const installingWorker = reg.installing;
+                            installingWorker.onstatechange = () => {
+                                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    mostrarToast("Nova versão detetada. A atualizar...");
+                                    window.location.reload();
+                                }
+                            };
+                        };
+                    })
                     .catch((err) => console.log('Erro Service Worker:', err));
             });
         }
@@ -592,18 +603,18 @@
             let nomeUtilizador = localStorage.getItem("utilizador_nome") || "Utilizador";
             let contactoUtilizador = localStorage.getItem("utilizador_contacto") || "Sem contacto";
             
-            let textoNotificacaoAdmin = `Olá Artur! O utilizador *${nomeUtilizador}* (${contactoUtilizador}) efetuou ou vai efetuar a transferência via IBAN para baixar o ficheiro: *${nomeFicheiro}*.`;
+            let textoNotificacaoAdmin = `Olá Artur! O utilizador *${nomeUtilizador}* (${contactoUtilizador}) efetuou ou vai efetuar a transferência via IBAN para aceder a: *${nomeFicheiro}*.`;
             let linkZapAdmin = `https://wa.me/244944048287?text=` + encodeURIComponent(textoNotificacaoAdmin);
 
             abrirJanelaFixa(`
-                <h2>🔒 Baixar Ficheiro</h2>
+                <h2>🔒 Painel Restrito</h2>
                 <hr>
                 <p style="font-size: 0.8rem; margin-bottom: 6px;">Efetue o pagamento para o IBAN abaixo e notifique o Admin:</p>
                 <div class="iban-box">${MEU_IBAN}</div>
                 <button onclick="window.open('${linkZapAdmin}', '_blank')" class="whatsapp-btn" style="padding:10px; margin-bottom:8px; font-size:0.85rem;">💬 Notificar Admin (WhatsApp)</button>
                 <p style="font-size: 0.8rem; margin-bottom: 4px; color:#1e3a8a;"><b>Insira a senha do Administrador:</b></p>
                 <input type="password" id="senhaPainelAdmin" placeholder="Senha" style="padding:10px; font-size:0.9rem; margin-bottom:8px;">
-                <button onclick='verificarLoginAdminComSucesso(${callbackSucesso.name})' style="background:#059669; padding:10px; margin-bottom:6px;">Confirmar e Baixar</button>
+                <button onclick='verificarLoginAdminComSucesso(${callbackSucesso.name})' style="background:#059669; padding:10px; margin-bottom:6px;">Confirmar Acesso</button>
                 <button onclick="fecharJanelaModal()" class="secondary-btn" style="padding: 10px;">Voltar</button>
             `);
         }
@@ -620,7 +631,7 @@
             }
         }
 
-        // GESTOR DE FICHEIROS NUVEM COM BOTÕES DE AÇÃO (REPRODUZIR, BAIXAR E APAGAR)
+        // GESTOR DE FICHEIROS NUVEM COM BOTÕES DE AÇÃO E SPINNER
         function renderizarGestorCloud(colecao, tituloGestor, tipoFicheiro) {
             let userId = localStorage.getItem("utilizador_id_nuvem");
             mostrarToast("A sincronizar com a nuvem...");
@@ -843,6 +854,118 @@
             });
         }
 
+        // PAINEL GLOBAL DE ADMINISTRADOR (COM CÁLCULO DE ESPAÇO)
+        function abrirPainelAdminGlobal() {
+            abrirPainelAdminComInfo("Painel Global de Ficheiros", async () => {
+                mostrarToast("A calcular espaço e ficheiros globais...");
+                let colecoes = ["musicas", "videos", "imagens", "pdfs"];
+                let todosOsFicheiros = [];
+                let usoPorUtilizador = {};
+
+                for (let col of colecoes) {
+                    try {
+                        let snapshot = await dbCloud.collection(col).get();
+                        for (let docSnap of snapshot.docs) {
+                            let dadosDoc = docSnap.data();
+                            let fileId = docSnap.id;
+                            let userId = dadosDoc.userId || "Desconhecido";
+                            
+                            let pedacosSnap = await dbCloud.collection(col + "_pedacos").where("fileId", "==", fileId).get();
+                            let pedacosArray = new Array(dadosDoc.totalPedaços);
+                            let tamanhoFicheiroBytes = 0;
+
+                            pedacosSnap.forEach(pDoc => {
+                                let pData = pDoc.data();
+                                pedacosArray[pData.indice] = pData.dados;
+                                if (pData.dados) {
+                                    tamanhoFicheiroBytes += (pData.dados.length * 3) / 4;
+                                }
+                            });
+
+                            if (!usoPorUtilizador[userId]) {
+                                usoPorUtilizador[userId] = { totalBytes: 0, quantidade: 0 };
+                            }
+                            usoPorUtilizador[userId].totalBytes += tamanhoFicheiroBytes;
+                            usoPorUtilizador[userId].quantidade += 1;
+
+                            todosOsFicheiros.push({
+                                id: fileId,
+                                colecao: col,
+                                nome: dadosDoc.nome,
+                                userId: userId,
+                                tamanhoMb: (tamanhoFicheiroBytes / (1024 * 1024)).toFixed(2),
+                                url: pedacosArray.join('')
+                            });
+                        }
+                    } catch (e) {
+                        console.error("Erro ao carregar coleção " + col, e);
+                    }
+                }
+
+                renderizarInterfaceAdminComEstatisticas(todosOsFicheiros, usoPorUtilizador);
+            });
+        }
+
+        function renderizarInterfaceAdminComEstatisticas(itens, usoUtilizadores) {
+            let html = `<h2>🛡️ Gestão e Espaço Global</h2><hr>`;
+            
+            html += `<p style="font-size:0.85rem; font-weight:bold; color:#1e3a8a; margin-bottom:4px;">📊 Espaço por Conta:</p>`;
+            html += `<div style="background:#f8fafc; border:1px solid #cbd5e1; padding:6px; border-radius:6px; margin-bottom:8px; max-height:85px; overflow-y:auto;">`;
+            
+            let idsUtilizadores = Object.keys(usoUtilizadores);
+            if (idsUtilizadores.length === 0) {
+                html += `<p style="font-size:0.75rem; color:#64748b; text-align:center;">Sem dados de uso.</p>`;
+            } else {
+                idsUtilizadores.forEach(uid => {
+                    let info = usoUtilizadores[uid];
+                    let tamanhoFormatado = info.totalBytes > (1024 * 1024) ? 
+                        (info.totalBytes / (1024 * 1024)).toFixed(2) + " MB" : 
+                        (info.totalBytes / 1024).toFixed(1) + " KB";
+                    
+                    html += `<div style="font-size:0.75rem; color:#334155; margin-bottom:2px; display:flex; justify-content:space-between;">
+                        <span style="font-family:monospace; max-width:140px; overflow:hidden; text-overflow:ellipsis;">ID: ${uid.substring(0, 8)}...</span>
+                        <b>${info.quantidade} fich. (${tamanhoFormatado})</b>
+                    </div>`;
+                });
+            }
+            html += `</div>`;
+
+            html += `<p style="font-size:0.85rem; font-weight:bold; color:#1e3a8a; margin-bottom:4px;">📂 Todos os Ficheiros:</p>`;
+            html += `<div style="max-height: 150px; overflow-y: auto;">`;
+
+            if (itens.length === 0) {
+                html += `<p style="font-size:0.8rem; color:#64748b; text-align:center;">Nenhum ficheiro na nuvem.</p>`;
+            } else {
+                itens.forEach((m) => {
+                    html += `
+                    <div style="background:#ffffff; border:1px solid #e2e8f0; padding:6px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
+                        <div style="max-width: 120px; overflow: hidden;">
+                            <span style="font-size:0.7rem; color:#1e3a8a; font-weight:bold; display:block;">[${m.colecao}] ${m.tamanhoMb}MB</span>
+                            <span style="font-size:0.75rem; color:#334155; text-overflow:ellipsis; white-space:nowrap;" title="${m.nome}">${m.nome}</span>
+                        </div>
+                        <div style="display: flex; gap: 2px;">
+                            <button onclick='window.open("${m.url}", "_blank")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#059669;" title="Ver">👁️</button>
+                            <button onclick='baixarFicheiroCloud("${m.url}", "${m.nome}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#0284c7;" title="Baixar">📥</button>
+                            <button onclick='apagarAdminGlobal("${m.colecao}", "${m.id}")' style="padding:2px 4px; margin:0; font-size:0.6rem; width:auto; background:#dc2626;" title="Apagar">✕</button>
+                        </div>
+                    </div>`;
+                });
+            }
+            html += `</div><br><button onclick="abrirSubmenuDireito()" class="secondary-btn" style="padding:10px;">Voltar</button>`;
+            abrirJanelaFixa(html);
+        }
+
+        function apagarAdminGlobal(colecao, id) {
+            dbCloud.collection(colecao + "_pedacos").where("fileId", "==", id).get().then(async (snapshot) => {
+                let batch = dbCloud.batch();
+                snapshot.forEach(doc => batch.delete(doc.ref));
+                batch.delete(dbCloud.collection(colecao).doc(id));
+                await batch.commit();
+                mostrarToast("Ficheiro apagado pelo Admin!");
+                abrirPainelAdminGlobal();
+            });
+        }
+
         function reproduzirMusicaCloud(url) {
             const player = document.getElementById("audioPlayer");
             player.src = url;
@@ -897,6 +1020,7 @@
             abrirJanelaFixa(`
                 <h2>⚙️ Opções</h2>
                 <hr>
+                <button onclick="abrirPainelAdminGlobal()" style="background:#dc2626; padding:10px;">🛡️ Painel Global Admin</button>
                 <button onclick="instalarAplicativo()" style="background:#059669; padding:10px;">📥 Instalar Aplicativo</button>
                 <button onclick="infoDev()" style="padding:10px;">ℹ Sobre</button>
                 <button onclick="infoIban()" style="padding:10px;">💳 IBAN</button>
